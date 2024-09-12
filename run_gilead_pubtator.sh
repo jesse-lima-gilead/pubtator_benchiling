@@ -1,5 +1,8 @@
 #!/bin/bash
 
+###### ToDo
+# Connect to AWS
+
 ###### Run the Data Ingestion Pipeline
 python src/data_ingestion/ingest_pubmed_articles.py
 
