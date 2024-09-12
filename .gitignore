@@ -2,6 +2,9 @@
 AIONER/
 GNorm2/
 
+# Exclude the Execution Logs folders
+ExecutionLogs/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

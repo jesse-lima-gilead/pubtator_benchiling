@@ -8,11 +8,15 @@ from dotenv import load_dotenv
 from src.utils.config_reader import YAMLConfigLoader
 from src.utils.logger import SingletonLogger
 
+# Initialize the logger
+logger_instance = SingletonLogger()
+logger = logger_instance.get_logger()
+
 # Initialize the config loader
 config_loader = YAMLConfigLoader()
 
 # Retrieve a specific config
-aws_config = config_loader.get_config("aws")["aws"]
+aws_config = config_loader.get_config("aws")["aws"]["infra"]
 
 
 class AWSConnection:
@@ -22,7 +26,7 @@ class AWSConnection:
         self.client = None
         load_dotenv()  # Load environment variables from .env file
 
-    def setup_connection(self):
+    def setup_session(self):
         """Sets up and maintains the AWS session and client."""
         aws_sso_region = self.config.get("aws", {}).get(
             "region", os.getenv("SSO_REGION")
@@ -36,7 +40,10 @@ class AWSConnection:
             )
             # Test the connection by creating an STS client and calling 'get_caller_identity'
             self.client = self.session.client("sts")
-            return self.test_connection()
+            if self.test_connection():
+                return self.session
+            else:
+                return None
 
         except KeyError as e:
             raise Exception(f"Missing AWS credentials in the environment: {str(e)}")
@@ -50,17 +57,18 @@ class AWSConnection:
         try:
             # Call a basic AWS API to verify credentials (STS get_caller_identity)
             identity = self.client.get_caller_identity()
-            print(f"Successfully connected to AWS as: {identity['Arn']}")
+            logger.info(f"Successfully connected to AWS as: {identity['Arn']}")
             return True
         except Exception as e:
-            print(f"Failed to connect to AWS: {str(e)}")
+            logger.info(f"Failed to connect to AWS: {str(e)}")
             return False
 
     def get_client(self, service_name: str):
         """Returns a client for a specific AWS service."""
-        if not self.session:
+        aws_session = self.setup_session()
+        if not aws_session:
             raise Exception("AWS session is not initialized.")
-        return self.session.client(service_name)
+        return aws_session.client(service_name)
 
 
 # # Usage Example:
@@ -69,6 +77,6 @@ class AWSConnection:
 #     connection_status = aws_connection.setup_connection()
 #
 #     if connection_status:
-#         print("AWS connection established and maintained.")
+#         logger.info("AWS connection established and maintained.")
 #     else:
-#         print("Failed to establish AWS connection.")
+#         logger.info("Failed to establish AWS connection.")

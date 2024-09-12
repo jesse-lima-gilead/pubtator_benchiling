@@ -1,2 +1,6 @@
 aws:
-  sso_region: "eu-central-1"
+  infra:
+    sso_region: "eu-central-1"
+  s3:
+    bucket_name: "gilead-pubtator"
+    bucket_region: "us-east-1"
