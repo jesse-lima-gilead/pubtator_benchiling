@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "gileadpubtator"
+version = "0.1.0"
+description = "Gilead Pubtator Application Dependencies"
+authors = ["Ishaan Bhatnagar"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+boto3 = "^1.35.17"
+python-dotenv = "^1.0.1"
+PyYAML = "^6.0.2"
+requests = "^2.32.3"
+pre-commit = "^3.8.0"
+alembic = "^1.13.2"
+SQLAlchemy = "^2.0.34"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+black = "^24.8.0"
+isort = "^5.13.2"
+pylint = "^3.2.7"
+mypy = "^1.11.2"
+pytest-cov = "^5.0.0"
+safety = "^3.2.7"
+Sphinx = "^8.0.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

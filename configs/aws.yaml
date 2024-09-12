@@ -1,0 +1,2 @@
+aws:
+  sso_region: "eu-central-1"
