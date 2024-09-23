@@ -13,6 +13,12 @@ __pycache__/
 # C extensions
 *.so
 
+# Key Pair .pem files
+*.pem
+
+# Run Commands
+run_commands.txt
+
 #Extra Folders
 qdrant_storage/
 data/
