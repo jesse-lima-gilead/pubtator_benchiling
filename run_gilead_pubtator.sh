@@ -134,4 +134,6 @@ aws s3 cp /home/ubuntu/gilead_setup/data/gnorm2_annotated s3://gilead-pubtator/g
 aws s3 cp s3://gilead-pubtator/aioner_annotated /Users/ishaanbhatnagar/Workspace/Gilead/ResearchAssistant/GileadPubtator/data/aioner_annotated --recursive
 aws s3 cp s3://gilead-pubtator/gnorm2_annotated /Users/ishaanbhatnagar/Workspace/Gilead/ResearchAssistant/GileadPubtator/data/gnorm2_annotated --recursive
 
+aws s3 cp s3://gilead-pubtator/gnorm2_annotated /Users/ishaanbhatnagar/Workspace/Gilead/ResearchAssistant/gilead_pubtator_results/gnorm2_annotated --recursive
+
 ######### Run the Data Processing Pipeline - Chunking + Embedding + Indexing
