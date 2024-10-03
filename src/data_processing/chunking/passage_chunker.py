@@ -31,7 +31,14 @@ class PassageChunker:
                 annotations.append(annotation_data)
 
             # Create a chunk containing passage text and annotations
-            chunk = {"text": passage_text, "annotations": annotations}
+            chunk = {
+                "text": passage_text,
+                "offset": int(passage.find("offset").text),
+                "infons": {
+                    infon.get("key"): infon.text for infon in passage.findall("infon")
+                },
+                "annotations": annotations,
+            }
             chunks.append(chunk)
 
         return chunks
