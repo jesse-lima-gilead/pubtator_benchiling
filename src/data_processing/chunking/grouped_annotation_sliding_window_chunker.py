@@ -4,10 +4,13 @@ from typing import List, Dict, Any
 import xml.etree.ElementTree as ET
 
 
-class AnnotationAwareChunker:
-    def __init__(self, xml_file_path: str, max_tokens_per_chunk: int = 512):
+class AnnotationAwareChunkerWithSlidingWindow:
+    def __init__(
+        self, xml_file_path: str, max_tokens_per_chunk: int = 512, stride: int = 256
+    ):
         self.xml_file_path = xml_file_path
         self.max_tokens_per_chunk = max_tokens_per_chunk
+        self.stride = stride
 
     def parse_bioc_xml(self) -> ET.Element:
         """Parse BioC XML file and return the root element."""
@@ -57,68 +60,59 @@ class AnnotationAwareChunker:
 
         return grouped_annotations
 
-    def create_chunks_from_groups(
+    def create_sliding_window_chunks(
         self,
         passage_dict: Dict[str, Any],
         grouped_annotations: Dict[str, List[Dict[str, Any]]],
     ) -> List[Dict[str, Any]]:
-        """Create chunks from the grouped annotations, keeping the same type in one chunk."""
+        """Create sliding window chunks from the grouped annotations."""
         text = passage_dict["text"]
         base_offset = passage_dict["offset"]
 
+        # Split text into words
+        words = re.findall(r"\S+|\s+", text)
         chunks = []
 
-        # Create a chunk for each annotation group (same type)
         for annotation_type, annotations in grouped_annotations.items():
-            # Sort annotations by their offsets to keep order
-            annotations = sorted(annotations, key=lambda ann: ann["offset"])
+            for i in range(0, len(words), self.stride):
+                chunk_words = words[i : i + self.max_tokens_per_chunk]
+                chunk_text = "".join(chunk_words)
+                chunk_offset = base_offset + sum(len(w) for w in words[:i])
 
-            # Start building a chunk for this type
-            chunk_text_parts = []
-            chunk_annotations = []
+                # Create a new chunk for the current sliding window
+                chunk = {
+                    "text": chunk_text,
+                    "offset": chunk_offset,
+                    "infons": passage_dict["infons"],
+                    "annotations": [],
+                }
 
-            last_end = 0
+                # Include relevant annotations within the current window
+                chunk_start = chunk_offset
+                chunk_end = chunk_start + len(chunk_text)
 
-            for ann in annotations:
-                # Extract the text segment around the annotation
-                start = ann["offset"] - base_offset
-                end = start + ann["length"]
+                for ann in annotations:
+                    ann_start = ann["offset"]
+                    ann_end = ann_start + ann["length"]
 
-                # Add the text before the annotation
-                chunk_text_parts.append(text[last_end:start])
+                    if (chunk_start <= ann_start < chunk_end) or (
+                        chunk_start < ann_end <= chunk_end
+                    ):
+                        chunk["annotations"].append(ann)
 
-                # Add the annotation text itself
-                chunk_text_parts.append(text[start:end])
-
-                # Add the annotation to the chunk
-                chunk_annotations.append(ann)
-
-                last_end = end
-
-            # Add any remaining text after the last annotation
-            chunk_text_parts.append(text[last_end:])
-
-            # Join the parts to create the full chunk text
-            chunk_text = "".join(chunk_text_parts).strip()
-
-            chunk = {
-                "text": chunk_text,
-                "offset": base_offset,
-                "infons": passage_dict["infons"],
-                "annotations": chunk_annotations,
-            }
-
-            chunks.append(chunk)
+                # If annotations are present, add the chunk to the list
+                if chunk["annotations"]:
+                    chunks.append(chunk)
 
         return chunks
 
     def chunk_passage(self, passage_dict: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Chunk the passage by grouping annotations of the same type."""
+        """Chunk the passage using sliding window and grouping annotations of the same type."""
         grouped_annotations = self.group_annotations_by_type(passage_dict)
-        return self.create_chunks_from_groups(passage_dict, grouped_annotations)
+        return self.create_sliding_window_chunks(passage_dict, grouped_annotations)
 
-    def annotation_aware_chunking(self) -> List[Dict[str, Any]]:
-        """Chunk an entire BioC XML file by grouping annotations of the same type."""
+    def grouped_annotation_aware_sliding_window_chunking(self) -> List[Dict[str, Any]]:
+        """Chunk an entire BioC XML file using sliding window and grouping annotations of the same type."""
         root = self.parse_bioc_xml()
         passages = self.extract_passages(root)
 

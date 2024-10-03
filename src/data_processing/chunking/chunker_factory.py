@@ -1,6 +1,9 @@
 from src.data_processing.chunking.annotation_aware_chunker import AnnotationAwareChunker
 from src.data_processing.chunking.passage_chunker import PassageChunker
 from src.data_processing.chunking.sliding_window_chunker import SlidingWindowChunker
+from src.data_processing.chunking.grouped_annotation_sliding_window_chunker import (
+    AnnotationAwareChunkerWithSlidingWindow,
+)
 
 
 class ChunkerFactory:
@@ -16,6 +19,10 @@ class ChunkerFactory:
             return AnnotationAwareChunker(self.xml_file_path, self.max_tokens_per_chunk)
         elif chunker_type == "sliding_window":
             return SlidingWindowChunker(self.xml_file_path, self.max_tokens_per_chunk)
+        elif chunker_type == "grouped_annotation_aware_sliding_window":
+            return AnnotationAwareChunkerWithSlidingWindow(
+                self.xml_file_path, self.max_tokens_per_chunk
+            )
         # elif chunker_type == 'sentence':
         #     return SentenceChunker(self.xml_file_path)
         else:
