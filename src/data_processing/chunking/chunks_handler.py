@@ -90,8 +90,8 @@ def chunk_annotated_articles(chunker_type: str, input_file_path: str, output_pat
         # merged_text = merge_text_and_annotations_with_offsets(chunk["text"], chunk["annotations"])
 
         chunk_id = str(uuid.uuid4())
-        chunk_number = f"{i + 1}"
-        chunk_name = f"{article_id}_chunk_{chunk_number}"
+        chunk_sequence = f"{i + 1}"
+        chunk_name = f"{article_id}_chunk_{chunk_sequence}"
         chunk_text = chunk["text"].strip()
         chunk_annotations = chunk["annotations"]
         chunk_length = len(chunk_text)
@@ -102,7 +102,7 @@ def chunk_annotated_articles(chunker_type: str, input_file_path: str, output_pat
         chunker_type = chunker_type
 
         chunk_details = {
-            "chunk_number": chunk_number,
+            "chunk_sequence": chunk_sequence,
             "chunk_text": chunk_text,
             "chunk_annotations": chunk_annotations,
             "payload": {
@@ -123,7 +123,7 @@ def chunk_annotated_articles(chunker_type: str, input_file_path: str, output_pat
         # Insert into PostgreSQL
         chunk_record = Chunk(
             chunk_id=chunk_id,
-            chunk_number=chunk_number,
+            chunk_sequence=chunk_sequence,
             chunk_name=chunk_name,
             chunk_length=chunk_length,
             token_count=token_count,
@@ -133,21 +133,17 @@ def chunk_annotated_articles(chunker_type: str, input_file_path: str, output_pat
             chunker_type=chunker_type,
             article_id=article_id,
         )
-        # session.add(chunk_record)
-        # session.commit()
-
-    # Write Chunks to file:
-    write_chunks_to_file(
-        all_chunk_details, output_file=f"{output_path}/{chunker_type}_{article_id}.json"
-    )
+    #     session.add(chunk_record)
+    #     session.commit()
+    #
+    # # Write Chunks to file:
+    # write_chunks_to_file(
+    #     all_chunk_details, output_file=f"{output_path}/{chunker_type}_{article_id}.json"
+    # )
 
 
 # Run the main function
 if __name__ == "__main__":
-    # Select the chunker type
-    # (e.g., 'sliding_window' or 'passage' or 'annotation_aware' or 'grouped_annotation_aware_sliding_window')
-    # chunker_type = "grouped_annotation_aware_sliding_window"  # Change this to test different chunkers
-
     chunker_list = [
         "sliding_window",
         "passage",
@@ -157,14 +153,25 @@ if __name__ == "__main__":
 
     output_path = "../../../data/chunks"
 
-    for chunker in chunker_list:
-        for file in os.listdir(
-            "../../../data/gilead_pubtator_results/gnorm2_annotated/bioformer_annotated"
-        ):
-            if file.endswith(".xml"):
-                input_file_path = f"../../../data/gilead_pubtator_results/gnorm2_annotated/bioformer_annotated/{file}"
-                chunk_annotated_articles(
-                    chunker_type=chunker,
-                    input_file_path=input_file_path,
-                    output_path=output_path,
-                )
+    # Select the chunker type
+    # (e.g., 'sliding_window' or 'passage' or 'annotation_aware' or 'grouped_annotation_aware_sliding_window')
+    chunker = "grouped_annotation_aware_sliding_window"  # Change this to test different chunkers
+    input_file_path = "../../../data/gilead_pubtator_results/gnorm2_annotated/bioformer_annotated/PMC_8005792.xml"
+
+    chunk_annotated_articles(
+        chunker_type=chunker,
+        input_file_path=input_file_path,
+        output_path=output_path,
+    )
+
+    # for chunker in chunker_list:
+    #     for file in os.listdir(
+    #         "../../../data/gilead_pubtator_results/gnorm2_annotated/bioformer_annotated"
+    #     ):
+    #         if file.endswith(".xml"):
+    #             input_file_path = f"../../../data/gilead_pubtator_results/gnorm2_annotated/bioformer_annotated/{file}"
+    #             chunk_annotated_articles(
+    #                 chunker_type=chunker,
+    #                 input_file_path=input_file_path,
+    #                 output_path=output_path,
+    #             )

@@ -11,7 +11,7 @@ class Chunk(Base):
     __tablename__ = "chunks"
 
     chunk_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    chunk_number = Column(String, nullable=False)
+    chunk_sequence = Column(String, nullable=False)
     chunk_name = Column(String, nullable=False)
     chunk_length = Column(Integer, nullable=False)
     token_count = Column(Integer, nullable=False)
