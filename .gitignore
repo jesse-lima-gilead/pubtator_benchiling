@@ -25,6 +25,7 @@ run_commands.txt
 #Extra Folders
 qdrant_storage/
 data/
+postgres_data/
 
 # Distribution / packaging
 .Python
