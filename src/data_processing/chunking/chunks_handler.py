@@ -2,7 +2,7 @@ import os
 import json
 import uuid
 from typing import List, Dict, Any
-from src.utils.db import session  # Import the session
+# from src.utils.db import session  # Import the session
 from src.alembic_models.chunks import Chunk  # Import the Chunk model
 from src.data_processing.chunking.chunker_factory import ChunkerFactory
 
@@ -150,9 +150,9 @@ if __name__ == "__main__":
 
     chunker_list = [
         "sliding_window",
-        "passage",
-        "annotation_aware",
-        "grouped_annotation_aware_sliding_window",
+        # "passage",
+        # "annotation_aware",
+        # "grouped_annotation_aware_sliding_window",
     ]
 
     output_path = "../../../data/chunks"
@@ -168,3 +168,4 @@ if __name__ == "__main__":
                     input_file_path=input_file_path,
                     output_path=output_path,
                 )
+                break
