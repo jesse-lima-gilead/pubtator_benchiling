@@ -46,22 +46,22 @@ class PMCIngestor:
                     os.path.join(self.pmc_local_path, file), self.bioc_local_path
                 )
 
-        # # Save the PMC XML and BIOC XML to S3:
-        # for pmc_file in os.listdir(self.pmc_local_path):
-        #     if pmc_file.endswith(".xml"):
-        #         self.s3_io_util.upload_file(
-        #             file_path=os.path.join(self.pmc_local_path, pmc_file),
-        #             object_name=f"pmc_full_text_articles/{pmc_file}",
-        #         )
-        #         logger.info(f"PMC XML file saved to S3: pmc_xml/{pmc_file}")
+        # Save the PMC XML and BIOC XML to S3:
+        for pmc_file in os.listdir(self.pmc_local_path):
+            if pmc_file.endswith(".xml"):
+                self.s3_io_util.upload_file(
+                    file_path=os.path.join(self.pmc_local_path, pmc_file),
+                    object_name=f"pmc_full_text_articles/{pmc_file}",
+                )
+                logger.info(f"PMC XML file saved to S3: pmc_xml/{pmc_file}")
 
-        # for bioc_file in os.listdir(self.bioc_local_path):
-        #     if bioc_file.endswith(".xml"):
-        #         self.s3_io_util.upload_file(
-        #             file_path=os.path.join(self.bioc_local_path, bioc_file),
-        #             object_name=f"bioc_full_text_articles/{bioc_file}",
-        #         )
-        #         logger.info(f"BioC XML file saved to S3: bioc_xml/{bioc_file}")
+        for bioc_file in os.listdir(self.bioc_local_path):
+            if bioc_file.endswith(".xml"):
+                self.s3_io_util.upload_file(
+                    file_path=os.path.join(self.bioc_local_path, bioc_file),
+                    object_name=f"bioc_full_text_articles/{bioc_file}",
+                )
+                logger.info(f"BioC XML file saved to S3: bioc_xml/{bioc_file}")
 
 
 # Example usage
