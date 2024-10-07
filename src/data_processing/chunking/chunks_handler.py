@@ -146,9 +146,9 @@ def chunk_annotated_articles(chunker_type: str, input_file_path: str, output_pat
 if __name__ == "__main__":
     chunker_list = [
         "sliding_window",
-        "passage",
-        "annotation_aware",
-        "grouped_annotation_aware_sliding_window",
+        # "passage",
+        # "annotation_aware",
+        # "grouped_annotation_aware_sliding_window",
     ]
 
     output_path = "../../../data/chunks"
