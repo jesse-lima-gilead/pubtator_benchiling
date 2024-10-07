@@ -78,9 +78,9 @@ def chunk_annotated_articles(chunker_type: str, input_file_path: str, output_pat
     else:
         raise ValueError(f"Unknown chunker type: {chunker_type}")
 
-    # # Print the chunks for verification
-    # for i, chunk in enumerate(chunks):
-    #     print(f"Chunk {i + 1}: {chunk}")
+    # Print the chunks for verification
+    for i, chunk in enumerate(chunks):
+        print(f"Chunk {i + 1}: {chunk}")
 
     # Getting the Chunks details:
 
@@ -117,7 +117,7 @@ def chunk_annotated_articles(chunker_type: str, input_file_path: str, output_pat
                 "article_id": article_id,
             },
         }
-        print(chunk_details)
+        # print(chunk_details)
         all_chunk_details.append(chunk_details)
 
         # Insert into PostgreSQL
