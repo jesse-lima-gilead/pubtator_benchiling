@@ -10,45 +10,43 @@ class InlineMerger:
         - Merged text with annotations placed inline.
         """
 
-        # Sort annotations by the offset to avoid disrupting other offsets
-        annotations_sorted = sorted(annotations, key=lambda ann: ann["offset"])
+        # Start with the original text
+        merged_text = text
 
-        # Offset adjustment to account for the increasing length of the inserted annotations
-        offset_adjustment = 0
+        # Create a set of unique annotations based on 'text', 'type', 'ncbi_label', and 'ncbi_id'
+        unique_annotations = {
+            (ann["text"], ann["type"], ann["ncbi_label"], ann["ncbi_id"])
+            for ann in annotations
+        }
 
-        # Track already annotated words in this chunk to avoid duplicates
-        annotated_offsets = set()
+        # Replace text using replace() to avoid offset disruption
+        for ann_text, ann_type, ncbi_label, ncbi_id in unique_annotations:
+            annotation_str = f"{ann_text} << Type-{ann_type}, NCBI Label-{ncbi_label}, NCBI Id-{ncbi_id} >>"
+            merged_text = merged_text.replace(ann_text, annotation_str)
 
-        for ann in annotations_sorted:
-            # Extract annotation details
-            annotation_text = ann["text"]
-            annotation_type = ann["type"]
-            annotation_label = ann["ncbi_label"]
-            annotation_id = ann["ncbi_id"]
-            annotation_offset = int(ann["offset"])
-            annotation_length = int(ann["length"])
+        # # Append the annotations section
+        # if annotations:
+        #     merged_text += "\n\nAnnotations:\n"
+        #     for ann in annotations:
+        #         # Extract common fields
+        #         annotation_text = ann["text"]
+        #         annotation_type = ann["type"]
+        #         annotation_label = ann["ncbi_label"]
+        #         annotation_id = ann["ncbi_id"]
+        #         annotation_offset = ann["offset"]
+        #         annotation_length = ann["length"]
+        #
+        #         # Format the annotation information to be appended
+        #         annotation_block = (
+        #             f"Text - {annotation_text}"
+        #             f"\n"
+        #             f"Type - {annotation_type}"
+        #             f"\n"
+        #             f"{annotation_label} - {annotation_id}"
+        #         )
+        #         merged_text += f"{annotation_block}\n\n"
 
-            # Skip if the annotation overlaps with an already processed one
-            if annotation_offset in annotated_offsets:
-                continue
-
-            # Add annotation to processed list
-            annotated_offsets.update(
-                range(annotation_offset, annotation_offset + annotation_length)
-            )
-
-            # Insert the annotation inline into the text
-            annotated_text = f"{annotation_text} {annotation_label}"
-            text = (
-                text[:annotation_offset]
-                + annotated_text
-                + text[annotation_offset + annotation_length :]
-            )
-
-            # Update the offset adjustment to account for the added length
-            offset_adjustment += len(annotated_text) - annotation_length
-
-        return text
+        return merged_text
 
 
 # if __name__ == "__main__":
