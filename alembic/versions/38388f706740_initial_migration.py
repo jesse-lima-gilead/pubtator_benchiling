@@ -1,8 +1,8 @@
-"""Creating chunks table in db
+"""Initial migration
 
-Revision ID: 19b0eacf387f
+Revision ID: 38388f706740
 Revises:
-Create Date: 2024-10-03 17:45:45.012107
+Create Date: 2024-10-09 00:26:09.366182
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "19b0eacf387f"
+revision: str = "38388f706740"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -23,7 +23,7 @@ def upgrade() -> None:
     op.create_table(
         "chunks",
         sa.Column("chunk_id", sa.UUID(), nullable=False),
-        sa.Column("chunk_number", sa.String(), nullable=False),
+        sa.Column("chunk_sequence", sa.String(), nullable=False),
         sa.Column("chunk_name", sa.String(), nullable=False),
         sa.Column("chunk_length", sa.Integer(), nullable=False),
         sa.Column("token_count", sa.Integer(), nullable=False),
@@ -31,6 +31,7 @@ def upgrade() -> None:
         sa.Column("chunk_offset", sa.Integer(), nullable=False),
         sa.Column("chunk_infons", sa.JSON(), nullable=False),
         sa.Column("chunker_type", sa.String(), nullable=False),
+        sa.Column("merger_type", sa.String(), nullable=False),
         sa.Column("article_id", sa.String(), nullable=False),
         sa.PrimaryKeyConstraint("chunk_id"),
     )

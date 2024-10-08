@@ -16,18 +16,36 @@ class PassageChunker:
 
         # Loop through each passage
         for passage in root.findall(".//passage"):
-            passage_text = passage.findtext("text").strip()
+            passage_text = passage.findtext("text")
             annotations = []
 
             # Collect annotations within the passage
             for annotation in passage.findall("annotation"):
+                id = annotation.get("id")
+                type = annotation.findtext('infon[@key="type"]')
+                offset = annotation.find("location").get("offset")
+                length = annotation.find("location").get("length")
+                text = annotation.findtext("text")
+                if type.lower() == "species":
+                    ncbi_label = "NCBI Taxonomy"
+                    ncbi_id = annotation.findtext('infon[@key="NCBI Taxonomy"]')
+                elif type.lower() == "gene":
+                    ncbi_label = "NCBI Gene"
+                    ncbi_id = annotation.findtext('infon[@key="NCBI Gene"]')
+                else:
+                    ncbi_label = "NCBI ID"
+                    ncbi_id = "N/A"
+
                 annotation_data = {
-                    "id": annotation.get("id"),
-                    "type": annotation.findtext('infon[@key="type"]'),
-                    "offset": annotation.find("location").get("offset"),
-                    "length": annotation.find("location").get("length"),
-                    "text": annotation.findtext("text"),
+                    "id": id,
+                    "text": text,
+                    "type": type,
+                    "ncbi_label": ncbi_label,
+                    "ncbi_id": ncbi_id,
+                    "offset": offset,
+                    "length": length,
                 }
+
                 annotations.append(annotation_data)
 
             # Create a chunk containing passage text and annotations

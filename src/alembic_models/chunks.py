@@ -19,4 +19,5 @@ class Chunk(Base):
     chunk_offset = Column(Integer, nullable=False)
     chunk_infons = Column(JSON, nullable=False)
     chunker_type = Column(String, nullable=False)
+    merger_type = Column(String, nullable=False)
     article_id = Column(String, nullable=False)

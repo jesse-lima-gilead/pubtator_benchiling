@@ -11,10 +11,10 @@ class TextAnnotationMergeFactory:
     def get_merger(self, merger_type):
         """Factory method to return the appropriate chunker based on the chunker_type."""
         if merger_type == "append":
-            return AppendMerger(self.xml_file_path)
+            return AppendMerger()
         elif merger_type == "inline":
-            return InlineMerger(self.xml_file_path, self.max_tokens_per_chunk)
+            return InlineMerger()
         elif merger_type == "full_text":
-            return FullTextMerger(self.xml_file_path, self.max_tokens_per_chunk)
+            return FullTextMerger()
         else:
             raise ValueError(f"Unknown merger type: {merger_type}")

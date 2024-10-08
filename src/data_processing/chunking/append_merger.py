@@ -11,7 +11,7 @@ class AppendMerger:
         """
 
         # Start with the original text
-        merged_text = text.strip()
+        merged_text = text
 
         # Append the annotations section
         if annotations:
@@ -20,19 +20,10 @@ class AppendMerger:
                 # Extract common fields
                 annotation_text = ann["text"]
                 annotation_type = ann["type"]
+                annotation_label = ann["ncbi_label"]
+                annotation_id = ann["ncbi_id"]
                 annotation_offset = ann["offset"]
                 annotation_length = ann["length"]
-
-                # Determine whether it's a Gene or Species and extract relevant NCBI ID
-                if annotation_type == "Gene":
-                    ncbi_id = ann["infons"].get("NCBI Gene", "N/A")
-                    ncbi_label = "NCBI Gene"
-                elif annotation_type == "Species":
-                    ncbi_id = ann["infons"].get("NCBI Taxonomy", "N/A")
-                    ncbi_label = "NCBI Taxonomy"
-                else:
-                    ncbi_id = "N/A"
-                    ncbi_label = "NCBI ID"
 
                 # Format the annotation information to be appended
                 annotation_block = (
@@ -40,7 +31,7 @@ class AppendMerger:
                     f"\n"
                     f"Type - {annotation_type}"
                     f"\n"
-                    f"{ncbi_label} - {ncbi_id}"
+                    f"{annotation_label} - {annotation_id}"
                     f"\n"
                     f"Text Offset - {annotation_offset}"
                     f"\n"
@@ -48,7 +39,7 @@ class AppendMerger:
                 )
                 merged_text += f"{annotation_block}\n\n"
 
-        return merged_text.strip()
+        return merged_text
 
 
 # Example usage
