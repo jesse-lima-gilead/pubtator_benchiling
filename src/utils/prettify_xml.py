@@ -38,7 +38,8 @@ class XMLFormatter:
 # Example usage:
 if __name__ == "__main__":
     folder_path = (
-        "../../../gilead_pubtator_results/gnorm2_annotated/bioformer_annotated"
+        # "../../data/gnorm2_annotated/bioformer_annotated"
+        "../../data/gnorm2_annotated/pubmedbert_annotated"
     )
     formatter = XMLFormatter(folder_path)
     formatter.process_folder()

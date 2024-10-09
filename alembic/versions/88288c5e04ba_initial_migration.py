@@ -1,8 +1,8 @@
 """Initial migration
 
-Revision ID: b1f7d15818c7
+Revision ID: 88288c5e04ba
 Revises:
-Create Date: 2024-10-09 18:33:57.907930
+Create Date: 2024-10-09 20:51:41.041036
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = "b1f7d15818c7"
+revision: str = "88288c5e04ba"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -31,10 +31,15 @@ def upgrade() -> None:
         sa.Column(
             "chunk_annotations_ids", postgresql.ARRAY(sa.String()), nullable=False
         ),
+        sa.Column(
+            "chunk_annotations_types", postgresql.ARRAY(sa.String()), nullable=False
+        ),
         sa.Column("chunk_offset", sa.Integer(), nullable=False),
         sa.Column("chunk_infons", sa.JSON(), nullable=False),
         sa.Column("chunker_type", sa.String(), nullable=False),
         sa.Column("merger_type", sa.String(), nullable=False),
+        sa.Column("aioner_model", sa.String(), nullable=False),
+        sa.Column("gnorm2_model", sa.String(), nullable=False),
         sa.Column("article_id", sa.String(), nullable=False),
         sa.PrimaryKeyConstraint("chunk_id"),
     )

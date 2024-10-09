@@ -33,16 +33,29 @@ class AnnotationAwareChunkerWithSlidingWindow:
         }
 
         for annotation in passage.findall("annotation"):
+            id = annotation.get("id")
+            type = annotation.findtext('infon[@key="type"]')
+            offset = annotation.find("location").get("offset")
+            length = annotation.find("location").get("length")
+            text = annotation.findtext("text")
+            if type.lower() == "species":
+                ncbi_label = "NCBI Taxonomy"
+                ncbi_id = annotation.findtext('infon[@key="NCBI Taxonomy"]')
+            elif type.lower() == "gene":
+                ncbi_label = "NCBI Gene"
+                ncbi_id = annotation.findtext('infon[@key="NCBI Gene"]')
+            else:
+                ncbi_label = "NCBI ID"
+                ncbi_id = "N/A"
+
             ann_dict = {
-                "id": annotation.get("id"),
-                "text": annotation.find("text").text,
-                "offset": int(annotation.find("location").get("offset")),
-                "length": int(annotation.find("location").get("length")),
-                "type": annotation.find("infon[@key='type']").text,
-                "infons": {
-                    infon.get("key"): infon.text
-                    for infon in annotation.findall("infon")
-                },
+                "id": id,
+                "text": text,
+                "type": type,
+                "ncbi_label": ncbi_label,
+                "ncbi_id": ncbi_id,
+                "offset": int(offset),
+                "length": int(length),
             }
             passage_dict["annotations"].append(ann_dict)
 
@@ -69,40 +82,72 @@ class AnnotationAwareChunkerWithSlidingWindow:
         text = passage_dict["text"]
         base_offset = passage_dict["offset"]
 
-        # Split text into words
+        # Split text into words (spaces included for accurate chunk reconstruction)
         words = re.findall(r"\S+|\s+", text)
         chunks = []
 
-        for annotation_type, annotations in grouped_annotations.items():
-            for i in range(0, len(words), self.stride):
-                chunk_words = words[i : i + self.max_tokens_per_chunk]
-                chunk_text = "".join(chunk_words)
-                chunk_offset = base_offset + sum(len(w) for w in words[:i])
+        # Create a set to track unique chunks to avoid duplicates
+        unique_chunks = set()
 
-                # Create a new chunk for the current sliding window
+        for i in range(0, len(words), self.stride):
+            chunk_words = words[i : i + self.max_tokens_per_chunk]
+            chunk_text = "".join(chunk_words)
+            chunk_offset = base_offset + sum(len(w) for w in words[:i])
+
+            # Prepare to store annotations for this chunk
+            chunk_annotations = defaultdict(list)
+            annotations_found = False  # Flag to check if any annotations are found
+
+            # Check annotations for each annotation type
+            for annotation_type, annotations in grouped_annotations.items():
+                # Initialize a chunk with the relevant text and base info
                 chunk = {
                     "text": chunk_text,
                     "offset": chunk_offset,
                     "infons": passage_dict["infons"],
                     "annotations": [],
+                    "annotation_type": annotation_type,
                 }
 
-                # Include relevant annotations within the current window
                 chunk_start = chunk_offset
                 chunk_end = chunk_start + len(chunk_text)
 
+                # Check annotations for the current type
                 for ann in annotations:
                     ann_start = ann["offset"]
                     ann_end = ann_start + ann["length"]
 
+                    # Check if annotation falls within the chunk boundaries
                     if (chunk_start <= ann_start < chunk_end) or (
                         chunk_start < ann_end <= chunk_end
                     ):
                         chunk["annotations"].append(ann)
+                        annotations_found = True  # Set flag if annotations are found
+                        chunk_annotations[annotation_type].append(ann)
 
-                # If annotations are present, add the chunk to the list
+                # If the chunk has relevant annotations, add it to unique chunks
                 if chunk["annotations"]:
-                    chunks.append(chunk)
+                    # Create a unique identifier for the chunk (text and type)
+                    chunk_id = (chunk_text, annotation_type)
+                    if chunk_id not in unique_chunks:
+                        chunks.append(chunk)  # Add the chunk
+                        unique_chunks.add(chunk_id)  # Mark this chunk as seen
+
+            # Create an empty chunk if no annotations were found
+            if not annotations_found:
+                empty_chunk = {
+                    "text": chunk_text,
+                    "offset": chunk_offset,
+                    "infons": passage_dict["infons"],
+                    "annotations": [],
+                }
+                empty_chunk_id = (
+                    chunk_text,
+                    "empty",
+                )  # Unique identifier for empty chunk
+                if empty_chunk_id not in unique_chunks:
+                    chunks.append(empty_chunk)  # Add empty chunk
+                    unique_chunks.add(empty_chunk_id)  # Mark as seen
 
         return chunks
 
