@@ -1,3 +1,6 @@
+import re
+
+
 class InlineMerger:
     def merge(self, text: str, annotations: list):
         """
@@ -23,7 +26,14 @@ class InlineMerger:
         # Replace text using replace() to avoid offset disruption
         for ann_text, ann_type, ncbi_label, ncbi_id in unique_annotations:
             annotation_str = f"{ann_text} << Type-{ann_type}, NCBI Label-{ncbi_label}, NCBI Id-{ncbi_id} >>"
-            merged_text = merged_text.replace(ann_text, annotation_str)
+
+            # Simple replace
+            # merged_text = merged_text.replace(ann_text, annotation_str)
+
+            # Use word boundaries to match exact words
+            merged_text = re.sub(
+                rf"\b{re.escape(ann_text)}\b", annotation_str, merged_text
+            )
 
         # # Append the annotations section
         # if annotations:

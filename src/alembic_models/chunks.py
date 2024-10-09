@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, JSON, create_engine
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import uuid
@@ -16,6 +17,7 @@ class Chunk(Base):
     chunk_length = Column(Integer, nullable=False)
     token_count = Column(Integer, nullable=False)
     chunk_annotations_count = Column(Integer, nullable=False)
+    chunk_annotations_ids = Column(ARRAY(String), nullable=False)
     chunk_offset = Column(Integer, nullable=False)
     chunk_infons = Column(JSON, nullable=False)
     chunker_type = Column(String, nullable=False)

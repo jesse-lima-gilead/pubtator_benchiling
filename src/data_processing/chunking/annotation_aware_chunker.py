@@ -30,16 +30,29 @@ class AnnotationAwareChunker:
         }
 
         for annotation in passage.findall("annotation"):
+            id = annotation.get("id")
+            type = annotation.findtext('infon[@key="type"]')
+            offset = annotation.find("location").get("offset")
+            length = annotation.find("location").get("length")
+            text = annotation.findtext("text")
+            if type.lower() == "species":
+                ncbi_label = "NCBI Taxonomy"
+                ncbi_id = annotation.findtext('infon[@key="NCBI Taxonomy"]')
+            elif type.lower() == "gene":
+                ncbi_label = "NCBI Gene"
+                ncbi_id = annotation.findtext('infon[@key="NCBI Gene"]')
+            else:
+                ncbi_label = "NCBI ID"
+                ncbi_id = "N/A"
+
             ann_dict = {
-                "id": annotation.get("id"),
-                "text": annotation.find("text").text,
-                "offset": int(annotation.find("location").get("offset")),
-                "length": int(annotation.find("location").get("length")),
-                "type": annotation.find("infon[@key='type']").text,
-                "infons": {
-                    infon.get("key"): infon.text
-                    for infon in annotation.findall("infon")
-                },
+                "id": id,
+                "text": text,
+                "type": type,
+                "ncbi_label": ncbi_label,
+                "ncbi_id": ncbi_id,
+                "offset": int(offset),
+                "length": int(length),
             }
             passage_dict["annotations"].append(ann_dict)
 
@@ -99,7 +112,7 @@ class AnnotationAwareChunker:
             chunk_text_parts.append(text[last_end:])
 
             # Join the parts to create the full chunk text
-            chunk_text = "".join(chunk_text_parts).strip()
+            chunk_text = "".join(chunk_text_parts)
 
             chunk = {
                 "text": chunk_text,

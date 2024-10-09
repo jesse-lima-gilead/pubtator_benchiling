@@ -42,8 +42,8 @@ class PassageChunker:
                     "type": type,
                     "ncbi_label": ncbi_label,
                     "ncbi_id": ncbi_id,
-                    "offset": offset,
-                    "length": length,
+                    "offset": int(offset),
+                    "length": int(length),
                 }
 
                 annotations.append(annotation_data)

@@ -64,6 +64,7 @@ def chunk_annotated_articles(
         chunk_length = len(chunk_text)
         token_count = len(chunk_text.split())
         chunk_annotations_count = len(chunk_annotations)
+        chunk_annotations_ids = [ann["id"] for ann in chunk_annotations]
         chunk_offset = chunk["offset"]
         chunk_infons = chunk["infons"]
         chunker_type = chunker_type
@@ -79,6 +80,7 @@ def chunk_annotated_articles(
                 "chunk_length": chunk_length,
                 "token_count": token_count,
                 "chunk_annotations_count": chunk_annotations_count,
+                "chunk_annotations_ids": chunk_annotations_ids,
                 "chunk_offset": chunk_offset,
                 "chunk_infons": chunk_infons,
                 "chunker_type": chunker_type,
@@ -89,36 +91,37 @@ def chunk_annotated_articles(
         print(chunk_details)
         all_chunk_details.append(chunk_details)
 
-    #     # Insert into PostgreSQL
-    #     chunk_record = Chunk(
-    #         chunk_id=chunk_id,
-    #         chunk_sequence=chunk_sequence,
-    #         chunk_name=chunk_name,
-    #         chunk_length=chunk_length,
-    #         token_count=token_count,
-    #         chunk_annotations_count=chunk_annotations_count,
-    #         chunk_offset=chunk_offset,
-    #         chunk_infons=chunk_infons,
-    #         chunker_type=chunker_type,
-    #         merger_type=merger_type,
-    #         article_id=article_id,
-    #     )
-    #     session.add(chunk_record)
-    #     session.commit()
-    #
-    # # Write Chunks to file:
-    # write_chunks_to_file(
-    #     all_chunk_details,
-    #     output_file=f"{output_path}/{chunker_type}_{merger_type}_{article_id}.json",
-    # )
+        # Insert into PostgreSQL
+        chunk_record = Chunk(
+            chunk_id=chunk_id,
+            chunk_sequence=chunk_sequence,
+            chunk_name=chunk_name,
+            chunk_length=chunk_length,
+            token_count=token_count,
+            chunk_annotations_count=chunk_annotations_count,
+            chunk_annotations_ids=chunk_annotations_ids,
+            chunk_offset=chunk_offset,
+            chunk_infons=chunk_infons,
+            chunker_type=chunker_type,
+            merger_type=merger_type,
+            article_id=article_id,
+        )
+        session.add(chunk_record)
+        session.commit()
+
+    # Write Chunks to file:
+    write_chunks_to_file(
+        all_chunk_details,
+        output_file=f"{output_path}/{chunker_type}_{merger_type}_{article_id}.json",
+    )
 
 
 # Run the main function
 if __name__ == "__main__":
     chunker_list = [
-        # "sliding_window",
+        "sliding_window",
         "passage",
-        # "annotation_aware",
+        "annotation_aware",
         # "grouped_annotation_aware_sliding_window",
     ]
 
@@ -128,12 +131,12 @@ if __name__ == "__main__":
         # "fulltext"
     ]
 
-    output_path = "../../../data/new_chunks_9_oct"
+    output_path = "../../../data/chunks_10_oct"
 
-    # Single File Run for DEMO:
-    # Select the chunker type
-    # (e.g., 'sliding_window' or 'passage' or 'annotation_aware' or 'grouped_annotation_aware_sliding_window')
-    # chunker = "passage"  # Change this to test different chunkers
+    # # Single File Run for DEMO:
+    # # Select the chunker type
+    # # (e.g., 'sliding_window' or 'passage' or 'annotation_aware' or 'grouped_annotation_aware_sliding_window')
+    # chunker = "sliding_window"  # Change this to test different chunkers
     # merger_type = "inline"
     # input_file_path = "../../../data/gilead_pubtator_results/gnorm2_annotated/bioformer_annotated/PMC_8005792.xml"
     #
