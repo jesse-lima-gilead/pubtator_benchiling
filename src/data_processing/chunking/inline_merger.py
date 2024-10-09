@@ -14,6 +14,7 @@ class InlineMerger:
         merged_text = text
 
         # Create a set of unique annotations based on 'text', 'type', 'ncbi_label', and 'ncbi_id'
+        # TODO: Bug - Sometimes some duplicate annotations are still getting picked up
         unique_annotations = {
             (ann["text"], ann["type"], ann["ncbi_label"], ann["ncbi_id"])
             for ann in annotations

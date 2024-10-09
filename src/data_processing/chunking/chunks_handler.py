@@ -89,28 +89,28 @@ def chunk_annotated_articles(
         print(chunk_details)
         all_chunk_details.append(chunk_details)
 
-        # Insert into PostgreSQL
-        chunk_record = Chunk(
-            chunk_id=chunk_id,
-            chunk_sequence=chunk_sequence,
-            chunk_name=chunk_name,
-            chunk_length=chunk_length,
-            token_count=token_count,
-            chunk_annotations_count=chunk_annotations_count,
-            chunk_offset=chunk_offset,
-            chunk_infons=chunk_infons,
-            chunker_type=chunker_type,
-            merger_type=merger_type,
-            article_id=article_id,
-        )
-        session.add(chunk_record)
-        session.commit()
-
-    # Write Chunks to file:
-    write_chunks_to_file(
-        all_chunk_details,
-        output_file=f"{output_path}/{chunker_type}_{merger_type}_{article_id}.json",
-    )
+    #     # Insert into PostgreSQL
+    #     chunk_record = Chunk(
+    #         chunk_id=chunk_id,
+    #         chunk_sequence=chunk_sequence,
+    #         chunk_name=chunk_name,
+    #         chunk_length=chunk_length,
+    #         token_count=token_count,
+    #         chunk_annotations_count=chunk_annotations_count,
+    #         chunk_offset=chunk_offset,
+    #         chunk_infons=chunk_infons,
+    #         chunker_type=chunker_type,
+    #         merger_type=merger_type,
+    #         article_id=article_id,
+    #     )
+    #     session.add(chunk_record)
+    #     session.commit()
+    #
+    # # Write Chunks to file:
+    # write_chunks_to_file(
+    #     all_chunk_details,
+    #     output_file=f"{output_path}/{chunker_type}_{merger_type}_{article_id}.json",
+    # )
 
 
 # Run the main function
