@@ -145,7 +145,7 @@ if __name__ == "__main__":
         # "fulltext"
     ]
 
-    output_path = "../../../data/chunks_10_oct"
+    output_path = "../../../data/chunks_11_oct"
 
     # # Single File Run for DEMO:
     # # Select the chunker type
