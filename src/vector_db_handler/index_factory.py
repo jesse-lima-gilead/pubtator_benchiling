@@ -1,5 +1,5 @@
-from vector_db_handler.qdrant_handler import QdrantHandler
-from utils.config_reader import YAMLConfigLoader
+from src.vector_db_handler.qdrant_handler import QdrantHandler
+from src.utils.config_reader import YAMLConfigLoader
 
 # Initialize the config loader
 config_loader = YAMLConfigLoader()

@@ -3,6 +3,15 @@ qdrant:
   port: 6333
   collections:
     annotation_aware:
+      prepend:
+        bioformer:
+          collection_name: "annotation_aware_prepend_bioformer"
+          vector_size: 1536
+          distance_metric: "COSINE"
+        pubmedbert:
+          collection_name: "annotation_aware_prepend_pubmedbert"
+          vector_size: 1536
+          distance_metric: "COSINE"
       inline:
         bioformer:
           collection_name: "annotation_aware_inline_bioformer"
@@ -31,6 +40,15 @@ qdrant:
           vector_size: 1536
           distance_metric: "COSINE"
     grouped_annotation_aware_sliding_window:
+      prepend:
+        bioformer:
+          collection_name: "grouped_annotation_aware_sliding_window_prepend_bioformer"
+          vector_size: 1536
+          distance_metric: "COSINE"
+        pubmedbert:
+          collection_name: "grouped_annotation_aware_sliding_window_prepend_pubmedbert"
+          vector_size: 1536
+          distance_metric: "COSINE"
       inline:
         bioformer:
           collection_name: "grouped_annotation_aware_sliding_window_inline_bioformer"
@@ -59,6 +77,15 @@ qdrant:
           vector_size: 1536
           distance_metric: "COSINE"
     passage:
+      prepend:
+        bioformer:
+          collection_name: "passage_prepend_bioformer"
+          vector_size: 1536
+          distance_metric: "COSINE"
+        pubmedbert:
+          collection_name: "passage_prepend_pubmedbert"
+          vector_size: 1536
+          distance_metric: "COSINE"
       inline:
         bioformer:
           collection_name: "passage_inline_bioformer"
@@ -87,6 +114,15 @@ qdrant:
           vector_size: 1536
           distance_metric: "COSINE"
     sliding_window:
+      prepend:
+        bioformer:
+          collection_name: "sliding_window_prepend_bioformer"
+          vector_size: 1536
+          distance_metric: "COSINE"
+        pubmedbert:
+          collection_name: "sliding_window_prepend_pubmedbert"
+          vector_size: 1536
+          distance_metric: "COSINE"
       inline:
         bioformer:
           collection_name: "sliding_window_inline_bioformer"

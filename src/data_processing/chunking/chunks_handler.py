@@ -5,8 +5,8 @@ from typing import List, Dict, Any
 from src.utils.db import session  # Import the session
 from src.alembic_models.chunks import Chunk  # Import the Chunk model
 from src.data_processing.chunking.chunker_factory import ChunkerFactory
-from src.data_processing.chunking.articles_summarizer import summarize_article
-from src.data_processing.chunking.text_annotation_merge_factory import (
+from src.data_processing.chunking.articles_summarizer import SummarizeArticle
+from src.data_processing.chunking.merger_factory import (
     TextAnnotationMergeFactory,
 )
 
@@ -19,7 +19,7 @@ def write_chunks_to_file(chunks, output_file: str):
 
 # Example usage of the factory method
 def chunk_annotated_articles(
-    article_summary: str,
+    # article_summary: str,
     chunker_type: str,
     merger_type: str,
     input_file_path: str,
@@ -97,7 +97,7 @@ def chunk_annotated_articles(
                 "aioner_model": aioner_model,
                 "gnorm2_model": gnorm2_model,
                 "article_id": article_id,
-                "article_summary": article_summary,
+                # "article_summary": article_summary,
             },
         }
         print(chunk_details)
@@ -180,11 +180,11 @@ if __name__ == "__main__":
                         )
 
                         # Summarise the file content
-                        article_summary = summarize_article(input_file_path)
+                        # article_summary = summarize_article(input_file_path)
 
                         # Creating the chunks
                         chunk_annotated_articles(
-                            article_summary=article_summary,
+                            # article_summary=article_summary,
                             chunker_type=chunker,
                             merger_type=merger,
                             input_file_path=input_file_path,

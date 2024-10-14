@@ -1,6 +1,7 @@
 from src.data_processing.chunking.inline_merger import InlineMerger
 from src.data_processing.chunking.append_merger import AppendMerger
 from src.data_processing.chunking.full_text_merger import FullTextMerger
+from src.data_processing.chunking.prepend_merger import PrependMerger
 
 
 class TextAnnotationMergeFactory:
@@ -14,6 +15,8 @@ class TextAnnotationMergeFactory:
             return AppendMerger()
         elif merger_type == "inline":
             return InlineMerger()
+        elif merger_type == "prepend":
+            return PrependMerger()
         elif merger_type == "full_text":
             return FullTextMerger()
         else:

@@ -3,8 +3,8 @@ import os
 
 from biorun.convert import false
 
-from vector_db_handler.index_factory import IndexFactory
-from utils.logger import SingletonLogger
+from src.vector_db_handler.index_factory import IndexFactory
+from src.utils.logger import SingletonLogger
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -44,8 +44,17 @@ if __name__ == "__main__":
     vector_db_list = ["qdrant"]
     llm_model = "BedrockClaude"
 
+    chunk_strategies = [
+        "grouped_annotation_aware_sliding_window_prepend_bioformer",
+        # "grouped_annotation_aware_sliding_window_inline_bioformer",
+        # "grouped_annotation_aware_sliding_window_append_bioformer",
+        # "grouped_annotation_aware_sliding_window_prepend_pubmedbert",
+        # "grouped_annotation_aware_sliding_window_inline_pubmedbert",
+        # "grouped_annotation_aware_sliding_window_append_pubmedbert",
+    ]
+
     # chunk_strategy = 'grouped_annotation_aware_sliding_window_append_bioformer'
-    chunk_strategy = "grouped_annotation_aware_sliding_window_inline_bioformer"
+    # chunk_strategy = "grouped_annotation_aware_sliding_window_inline_bioformer"
     # chunk_strategy = 'grouped_annotation_aware_sliding_window_append_pubmedbert'
     # chunk_strategy = 'grouped_annotation_aware_sliding_window_inline_pubmedbert'
 
@@ -54,16 +63,16 @@ if __name__ == "__main__":
     # chunk_strategy = 'sliding_window_append_pubmedbert'
     # chunk_strategy = 'sliding_window_inline_pubmedbert'
 
-    cnt = 0
-
-    print(chunk_strategy)
-    for cur_vector_db in vector_db_list:
-        for cur_file in os.listdir("../../../data/new_chunks"):
-            if cur_file.endswith(".json") and cur_file.startswith(chunk_strategy):
-                cnt += 1
-                print(f"cur_file: {cur_file}, cnt: {cnt}")
-                logger.info(f"Processing {cur_file}")
-                input_file_path = f"../../../data/new_chunks/{cur_file}"
-                process_chunked_data_file(input_file_path, cur_vector_db, llm_model)
-                logger.info(f"Finished processing {cur_file}")
-    print(cnt)
+    for chunk_strategy in chunk_strategies:
+        cnt = 0
+        print(chunk_strategy)
+        for cur_vector_db in vector_db_list:
+            for cur_file in os.listdir("../../../data/chunks_11_oct"):
+                if cur_file.endswith(".json") and cur_file.startswith(chunk_strategy):
+                    cnt += 1
+                    print(f"cur_file: {cur_file}, cnt: {cnt}")
+                    logger.info(f"Processing {cur_file}")
+                    input_file_path = f"../../../data/chunks_11_oct/{cur_file}"
+                    process_chunked_data_file(input_file_path, cur_vector_db, llm_model)
+                    logger.info(f"Finished processing {cur_file}")
+        print(cnt)

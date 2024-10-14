@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Dict
 
-from vector_db_handler.qdrant_manager import QdrantManager
+from src.vector_db_handler.qdrant_manager import QdrantManager
 from src.llm_handler.llm_factory import LLMFactory
 
 
