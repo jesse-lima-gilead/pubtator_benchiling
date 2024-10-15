@@ -4,9 +4,8 @@ from src.llm_handler.bedrock_handler import BedrockHandler
 class LLMFactory:
     def create_llm(self, llm_type: str, **kwargs):
         if llm_type == "BedrockClaude":
-
             default_llm_params = {
-                "max_tokens": 3000,
+                "max_tokens": 50000,
                 "temperature": 0.1,
                 "top_p": 0.9,
                 "top_k": 250,
