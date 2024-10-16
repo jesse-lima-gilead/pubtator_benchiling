@@ -20,6 +20,7 @@ bio = "^1.7.1"
 psycopg2-binary = "^2.9.9"
 qdrant-client = "^1.11.3"
 langchain-aws = "^0.2.2"
+jupyter = "^1.1.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
