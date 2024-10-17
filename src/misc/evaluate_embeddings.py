@@ -5,7 +5,8 @@ from src.data_processing.indexing.embeddings_handler import (
     get_model_info,
     save_embeddings_details_to_json,
     load_embeddings_details_from_json,
-    find_most_similar
+    find_most_similar,
+    save_to_csv
 )
 import numpy as np
 from typing import List, Union, Dict, Any
@@ -73,7 +74,7 @@ def generate_embedding_details():
 
                     # Creating Embeddings without Summary
                     for embedding_model in embedding_models:
-                        print(f"Processing for Embedding Model: {embedding_model} with article summary")
+                        print(f"Processing for Embedding Model: {embedding_model} without article summary")
                         model_info = get_model_info(embedding_model)
                         embeddings = get_embeddings(
                             model_name=model_info[0],
@@ -105,7 +106,8 @@ if __name__ == "__main__":
     #generate_embedding_details()
 
     user_queries = [
-        "lung cancer risk from air pollution",
+        "lung cancer and air pollution",
+        "interleukin-1β in lung cancer progression",
     ]
 
     embedding_models = [
@@ -132,12 +134,17 @@ if __name__ == "__main__":
 
             # Find the most similar chunk:
             results = find_most_similar(
+                user_query=user_query,
                 query_embedding=query_embeddings,
-                embeddings_list=all_embedding_detials,
+                embeddings_details=all_embedding_detials,
                 model=embedding_model,
                 top_k=5
             )
-            print(results)
+
+            save_to_csv(
+                results=results,
+                output_file=f"../../data/PMC_7614604_chunks/similarity_results/que1/{embedding_model}.csv"
+            )
 
 # 1 Collection = Annotation Model X Embed Model X Chunking Strategy X Annotation Placement Strategy X Summ/No Summ X Each Chunk
 # Total = 2 X 4 X 2 X 3 X 2 X Chunks = 96 X Chunks

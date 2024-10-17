@@ -4,6 +4,7 @@ from transformers import AutoTokenizer, AutoModel
 import json
 from typing import List, Union, Dict, Any
 import numpy as np
+import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
 
@@ -238,45 +239,63 @@ def load_embeddings_details_from_json(filename):
         return json.load(f)
 
 
-def find_most_similar(query_embedding, embeddings_list, model, top_k=5):
-    all_embeddings = []
-    all_files = []
+# Function to calculate cosine similarity between query embedding and chunk embeddings
+def calculate_similarity(query_embedding, chunk_embeddings):
+    query_embedding = np.array(query_embedding).reshape(1, -1)
+    chunk_embeddings = np.array(chunk_embeddings)
+    return cosine_similarity(query_embedding, chunk_embeddings).flatten()
+
+
+def find_most_similar(user_query, query_embedding, embeddings_details, model, top_k=5):
+    results = []
 
     # Find the item with the matching model and extract its embeddings
-    for item in embeddings_list:
+    for item in embeddings_details:
         if item["embeddings_model"] == model:
-            all_embeddings.extend(item["embeddings"])
-            all_files.extend([item["file"]] * len(item["embeddings"]))
+            file = item.get("file")
+            embedding_model = item.get("embeddings_model")
+            annotation_model = item.get("annotation_model")
+            contains_summary = item.get("contains_summary")
+            chunking_strategy = (
+                "grouped_annotation_aware_sliding_window" if "grouped_annotation_aware_sliding_window" in file
+                else "sliding_window" if "sliding_window" in file
+                else "annotation_aware" if "annotation_aware" in file
+                else "passage" if "passage" in file
+                else "none"
+            )
+            annotations_placement_strategy = (
+                "append" if "append" in file
+                else "prepend" if "prepend" in file
+                else "inline" if "inline" in file
+                else "none"
+            )
+            embeddings = item.get("embeddings")
 
-    if not all_embeddings:
-        raise ValueError(f"No embeddings found for model: {model}")
+            # Calculate similarities
+            similarities = calculate_similarity(query_embedding, embeddings)
 
-    # Convert to numpy array for efficient computation
-    all_embeddings = np.array(all_embeddings)
+            # Get top k indices based on similarity scores
+            top_indices = np.argsort(similarities)[-top_k:][::-1]
 
-    # Ensure query_embedding is 2D
-    if query_embedding.ndim == 1:
-        query_embedding = query_embedding.reshape(1, -1)
-
-    # Calculate cosine similarity
-    similarities = cosine_similarity(query_embedding, all_embeddings)[0]
-
-    # Get indices of top_k most similar embeddings
-    most_similar_indices = similarities.argsort()[-top_k:][::-1]
-
-    # Create result list
-    results = []
-    for idx in most_similar_indices:
-        results.append(
-            {
-                "similarity": similarities[idx],
-                "file": all_files[idx],
-                #"embedding": all_embeddings[idx].tolist(),
-            }
-        )
+            for idx in top_indices:
+                results.append({
+                    "User Query": user_query,
+                    "Embed Model": embedding_model,
+                    "Annotation Model": annotation_model,
+                    "Chunking Strategy": chunking_strategy,
+                    "Annotation Placement Strategy": annotations_placement_strategy,
+                    "Contains Summary": "Yes" if contains_summary else "No",
+                    "Chunk Sequence": f"c{idx + 1}",
+                    "Similarity Score": similarities[idx],
+                    "Chunk File": file
+                })
 
     return results
 
+# Save results to CSV
+def save_to_csv(results, output_file):
+    df = pd.DataFrame(results)
+    df.to_csv(output_file, index=False)
 
 if __name__ == "__main__":
     model_name = "bio_bert"
