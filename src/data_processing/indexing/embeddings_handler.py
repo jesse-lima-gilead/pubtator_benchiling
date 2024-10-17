@@ -271,7 +271,7 @@ def find_most_similar(query_embedding, embeddings_list, model, top_k=5):
             {
                 "similarity": similarities[idx],
                 "file": all_files[idx],
-                "embedding": all_embeddings[idx].tolist(),
+                #"embedding": all_embeddings[idx].tolist(),
             }
         )
 

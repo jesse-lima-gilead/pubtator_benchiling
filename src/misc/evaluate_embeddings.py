@@ -94,53 +94,50 @@ def generate_embedding_details():
                         all_embedding_detials.append(embeddings_details)
 
     # Write the Embeddings to a file:
-    file_path = "../../data/PMC_7614604_chunks/PMC_7614604_embeddings.json"
+    file_path = "../../data/PMC_7614604_chunks/embeddings/PMC_7614604_embeddings.json"
     save_embeddings_details_to_json(all_embedding_detials, file_path)
-
-    #return all_embedding_detials
 
 
 # Run the main function
 if __name__ == "__main__":
 
     # Generate Embeddings:
-    generate_embedding_details()
+    #generate_embedding_details()
 
-    # user_queries = [
-    #     "lung cancer risk from air pollution",
-    # ]
-    #
-    # embedding_models = [
-    #     "bio_bert",
-    #     "bio_gpt",
-    #     # "longformer",
-    #     # "big_berd",
-    #     # "sci_bert"
-    # ]
-    #
-    # all_embedding_detials = load_embeddings_details_from_json(
-    #     filename="../../data/PMC_7614604_chunks/PMC_7614604_embeddings_backup.json"
-    # )
-    #
-    # for user_query in user_queries:
-    #     for embedding_model in embedding_models:
-    #         print(f"Processing for model - {embedding_model}")
-    #         model_info = get_model_info(embedding_model)
-    #         query_embeddings = get_embeddings(
-    #             model_name=model_info[0],
-    #             token_limit=model_info[1],
-    #             texts=[user_query]
-    #         )
-    #
-    #
-    #         # Find the most similar chunk:
-    #         results = find_most_similar(
-    #             query_embedding=query_embeddings,
-    #             embeddings_list=all_embedding_detials,
-    #             model=embedding_model,
-    #             top_k=3
-    #         )
-    #         print(results)
+    user_queries = [
+        "lung cancer risk from air pollution",
+    ]
+
+    embedding_models = [
+        "bio_bert",
+        "bio_gpt",
+        "longformer",
+        "sci_bert"
+    ]
+
+    all_embedding_detials = load_embeddings_details_from_json(
+        filename="../../data/PMC_7614604_chunks/embeddings/PMC_7614604_embeddings.json"
+    )
+
+    for user_query in user_queries:
+        for embedding_model in embedding_models:
+            print(f"Processing for model - {embedding_model}")
+            model_info = get_model_info(embedding_model)
+            query_embeddings = get_embeddings(
+                model_name=model_info[0],
+                token_limit=model_info[1],
+                texts=[user_query]
+            )
+
+
+            # Find the most similar chunk:
+            results = find_most_similar(
+                query_embedding=query_embeddings,
+                embeddings_list=all_embedding_detials,
+                model=embedding_model,
+                top_k=5
+            )
+            print(results)
 
 # 1 Collection = Annotation Model X Embed Model X Chunking Strategy X Annotation Placement Strategy X Summ/No Summ X Each Chunk
 # Total = 2 X 4 X 2 X 3 X 2 X Chunks = 96 X Chunks
@@ -156,3 +153,4 @@ if __name__ == "__main__":
 # [0.75, 0.23, 0.14, 0.26]
 #
 #
+
