@@ -6,6 +6,8 @@ from typing import List, Union, Dict, Any
 import numpy as np
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
+from src.utils.db import session  # Import the session
+from src.alembic_models.simillarity import ChunkSimilarity  # Import the Chunk model
 
 
 def get_model_info(model_name: str):
@@ -289,6 +291,23 @@ def find_most_similar(user_query, query_embedding, embeddings_details, model, to
                     "Similarity Score": similarities[idx],
                     "Chunk File": file
                 })
+
+                # Insert into PostgreSQL
+                similarity_record = ChunkSimilarity(
+                    user_query=user_query,
+                    embed_model=embedding_model,
+                    annotation_model=annotation_model,
+                    chunking_strategy=chunking_strategy,
+                    annotation_placement_strategy=annotations_placement_strategy,
+                    contains_summary="Yes" if contains_summary else "No",
+                    chunk_sequence=f"c{idx + 1}",
+                    similarity_score=similarities[idx],
+                    chunk_file=file
+                )
+                session.add(similarity_record)
+                session.commit()
+
+
 
     return results
 

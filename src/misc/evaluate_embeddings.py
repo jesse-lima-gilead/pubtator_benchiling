@@ -120,7 +120,7 @@ if __name__ == "__main__":
     all_embedding_detials = load_embeddings_details_from_json(
         filename="../../data/PMC_7614604_chunks/embeddings/PMC_7614604_embeddings.json"
     )
-
+    i = 0
     for user_query in user_queries:
         for embedding_model in embedding_models:
             print(f"Processing for model - {embedding_model}")
@@ -141,13 +141,18 @@ if __name__ == "__main__":
                 top_k=5
             )
 
-            save_to_csv(
-                results=results,
-                output_file=f"../../data/PMC_7614604_chunks/similarity_results/que1/{embedding_model}.csv"
-            )
 
-# 1 Collection = Annotation Model X Embed Model X Chunking Strategy X Annotation Placement Strategy X Summ/No Summ X Each Chunk
-# Total = 2 X 4 X 2 X 3 X 2 X Chunks = 96 X Chunks
+            # save_to_csv(
+            #     results=results,
+            #     output_file=f"../../data/PMC_7614604_chunks/similarity_results/que{i}/{embedding_model}.csv"
+            # )
+
+            i += 1
+
+
+# 1 Collection =
+# No. of Articles X Annotation Model X Embed Model X Chunking Strategy X Annotation Placement Strategy X Summ/No Summ X Each Chunk
+# Total = 1 X 2 X 4 X 2 X 3 X 2 X Chunks = 96 X Chunks
 #
 # abx
 # [aab, bbx, ccf, ddr]
