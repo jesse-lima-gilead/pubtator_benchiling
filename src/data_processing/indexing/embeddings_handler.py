@@ -259,16 +259,23 @@ def find_most_similar(user_query, query_embedding, embeddings_details, model, to
             annotation_model = item.get("annotation_model")
             contains_summary = item.get("contains_summary")
             chunking_strategy = (
-                "grouped_annotation_aware_sliding_window" if "grouped_annotation_aware_sliding_window" in file
-                else "sliding_window" if "sliding_window" in file
-                else "annotation_aware" if "annotation_aware" in file
-                else "passage" if "passage" in file
+                "grouped_annotation_aware_sliding_window"
+                if "grouped_annotation_aware_sliding_window" in file
+                else "sliding_window"
+                if "sliding_window" in file
+                else "annotation_aware"
+                if "annotation_aware" in file
+                else "passage"
+                if "passage" in file
                 else "none"
             )
             annotations_placement_strategy = (
-                "append" if "append" in file
-                else "prepend" if "prepend" in file
-                else "inline" if "inline" in file
+                "append"
+                if "append" in file
+                else "prepend"
+                if "prepend" in file
+                else "inline"
+                if "inline" in file
                 else "none"
             )
             embeddings = item.get("embeddings")
@@ -276,45 +283,48 @@ def find_most_similar(user_query, query_embedding, embeddings_details, model, to
             # Calculate similarities
             similarities = calculate_similarity(query_embedding, embeddings)
 
-            # Get top k indices based on similarity scores
-            top_indices = np.argsort(similarities)[-top_k:][::-1]
-
-            for idx in top_indices:
-                results.append({
-                    "User Query": user_query,
-                    "Embed Model": embedding_model,
-                    "Annotation Model": annotation_model,
-                    "Chunking Strategy": chunking_strategy,
-                    "Annotation Placement Strategy": annotations_placement_strategy,
-                    "Contains Summary": "Yes" if contains_summary else "No",
-                    "Chunk Sequence": f"c{idx + 1}",
-                    "Similarity Score": similarities[idx],
-                    "Chunk File": file
-                })
-
-                # Insert into PostgreSQL
-                similarity_record = ChunkSimilarity(
-                    user_query=user_query,
-                    embed_model=embedding_model,
-                    annotation_model=annotation_model,
-                    chunking_strategy=chunking_strategy,
-                    annotation_placement_strategy=annotations_placement_strategy,
-                    contains_summary="Yes" if contains_summary else "No",
-                    chunk_sequence=f"c{idx + 1}",
-                    similarity_score=similarities[idx],
-                    chunk_file=file
+            # # Get top k indices based on similarity scores
+            # top_indices = np.argsort(similarities)[::-1]
+            # print(top_indices)
+            #
+            for idx in range(len(similarities)):
+                results.append(
+                    {
+                        "User Query": user_query,
+                        "Embed Model": embedding_model,
+                        "Annotation Model": annotation_model,
+                        "Chunking Strategy": chunking_strategy,
+                        "Annotation Placement Strategy": annotations_placement_strategy,
+                        "Contains Summary": "Yes" if contains_summary else "No",
+                        "Chunk Sequence": f"c{idx + 1}",
+                        "Similarity Score": similarities[idx],
+                        "Chunk File": file,
+                    }
                 )
-                session.add(similarity_record)
-                session.commit()
 
-
+                # # Insert into PostgreSQL
+                # similarity_record = ChunkSimilarity(
+                #     user_query=user_query,
+                #     embed_model=embedding_model,
+                #     annotation_model=annotation_model,
+                #     chunking_strategy=chunking_strategy,
+                #     annotation_placement_strategy=annotations_placement_strategy,
+                #     contains_summary="Yes" if contains_summary else "No",
+                #     chunk_sequence=f"c{idx + 1}",
+                #     similarity_score=similarities[idx],
+                #     chunk_file=file
+                # )
+                # session.add(similarity_record)
+                # session.commit()
 
     return results
+
 
 # Save results to CSV
 def save_to_csv(results, output_file):
     df = pd.DataFrame(results)
     df.to_csv(output_file, index=False)
+
 
 if __name__ == "__main__":
     model_name = "bio_bert"

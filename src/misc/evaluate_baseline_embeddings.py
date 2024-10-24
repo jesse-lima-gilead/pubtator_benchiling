@@ -23,9 +23,7 @@ def generate_embedding_details():
 
     embedding_models = [
         "bio_bert",
-        "bio_gpt",
         "longformer",
-        "sci_bert"
     ]
 
     all_embedding_detials = []
@@ -43,12 +41,12 @@ def generate_embedding_details():
                 with open(f"{input_file_path}", "r") as f:
                     print(f"Processing {input_file_path}")
                     chunks = json.load(f)
-                    merged_texts_with_sum = [
-                        f"Summary:\n{article_summary}\nText:\n{chunk["merged_text"]}"
+                    texts_with_sum = [
+                        f"Summary:\n{article_summary}\nText:\n{chunk["chunk_text"]}"
                         for chunk in chunks
                     ]
                     #print(merged_texts_with_sum)
-                    merged_texts_without_sum = [chunk["merged_text"] for chunk in chunks]
+                    texts_without_sum = [chunk["chunk_text"] for chunk in chunks]
 
                     # Creating Embeddings with Summary
                     for embedding_model in embedding_models:
@@ -57,12 +55,12 @@ def generate_embedding_details():
                         embeddings = get_embeddings(
                             model_name=model_info[0],
                             token_limit=model_info[1],
-                            texts=merged_texts_with_sum
+                            texts=texts_with_sum
                         )
 
                         embeddings_details = {
                             "file": cur_file,
-                            "chunks_count": len(merged_texts_with_sum),
+                            "chunks_count": len(texts_with_sum),
                             "annotation_model": annotation_model,
                             "embeddings_model": embedding_model,
                             "embeddings_model_token_limit": model_info[1],
@@ -79,12 +77,12 @@ def generate_embedding_details():
                         embeddings = get_embeddings(
                             model_name=model_info[0],
                             token_limit=model_info[1],
-                            texts=merged_texts_without_sum
+                            texts=texts_without_sum
                         )
 
                         embeddings_details = {
                             "file": cur_file,
-                            "chunks_count": len(merged_texts_without_sum),
+                            "chunks_count": len(texts_without_sum),
                             "annotation_model": annotation_model,
                             "embeddings_model": embedding_model,
                             "embeddings_model_token_limit": model_info[1],
@@ -95,30 +93,30 @@ def generate_embedding_details():
                         all_embedding_detials.append(embeddings_details)
 
     # Write the Embeddings to a file:
-    file_path = "../../data/PMC_7614604_chunks/embeddings/PMC_7614604_embeddings.json"
+    file_path = "../../data/PMC_7614604_chunks/embeddings/PMC_7614604_baseline_embeddings.json"
     save_embeddings_details_to_json(all_embedding_detials, file_path)
 
 
-# Run the main function
+
+
 if __name__ == "__main__":
 
     # Generate Embeddings:
-    #generate_embedding_details()
+    # generate_embedding_details()
 
     user_queries = [
-        "lung cancer and air pollution",
-        "interleukin-1β in lung cancer progression",
+        # "lung cancer and air pollution",
+        "interleukin-1β influence on lung cancer progression",
     ]
 
     embedding_models = [
         "bio_bert",
-        #"bio_gpt",
         "longformer",
-        #"sci_bert"
     ]
 
     all_embedding_detials = load_embeddings_details_from_json(
-        filename="../../data/PMC_7614604_chunks/embeddings/PMC_7614604_embeddings.json"
+        #filename="../../data/PMC_7614604_chunks/embeddings/PMC_7614604_embeddings.json"
+        filename="../../data/PMC_7614604_chunks/embeddings/PMC_7614604_baseline_embeddings.json"
     )
     i = 0
     for user_query in user_queries:
@@ -142,20 +140,26 @@ if __name__ == "__main__":
             )
 
 
-            # save_to_csv(
-            #     results=results,
-            #     output_file=f"../../data/PMC_7614604_chunks/similarity_results/que{i}/{embedding_model}.csv"
-            # )
+            save_to_csv(
+                results=results,
+                output_file=f"../../data/PMC_7614604_chunks/similarity_results/all_chunks/new_que{i+1}/baseline_{embedding_model}.csv"
+            )
 
-            i += 1
+        i += 1
 
 
 # 1 Collection =
 # No. of Articles X Annotation Model X Embed Model X Chunking Strategy X Annotation Placement Strategy X Summ/No Summ X Each Chunk
 # Total = 1 X 2 X 4 X 2 X 3 X 2 X Chunks = 96 X Chunks
 #
-# Annotation Models - Bioformer, Pubmedbert  -> Bioformer
-# Embedding Models - Bio_bert, Bio_gpt, Longformer, Sci_bert -> Longformer
-# Chunking Strategies - Sliding Window, Annotation Aware Sliding Window, Grouped Annotation Aware Sliding Window, Passage -> Sliding Window
-# Annotation Placement Strategies - Prepend, Inline, Append -> Prepend
-# Summ/No Summ - Contains Summary, Doesn't Contain Summary -> Contains Summary
+# abx
+# [aab, bbx, ccf, ddr]
+# [0.89, 0.84, 0.14, 0.26]
+#
+# [0.91, 0.93, 0.14, 0.26]
+#
+# [0.87, 0.23, 0.14, 0.26]
+#
+# [0.75, 0.23, 0.14, 0.26]
+#
+#
