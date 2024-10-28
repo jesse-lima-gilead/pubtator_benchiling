@@ -103,11 +103,15 @@ def generate_embedding_details():
 if __name__ == "__main__":
 
     # Generate Embeddings:
-    #generate_embedding_details()
+    # generate_embedding_details()
 
     user_queries = [
-        "lung cancer and air pollution",
-        "interleukin-1β in lung cancer progression",
+        #"lung cancer and air pollution",
+        #"interleukin-1β in lung cancer progression",
+        "EGFR mutations and aging",
+        "KRAS mutations in Korean population",
+        "PM2.5 effects in England cohorts",
+        "EGFR mutation frequency healthy lung tissue"
     ]
 
     embedding_models = [
@@ -142,12 +146,12 @@ if __name__ == "__main__":
             )
 
 
-            # save_to_csv(
-            #     results=results,
-            #     output_file=f"../../data/PMC_7614604_chunks/similarity_results/que{i}/{embedding_model}.csv"
-            # )
+            save_to_csv(
+                results=results,
+                output_file=f"../../data/PMC_7614604_chunks/similarity_results/keerthi_queries/que{i + 1}/{embedding_model}.csv"
+            )
 
-            i += 1
+        i += 1
 
 
 # 1 Collection =

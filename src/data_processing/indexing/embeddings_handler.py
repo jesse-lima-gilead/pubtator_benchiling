@@ -283,11 +283,11 @@ def find_most_similar(user_query, query_embedding, embeddings_details, model, to
             # Calculate similarities
             similarities = calculate_similarity(query_embedding, embeddings)
 
-            # # Get top k indices based on similarity scores
-            # top_indices = np.argsort(similarities)[::-1]
-            # print(top_indices)
-            #
-            for idx in range(len(similarities)):
+            # Get top k indices based on similarity scores
+            top_indices = np.argsort(similarities)[-top_k:][::-1]
+            #print(top_indices)
+
+            for idx in top_indices:
                 results.append(
                     {
                         "User Query": user_query,
