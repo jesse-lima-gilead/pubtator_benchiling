@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-
+import os
 from src.Prompts.PromptBuilder import PromptBuilder
 from llm_handler.llm_factory import LLMFactory
 
@@ -59,15 +59,20 @@ class SummarizeArticle:
 
 # # Usage
 # if __name__ == "__main__":
-#     summarizer = SummarizeArticle("../../../data/gilead_pubtator_results/gnorm2_annotated/bioformer_annotated/PMC_7614604.xml")
-#     summary = summarizer.summarize()
-#     print("Summary of the file content:")
-#     print(summary.pretty_print())
-#     print("-----------")
-#     print(summary.content)
+#     articles_dir = "../../../data/gnorm2_annotated/bioformer_annotated"
+#     for cur_file in os.listdir(articles_dir):
+#         input_file_path = f"{articles_dir}/{cur_file}"
 #
-#     # Specify the file path
-#     file_path = "../../../data/summary.txt"
+#         summarizer = SummarizeArticle(input_file_path)
+#         summary = summarizer.summarize()
+#         print("Summary of the file content:")
+#         print(summary.pretty_print())
+#         print("-----------")
+#         print(summary.content)
 #
-#     with open(file_path, "w") as file:
-#         file.write(summary.content)
+#         file_name = cur_file.split(".")[0]
+#         # Specify the file path
+#         file_path = f"../../../data/article_summaries/{file_name}.txt"
+#
+#         with open(file_path, "w") as file:
+#             file.write(summary.content)

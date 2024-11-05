@@ -15,15 +15,27 @@ class PrependMerger:
 
         # Append the annotations section
         if annotations:
-            merged_text += "Annotations:\n"
+
+            # Deduplicating annotations using a set to track unique combinations
+            unique_entries = set()
+            distinct_annotations = []
+
             for ann in annotations:
+                unique_key = (ann["text"], ann["type"], ann["ncbi_label"], ann["ncbi_id"])
+                if unique_key not in unique_entries:
+                    unique_entries.add(unique_key)
+                    distinct_annotations.append(ann)
+
+
+            merged_text += "Annotations:\n"
+            for ann in distinct_annotations:
                 # Extract common fields
                 annotation_text = ann["text"]
                 annotation_type = ann["type"]
                 annotation_label = ann["ncbi_label"]
                 annotation_id = ann["ncbi_id"]
-                annotation_offset = ann["offset"]
-                annotation_length = ann["length"]
+                # annotation_offset = ann["offset"]
+                # annotation_length = ann["length"]
 
                 # Format the annotation information to be appended
                 annotation_block = (
@@ -156,6 +168,15 @@ chunk = [
                 "offset": 914,
                 "length": 6,
             },
+            {
+                "id": "9",
+                "text": "patients",
+                "type": "Species",
+                "ncbi_label": "NCBI Taxonomy",
+                "ncbi_id": "9606",
+                "offset": 1777,
+                "length": 8,
+            },
         ],
         "payload": {
             "chunk_id": "9506dbfd-0cad-4e42-bc06-389a12f9e4c8",
@@ -180,7 +201,7 @@ chunk = [
 # if __name__ == "__main__":
 #     # Instantiate the merger and merge the annotations into the text
 #     merger = PrependMerger()
-#     text = chunk[0]["chunk_text"]
-#     annotations = chunk[0]["chunk_annotations"]
+#     text = chunk[1]["chunk_text"]
+#     annotations = chunk[1]["chunk_annotations"]
 #     merged_text = merger.merge(text, annotations)
 #     print(merged_text)

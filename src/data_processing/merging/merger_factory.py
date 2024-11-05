@@ -1,7 +1,7 @@
-from src.data_processing.chunking.inline_merger import InlineMerger
-from src.data_processing.chunking.append_merger import AppendMerger
-from src.data_processing.chunking.full_text_merger import FullTextMerger
-from src.data_processing.chunking.prepend_merger import PrependMerger
+from data_processing.merging.inline_merger import InlineMerger
+from data_processing.merging.append_merger import AppendMerger
+from data_processing.merging.full_text_merger import FullTextMerger
+from data_processing.merging.prepend_merger import PrependMerger
 
 
 class TextAnnotationMergeFactory:

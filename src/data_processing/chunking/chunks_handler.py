@@ -1,12 +1,10 @@
 import os
 import json
 import uuid
-from typing import List, Dict, Any
 from src.utils.db import session  # Import the session
 from src.alembic_models.chunks import Chunk  # Import the Chunk model
 from src.data_processing.chunking.chunker_factory import ChunkerFactory
-from src.data_processing.chunking.articles_summarizer import SummarizeArticle
-from src.data_processing.chunking.merger_factory import (
+from data_processing.merging.merger_factory import (
     TextAnnotationMergeFactory,
 )
 
