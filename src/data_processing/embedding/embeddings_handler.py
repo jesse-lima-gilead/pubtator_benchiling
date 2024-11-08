@@ -1,3 +1,5 @@
+import os
+
 import torch
 import torch.nn.functional as F
 from transformers import AutoTokenizer, AutoModel
@@ -22,6 +24,10 @@ def get_model_info(model_name: str):
         return "google/bigbird-roberta-base", 4096
     elif model_name == "sci_bert":
         return "allenai/scibert_scivocab_uncased", 512
+    elif model_name == "pubmedbert":
+        return "NeuML/pubmedbert-base-embeddings", 512
+    elif model_name == "medembed":
+        return "abhinand/MedEmbed-base-v0.1", 512
     else:
         raise ValueError(f"Unknown model_name: {model_name}")
 
@@ -36,7 +42,7 @@ def masked_mean_pooling(token_embeddings, attention_mask):
     return mean_embeddings
 
 
-def get_embeddings(model_name, texts, token_limit=512, stride=None):
+def get_embeddings(model_name, texts: List[str], token_limit=512, stride=None):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
 
@@ -98,122 +104,6 @@ def get_embeddings(model_name, texts, token_limit=512, stride=None):
     return torch.cat(all_embeddings, dim=0)
 
 
-# def masked_mean_pooling(token_embeddings: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
-#     """
-#     Perform masked mean pooling on the token embeddings.
-#
-#     Args:
-#         token_embeddings (torch.Tensor): The token embeddings from the model.
-#         attention_mask (torch.Tensor): The attention mask for the input.
-#
-#     Returns:
-#         torch.Tensor: The pooled embeddings.
-#     """
-#     input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-#     sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, dim=1)
-#     sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-#     return sum_embeddings / sum_mask
-
-# def get_embeddings(
-#     model_name: str,
-#     texts: List[str],
-#     token_limit: int = 512,
-#     stride: int = 256,
-#     return_numpy: bool = False
-# ) -> Union[torch.Tensor, np.ndarray]:
-#     """
-#     Generate embeddings for a list of texts using the specified model.
-#
-#     Args:
-#         model_name (str): The name of the pre-trained model to use.
-#         texts (List[str]): A list of texts to generate embeddings for.
-#         token_limit (int, optional): The maximum number of tokens per chunk. Defaults to 512.
-#         stride (int, optional): The stride for chunking long texts. Defaults to 256.
-#         return_numpy (bool, optional): If True, return a numpy array instead of a PyTorch tensor. Defaults to False.
-#
-#     Returns:
-#         Union[torch.Tensor, np.ndarray]: The generated embeddings.
-#     """
-#     tokenizer = AutoTokenizer.from_pretrained(model_name)
-#     model = AutoModel.from_pretrained(model_name)
-#
-#     # Move model to GPU if available
-#     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-#     model.to(device)
-#
-#     all_embeddings = []
-#
-#     # Get the model's maximum sequence length
-#     max_length = min(tokenizer.model_max_length, token_limit)
-#     stride = stride or max_length // 2
-#
-#     for text in texts:
-#         encoded_input = tokenizer.encode_plus(
-#             text,
-#             add_special_tokens=True,
-#             max_length=max_length,
-#             truncation=True,
-#             padding='max_length',
-#             return_tensors='pt'
-#         )
-#
-#         encoded_input = {k: v.to(device) for k, v in encoded_input.items()}
-#
-#         with torch.no_grad():
-#             model_output = model(**encoded_input)
-#
-#         # Use mean pooling
-#         token_embeddings = model_output.last_hidden_state
-#         attention_mask = encoded_input['attention_mask']
-#         embeddings = masked_mean_pooling(token_embeddings, attention_mask)
-#
-#         # Normalize embeddings
-#         embeddings = F.normalize(embeddings, p=2, dim=1)
-#         all_embeddings.append(embeddings)
-#
-#     # Stack all embeddings
-#     final_embeddings = torch.cat(all_embeddings, dim=0)
-#
-#     if return_numpy:
-#         return final_embeddings.cpu().numpy()
-#     return final_embeddings
-
-
-#
-# def get_embeddings(model_name, token_limit, text, stride=256):
-#     # Load pre-trained model and tokenizer
-#     tokenizer = AutoTokenizer.from_pretrained(model_name)
-#     model = AutoModel.from_pretrained(model_name)
-#
-#     # Get the model's maximum sequence length
-#     max_length = tokenizer.model_max_length if hasattr(tokenizer, 'model_max_length') else token_limit
-#
-#     # Tokenize the text without truncation first
-#     tokens = tokenizer.encode(text, add_special_tokens=True)
-#
-#     # Split the tokens into chunks that fit within the model's max length
-#     chunks = [tokens[i:i + max_length] for i in range(0, len(tokens), max_length)]
-#
-#     all_embeddings = []
-#
-#     for chunk in chunks:
-#         # Convert chunk to tensor and reshape
-#         input_ids = torch.tensor(chunk).unsqueeze(0)
-#
-#         # Generate embeddings
-#         with torch.no_grad():
-#             outputs = model(input_ids)
-#
-#         # Use the last hidden state as the embedding
-#         embeddings = outputs.last_hidden_state.mean(dim=1)
-#         all_embeddings.append(embeddings)
-#
-#     # Concatenate all embeddings if there were multiple chunks
-#     final_embedding = torch.cat(all_embeddings, dim=0).mean(dim=0)
-#
-#     return final_embedding.numpy()
-
-
 def tensor_to_list(obj):
     if isinstance(obj, (torch.Tensor, np.ndarray)):
         return (
@@ -248,7 +138,9 @@ def calculate_similarity(query_embedding, chunk_embeddings):
     return cosine_similarity(query_embedding, chunk_embeddings).flatten()
 
 
-def find_most_similar(user_query, query_embedding, embeddings_details, model, top_k=5):
+def find_most_similar(
+    user_query, query_embedding, embeddings_details, model, article_id, top_k=5
+):
     results = []
 
     # Find the item with the matching model and extract its embeddings
@@ -261,22 +153,28 @@ def find_most_similar(user_query, query_embedding, embeddings_details, model, to
             chunking_strategy = (
                 "grouped_annotation_aware_sliding_window"
                 if "grouped_annotation_aware_sliding_window" in file
-                else "sliding_window"
-                if "sliding_window" in file
-                else "annotation_aware"
-                if "annotation_aware" in file
-                else "passage"
-                if "passage" in file
-                else "none"
+                else (
+                    "sliding_window"
+                    if "sliding_window" in file
+                    else (
+                        "annotation_aware"
+                        if "annotation_aware" in file
+                        else "passage"
+                        if "passage" in file
+                        else "none"
+                    )
+                )
             )
             annotations_placement_strategy = (
                 "append"
                 if "append" in file
-                else "prepend"
-                if "prepend" in file
-                else "inline"
-                if "inline" in file
-                else "none"
+                else (
+                    "prepend"
+                    if "prepend" in file
+                    else "inline"
+                    if "inline" in file
+                    else "none"
+                )
             )
             embeddings = item.get("embeddings")
 
@@ -284,12 +182,13 @@ def find_most_similar(user_query, query_embedding, embeddings_details, model, to
             similarities = calculate_similarity(query_embedding, embeddings)
 
             # Get top k indices based on similarity scores
-            top_indices = np.argsort(similarities)[-top_k:][::-1]
-            #print(top_indices)
+            top_indices = np.argsort(similarities)[::-1][:top_k]
+            # print(top_indices, "top indices")
 
             for idx in top_indices:
                 results.append(
                     {
+                        "pmc_article_id": article_id,
                         "User Query": user_query,
                         "Embed Model": embedding_model,
                         "Annotation Model": annotation_model,
@@ -321,9 +220,27 @@ def find_most_similar(user_query, query_embedding, embeddings_details, model, to
 
 
 # Save results to CSV
+# def save_to_csv(results, output_file):
+#     # Create the directory if it doesn't exist
+#     os.makedirs(os.path.dirname(output_file), exist_ok=True)
+#     df = pd.DataFrame(results)
+#     df.to_csv(output_file, index=False)
+
+
 def save_to_csv(results, output_file):
+    # Create the directory if it doesn't exist
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+    # Convert results to a DataFrame
     df = pd.DataFrame(results)
-    df.to_csv(output_file, index=False)
+
+    # Check if the file already exists
+    if os.path.isfile(output_file):
+        # Append without writing the header
+        df.to_csv(output_file, mode="a", header=False, index=False)
+    else:
+        # Write normally if file doesn't exist
+        df.to_csv(output_file, mode="w", index=False)
 
 
 if __name__ == "__main__":

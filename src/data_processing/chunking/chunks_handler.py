@@ -1,12 +1,6 @@
 import os
 import json
-import uuid
-from src.utils.db import session  # Import the session
-from src.alembic_models.chunks import Chunk  # Import the Chunk model
 from src.data_processing.chunking.chunker_factory import ChunkerFactory
-from data_processing.merging.merger_factory import (
-    TextAnnotationMergeFactory,
-)
 
 
 def write_chunks_to_file(chunks, output_file: str):
@@ -17,16 +11,11 @@ def write_chunks_to_file(chunks, output_file: str):
 
 # Example usage of the factory method
 def chunk_annotated_articles(
-    # article_summary: str,
-    chunker_type: str,
-    merger_type: str,
     input_file_path: str,
-    output_path: str,
-    aioner_model: str = "bioformer",
-    gnorm2_model: str = "bioformer",
+    chunker_type: str,
 ):
     # xml_file = "../../../data/gilead_pubtator_results/gnorm2_annotated/bioformer_annotated/PMC_8005792.xml"
-    article_id = os.path.splitext(os.path.basename(input_file_path))[0]
+    # article_id = os.path.splitext(os.path.basename(input_file_path))[0]
 
     # Get the appropriate chunker instance
     chunker_factory = ChunkerFactory(input_file_path, max_tokens_per_chunk=512)
@@ -44,89 +33,91 @@ def chunk_annotated_articles(
     else:
         raise ValueError(f"Unknown chunker type: {chunker_type}")
 
-    # Get the appropriate Text - Annotations Merger
-    merger_factory = TextAnnotationMergeFactory(
-        input_file_path, max_tokens_per_chunk=512
-    )
-    merger = merger_factory.get_merger(merger_type)
+    return chunks
 
-    # Print the chunks for verification
-    for i, chunk in enumerate(chunks):
-        print(f"Chunk {i + 1}: {chunk}")
-
-    # Getting the Chunks details:
-
-    all_chunk_details = []
-
-    for i, chunk in enumerate(chunks):
-        merged_text = merger.merge(chunk["text"], chunk["annotations"])
-
-        chunk_id = str(uuid.uuid4())
-        chunk_sequence = f"{i + 1}"
-        chunk_name = f"{article_id}_chunk_{chunk_sequence}"
-        chunk_text = chunk["text"]
-        chunk_annotations = chunk["annotations"]
-        chunk_length = len(chunk_text)
-        token_count = len(chunk_text.split())
-        chunk_annotations_count = len(chunk_annotations)
-        chunk_annotations_ids = [ann["id"] for ann in chunk_annotations]
-        chunk_annotations_types = list(set([ann["type"] for ann in chunk_annotations]))
-        chunk_offset = chunk["offset"]
-        chunk_infons = chunk["infons"]
-        chunker_type = chunker_type
-
-        chunk_details = {
-            "chunk_sequence": chunk_sequence,
-            "merged_text": merged_text,
-            "chunk_text": chunk_text,
-            "chunk_annotations": chunk_annotations,
-            "payload": {
-                "chunk_id": chunk_id,
-                "chunk_name": chunk_name,
-                "chunk_length": chunk_length,
-                "token_count": token_count,
-                "chunk_annotations_count": chunk_annotations_count,
-                "chunk_annotations_ids": chunk_annotations_ids,
-                "chunk_annotations_types": chunk_annotations_types,
-                "chunk_offset": chunk_offset,
-                "chunk_infons": chunk_infons,
-                "chunker_type": chunker_type,
-                "merger_type": merger_type,
-                "aioner_model": aioner_model,
-                "gnorm2_model": gnorm2_model,
-                "article_id": article_id,
-                # "article_summary": article_summary,
-            },
-        }
-        print(chunk_details)
-        all_chunk_details.append(chunk_details)
-
-        # Insert into PostgreSQL
-        chunk_record = Chunk(
-            chunk_id=chunk_id,
-            chunk_sequence=chunk_sequence,
-            chunk_name=chunk_name,
-            chunk_length=chunk_length,
-            token_count=token_count,
-            chunk_annotations_count=chunk_annotations_count,
-            chunk_annotations_ids=chunk_annotations_ids,
-            chunk_annotations_types=chunk_annotations_types,
-            chunk_offset=chunk_offset,
-            chunk_infons=chunk_infons,
-            chunker_type=chunker_type,
-            merger_type=merger_type,
-            aioner_model=aioner_model,
-            gnorm2_model=gnorm2_model,
-            article_id=article_id,
-        )
-        session.add(chunk_record)
-        session.commit()
-
-    # Write Chunks to file:
-    write_chunks_to_file(
-        all_chunk_details,
-        output_file=f"{output_path}/{chunker_type}_{merger_type}_{gnorm2_model}_{article_id}.json",
-    )
+    # # Get the appropriate Text - Annotations Merger
+    # merger_factory = TextAnnotationMergeFactory(
+    #     input_file_path, max_tokens_per_chunk=512
+    # )
+    # merger = merger_factory.get_merger(merger_type)
+    #
+    # # Print the chunks for verification
+    # for i, chunk in enumerate(chunks):
+    #     print(f"Chunk {i + 1}: {chunk}")
+    #
+    # # Getting the Chunks details:
+    #
+    # all_chunk_details = []
+    #
+    # for i, chunk in enumerate(chunks):
+    #     merged_text = merger.merge(chunk["text"], chunk["annotations"])
+    #
+    #     chunk_id = str(uuid.uuid4())
+    #     chunk_sequence = f"{i + 1}"
+    #     chunk_name = f"{article_id}_chunk_{chunk_sequence}"
+    #     chunk_text = chunk["text"]
+    #     chunk_annotations = chunk["annotations"]
+    #     chunk_length = len(chunk_text)
+    #     token_count = len(chunk_text.split())
+    #     chunk_annotations_count = len(chunk_annotations)
+    #     chunk_annotations_ids = [ann["id"] for ann in chunk_annotations]
+    #     chunk_annotations_types = list(set([ann["type"] for ann in chunk_annotations]))
+    #     chunk_offset = chunk["offset"]
+    #     chunk_infons = chunk["infons"]
+    #     chunker_type = chunker_type
+    #
+    #     chunk_details = {
+    #         "chunk_sequence": chunk_sequence,
+    #         "merged_text": merged_text,
+    #         "chunk_text": chunk_text,
+    #         "chunk_annotations": chunk_annotations,
+    #         "payload": {
+    #             "chunk_id": chunk_id,
+    #             "chunk_name": chunk_name,
+    #             "chunk_length": chunk_length,
+    #             "token_count": token_count,
+    #             "chunk_annotations_count": chunk_annotations_count,
+    #             "chunk_annotations_ids": chunk_annotations_ids,
+    #             "chunk_annotations_types": chunk_annotations_types,
+    #             "chunk_offset": chunk_offset,
+    #             "chunk_infons": chunk_infons,
+    #             "chunker_type": chunker_type,
+    #             "merger_type": merger_type,
+    #             "aioner_model": aioner_model,
+    #             "gnorm2_model": gnorm2_model,
+    #             "article_id": article_id,
+    #             # "article_summary": article_summary,
+    #         },
+    #     }
+    #     print(chunk_details)
+    #     all_chunk_details.append(chunk_details)
+    #
+    #     # Insert into PostgreSQL
+    #     chunk_record = Chunk(
+    #         chunk_id=chunk_id,
+    #         chunk_sequence=chunk_sequence,
+    #         chunk_name=chunk_name,
+    #         chunk_length=chunk_length,
+    #         token_count=token_count,
+    #         chunk_annotations_count=chunk_annotations_count,
+    #         chunk_annotations_ids=chunk_annotations_ids,
+    #         chunk_annotations_types=chunk_annotations_types,
+    #         chunk_offset=chunk_offset,
+    #         chunk_infons=chunk_infons,
+    #         chunker_type=chunker_type,
+    #         merger_type=merger_type,
+    #         aioner_model=aioner_model,
+    #         gnorm2_model=gnorm2_model,
+    #         article_id=article_id,
+    #     )
+    #     session.add(chunk_record)
+    #     session.commit()
+    #
+    # # Write Chunks to file:
+    # write_chunks_to_file(
+    #     all_chunk_details,
+    #     output_file=f"{output_path}/{chunker_type}_{merger_type}_{gnorm2_model}_{article_id}.json",
+    # )
 
 
 # Run the main function
@@ -135,14 +126,14 @@ if __name__ == "__main__":
 
     chunker_list = [
         "sliding_window",
-        "passage",
-        "annotation_aware",
-        "grouped_annotation_aware_sliding_window",
+        # "passage",
+        # "annotation_aware",
+        # "grouped_annotation_aware_sliding_window",
     ]
 
     merger_list = [
-        "append",
-        "inline",
+        # "append",
+        # "inline",
         "prepend",
         # "fulltext"
     ]

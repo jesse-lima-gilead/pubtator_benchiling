@@ -1,6 +1,6 @@
 import json
 import os
-from src.data_processing.indexing.embeddings_handler import (
+from src.data_processing.embedding.embeddings_handler import (
     get_embeddings,
     get_model_info,
     save_embeddings_details_to_json,

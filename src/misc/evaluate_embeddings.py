@@ -2,7 +2,7 @@ import json
 import os
 
 from misc.evaluate_baseline_embeddings import article_summary
-from src.data_processing.indexing.embeddings_handler import (
+from src.data_processing.embedding.embeddings_handler import (
     get_embeddings,
     get_model_info,
     save_embeddings_details_to_json,
@@ -13,9 +13,9 @@ from src.data_processing.indexing.embeddings_handler import (
 import numpy as np
 from typing import List, Union, Dict, Any
 
-# article_summary = """
-# Air pollution promotes lung cancer by inducing inflammation and expanding pre-existing oncogenic mutations. Particulate matter (PM2.5) exposure correlates with increased EGFR-driven lung cancer incidence across countries. PM2.5 triggers macrophage-derived interleukin-1β release, promoting a progenitor-like state in EGFR-mutant lung cells and accelerating tumor formation. Oncogenic EGFR and KRAS mutations were found in 18% and 53% of healthy lung samples, respectively, suggesting air pollutants may promote expansion of existing mutant clones rather than directly causing mutations.
-# """
+article_summary = """
+Air pollution promotes lung cancer by inducing inflammation and expanding pre-existing oncogenic mutations. Particulate matter (PM2.5) exposure correlates with increased EGFR-driven lung cancer incidence across countries. PM2.5 triggers macrophage-derived interleukin-1β release, promoting a progenitor-like state in EGFR-mutant lung cells and accelerating tumor formation. Oncogenic EGFR and KRAS mutations were found in 18% and 53% of healthy lung samples, respectively, suggesting air pollutants may promote expansion of existing mutant clones rather than directly causing mutations.
+"""
 
 
 def extract_summary(filename):
@@ -34,17 +34,19 @@ def generate_embedding_details(cur_pmc_dir):
     ]
 
     embedding_models = [
-        "bio_bert",
+        # "bio_bert",
         # "bio_gpt",
-        "longformer",
-        # "sci_bert"
+        # "longformer",
+        # "sci_bert",
+        "medembed",
+        "pubmedbert"
     ]
 
     all_embedding_detials = []
 
-    chunk_dir = f"../../data/decoy_docs/chunks/{cur_pmc_dir}"
+    chunk_dir = f"../../data/medembed_analysis/chunks/{cur_pmc_dir}"
     # chunk_dir = "../../data/test/test"
-    article_file_path = f"../../data/article_summaries/{cur_pmc_dir}.txt"
+    article_file_path = f"../../data/medembed_analysis/article_summaries/{cur_pmc_dir}.txt"
     article_summary = extract_summary(article_file_path)
     print(article_summary)
 
@@ -112,15 +114,20 @@ def generate_embedding_details(cur_pmc_dir):
                     #     all_embedding_detials.append(embeddings_details)
 
     # Write the Embeddings to a file:
-    file_path = f"../../data/decoy_docs/embeddings/{cur_pmc_dir}_embeddings.json"
+    file_path = f"../../data/medembed_analysis/embeddings/{cur_pmc_dir}_embeddings.json"
     save_embeddings_details_to_json(all_embedding_detials, file_path)
 
 
 # Run the main function
 if __name__ == "__main__":
-    chunk_dir = f"../../data/decoy_docs/chunks"
+    chunk_dir = f"../../data/medembed_analysis/chunks"
+
+    # cur_pmc_dir = "PMC_10213952"
+    # generate_embedding_details(cur_pmc_dir)
+
+
     for cur_pmc_dir in os.listdir(chunk_dir):
-        print(cur_pmc_dir)
+        print(f'{chunk_dir}/{cur_pmc_dir}')
         # Generate Embeddings:
         generate_embedding_details(cur_pmc_dir)
 

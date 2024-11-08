@@ -1,8 +1,10 @@
 import json
 import os
+from src.utils.logger import SingletonLogger
 
-from vector_db_handler.index_factory import IndexFactory
-
+# Initialize the logger
+logger_instance = SingletonLogger()
+logger = logger_instance.get_logger()
 
 def write_results_to_local(query, search_results, output_dir):
     results_dic = {}
@@ -33,10 +35,33 @@ def write_results_to_local(query, search_results, output_dir):
 
 def retrieve_chunks(query, chunker_type, merger_type, ner_model, vector_db, model):
     # Get the appropriate indexer instance
-    index_factory = IndexFactory(chunker_type, merger_type, ner_model, model)
-    index_handler = index_factory.get_indexer(vector_db)
+    pass
 
-    search_results = index_handler.retrieve_query(query, limit=3)
+def retrieve_query(self, query: str, limit: int = 1):
+    """
+    Retrieves related data to the user's question by querying the vector store.
+
+    Args:
+        query (str): The user's query.
+        limit (int, optional): Defaults to 1. The no. of closest chunks to be returned.
+    """
+    logger.info(f"Processing query: {query}")
+
+    # Generate the embedding for the query
+    query_embedding = self.embed_llm.embed_query(query)
+
+    # Search the vector store for relevant vectors
+    search_results = self.qdrant_manager.search_vectors(query_embedding, limit)
+
+    logger.info(f"Retrieved results: {search_results}")
+
+    # Extract relevant texts from the search results
+    retrieved_chunks = [result.payload["chunk_text"] for result in search_results]
+
+    # Combine the relevant texts into a context for the LLM
+    retrieved_chunks = "\n".join(retrieved_chunks)
+
+    logger.info(f"Retrieved chunks: {retrieved_chunks}")
 
     return search_results
 

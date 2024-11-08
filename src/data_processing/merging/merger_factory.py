@@ -4,10 +4,9 @@ from data_processing.merging.full_text_merger import FullTextMerger
 from data_processing.merging.prepend_merger import PrependMerger
 
 
-class TextAnnotationMergeFactory:
-    def __init__(self, xml_file_path, max_tokens_per_chunk=512):
-        self.xml_file_path = xml_file_path
-        self.max_tokens_per_chunk = max_tokens_per_chunk
+class AnnotationMergeFactory:
+    def __init__(self):
+        pass
 
     def get_merger(self, merger_type):
         """Factory method to return the appropriate chunker based on the chunker_type."""
