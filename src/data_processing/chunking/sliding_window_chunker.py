@@ -20,6 +20,17 @@ class SlidingWindowChunker:
         """Parse BioC XML file and return the root element."""
         tree = ET.parse(self.xml_file_path)
         return tree.getroot()
+    
+
+    def remove_unwanted_passages(self, root: ET.Element, unwanted_types: List[str]) -> None:
+        """Remove passages with <infon key="type"> that match any unwanted type."""
+        unwanted_types = ['acknowledgements', 'author', 'authors']
+        passages = root.findall(".//passage")
+        for passage in passages:
+            infon_type = passage.find(".//infon[@key='type']")
+            if infon_type is not None and infon_type.text in unwanted_types:
+                root.remove(passage)
+    
 
     def extract_passages(self, root: ET.Element) -> List[ET.Element]:
         """Extract all passage elements from the BioC XML."""
@@ -107,6 +118,7 @@ class SlidingWindowChunker:
     def sliding_window_chunking(self) -> List[Dict[str, Any]]:
         """Chunk an entire BioC XML file using sliding window."""
         root = self.parse_bioc_xml()
+        self.remove_unwanted_passages(root, unwanted_types=['acknowledgements', 'author', 'authors'])
         passages = self.extract_passages(root)
 
         all_chunks = []
