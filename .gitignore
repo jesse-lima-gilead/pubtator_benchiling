@@ -30,6 +30,7 @@ qdrant_storage/
 data/
 postgres_data/
 test_data/
+notebooks/
 
 # Distribution / packaging
 .Python
