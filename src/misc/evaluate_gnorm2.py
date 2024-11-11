@@ -399,7 +399,7 @@ def process_files(file_reports, output_dir):
 
 if __name__ == "__main__":
     model_list = ["bioformer", "pubmedbert"]
-    validation_dir_path = "../../data/validation/gnorm2_annotated"
+    validation_dir_path = "../../test_data/validation/gnorm2_annotated"
     file_reports = []
 
     # Create Reports per File
@@ -441,5 +441,5 @@ if __name__ == "__main__":
                 #       f"Recall (R): {accuracy_metrices["recall"]:.2f}%\n\n"
                 #       )
 
-    output_dir = "../../data/validation/results/"
+    output_dir = "../../test_data/validation/results/"
     process_files(file_reports, output_dir)

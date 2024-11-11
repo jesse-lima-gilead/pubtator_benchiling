@@ -212,7 +212,7 @@ class ArticleProcessor:
             embeddings_details = self.get_chunks_embeddings_details(chunks)
 
         # Write the Embeddings to a file:
-        file_path = f"../../data/decoy_docs/embeddings/_embeddings.json"
+        file_path = f"../../test_data/decoy_docs/embeddings/_embeddings.json"
         save_embeddings_details_to_json(embeddings_details, file_path)
 
     def store_embeddings_details_at_vectordb(self):

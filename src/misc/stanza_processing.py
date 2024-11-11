@@ -88,8 +88,8 @@ class BioCNERAnnotator:
 if __name__ == "__main__":
     print("Execution Started")
     # Usage Example
-    input_dir = "../../data/bioc_xml"
-    output_dir = "../../data/annotated_bioc_xml"
+    input_dir = "../../test_data/bioc_xml"
+    output_dir = "../../test_data/annotated_bioc_xml"
     annotator = BioCNERAnnotator(input_dir, output_dir)
     annotator.process_files()
     print("Execution Completed")

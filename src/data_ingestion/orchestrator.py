@@ -71,8 +71,8 @@ if __name__ == "__main__":
     start_date = "2019"
     end_date = "2024"
     retmax = 25
-    pmc_local_path: str = "../../data/pmc_full_text_articles"
-    bioc_local_path: str = "../../data/bioc_full_text_articles"
+    pmc_local_path: str = "../../test_data/pmc_full_text_articles"
+    bioc_local_path: str = "../../test_data/bioc_full_text_articles"
     pmc_ingestor = PMCIngestor(
         query=query,
         start_date=start_date,

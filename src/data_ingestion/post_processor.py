@@ -46,7 +46,7 @@ class PostProcessor:
 
 
 if __name__ == "__main__":
-    file_path = "../../data/aioner_annotated/pubmedbert_annotated/PMC_10483081.xml"
+    file_path = "../../test_data/aioner_annotated/pubmedbert_annotated/PMC_10483081.xml"
     post_processor = PostProcessor()
     post_processor.set_file_path(file_path)
     post_processor.process_file()

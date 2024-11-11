@@ -44,9 +44,9 @@ def generate_embedding_details(cur_pmc_dir):
 
     all_embedding_detials = []
 
-    chunk_dir = f"../../data/medembed_analysis/chunks/{cur_pmc_dir}"
+    chunk_dir = f"../../test_data/medembed_analysis/chunks/{cur_pmc_dir}"
     # chunk_dir = "../../data/test/test"
-    article_file_path = f"../../data/medembed_analysis/article_summaries/{cur_pmc_dir}.txt"
+    article_file_path = f"../../test_data/medembed_analysis/article_summaries/{cur_pmc_dir}.txt"
     article_summary = extract_summary(article_file_path)
     print(article_summary)
 
@@ -114,13 +114,13 @@ def generate_embedding_details(cur_pmc_dir):
                     #     all_embedding_detials.append(embeddings_details)
 
     # Write the Embeddings to a file:
-    file_path = f"../../data/medembed_analysis/embeddings/{cur_pmc_dir}_embeddings.json"
+    file_path = f"../../test_data/medembed_analysis/embeddings/{cur_pmc_dir}_embeddings.json"
     save_embeddings_details_to_json(all_embedding_detials, file_path)
 
 
 # Run the main function
 if __name__ == "__main__":
-    chunk_dir = f"../../data/medembed_analysis/chunks"
+    chunk_dir = f"../../test_data/medembed_analysis/chunks"
 
     # cur_pmc_dir = "PMC_10213952"
     # generate_embedding_details(cur_pmc_dir)

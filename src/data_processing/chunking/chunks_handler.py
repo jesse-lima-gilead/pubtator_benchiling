@@ -138,7 +138,7 @@ if __name__ == "__main__":
         # "fulltext"
     ]
 
-    output_path = "../../../data/chunks_11_oct"
+    output_path = "../../../test_data/chunks_11_oct"
 
     # # Single File Run for DEMO:
     # # Select the chunker type
@@ -161,7 +161,7 @@ if __name__ == "__main__":
         for chunker in chunker_list:
             for merger in merger_list:
                 for file in os.listdir(
-                    f"../../../data/gnorm2_annotated/{model}_annotated"
+                        f"../../../test_data/gnorm2_annotated/{model}_annotated"
                 ):
                     if file.endswith(".xml"):
                         input_file_path = (

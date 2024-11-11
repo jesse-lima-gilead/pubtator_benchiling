@@ -28,7 +28,7 @@ def generate_embedding_details():
 
     all_embedding_detials = []
 
-    chunk_dir = "../../data/PMC_7614604_chunks"
+    chunk_dir = "../../test_data/PMC_7614604_chunks"
     #chunk_dir = "../../data/test/test"
 
     # Read the chunks and create embeddings:
@@ -93,7 +93,7 @@ def generate_embedding_details():
                         all_embedding_detials.append(embeddings_details)
 
     # Write the Embeddings to a file:
-    file_path = "../../data/PMC_7614604_chunks/embeddings/PMC_7614604_baseline_embeddings.json"
+    file_path = "../../test_data/PMC_7614604_chunks/embeddings/PMC_7614604_baseline_embeddings.json"
     save_embeddings_details_to_json(all_embedding_detials, file_path)
 
 
@@ -120,7 +120,7 @@ if __name__ == "__main__":
 
     all_embedding_detials = load_embeddings_details_from_json(
         #filename="../../data/PMC_7614604_chunks/embeddings/PMC_7614604_embeddings.json"
-        filename="../../data/PMC_7614604_chunks/embeddings/PMC_7614604_baseline_embeddings.json"
+        filename="../../test_data/PMC_7614604_chunks/embeddings/PMC_7614604_baseline_embeddings.json"
     )
     i = 0
     for user_query in user_queries:
@@ -146,7 +146,7 @@ if __name__ == "__main__":
 
             save_to_csv(
                 results=results,
-                output_file=f"../../data/PMC_7614604_chunks/similarity_results/keerthi_queries/que{i + 1}/baseline_{embedding_model}.csv"
+                output_file=f"../../test_data/PMC_7614604_chunks/similarity_results/keerthi_queries/que{i + 1}/baseline_{embedding_model}.csv"
             )
 
         i += 1

@@ -89,7 +89,7 @@ if __name__ == "__main__":
     ]
 
     user_queries = ["EGFR", "KRAS", "ATM"]
-    output_path = "../../../data/retrieval_results/"
+    output_path = "../../../test_data/retrieval_results/"
 
     for cur_query in user_queries:
         query_results = {}
