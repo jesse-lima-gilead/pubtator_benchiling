@@ -29,6 +29,7 @@ run_commands.txt
 qdrant_storage/
 data/
 postgres_data/
+test_data/
 
 # Distribution / packaging
 .Python
