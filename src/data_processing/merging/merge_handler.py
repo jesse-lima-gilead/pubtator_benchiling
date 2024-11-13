@@ -1,4 +1,4 @@
-from data_processing.merging.merger_factory import (
+from src.data_processing.merging.merger_factory import (
     AnnotationMergeFactory,
 )
 
@@ -9,7 +9,7 @@ def merge_annotations(
         merger_type: str,
 ):
     # Get the appropriate Text - Annotations Merger
-    merger_factory = AnnotationMergeFactory(max_tokens_per_chunk=512)
+    merger_factory = AnnotationMergeFactory()
     merger = merger_factory.get_merger(merger_type)
     merged_text = merger.merge(text, annotations)
     return merged_text

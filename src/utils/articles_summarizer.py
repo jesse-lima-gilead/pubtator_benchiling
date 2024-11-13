@@ -1,8 +1,5 @@
 import xml.etree.ElementTree as ET
-import os
 from src.Prompts.PromptBuilder import PromptBuilder
-from llm_handler.llm_factory import LLMFactory
-
 from src.utils.logger import SingletonLogger
 
 # Get the logger instance
@@ -17,9 +14,6 @@ class SummarizeArticle:
         self.prompt_builder = PromptBuilder()
         self.input_file_path = input_file_path
         self.pmc_article_text = self._load_file_content()
-        llm_factory = LLMFactory()
-        llm_handler = llm_factory.create_llm(llm_type="BedrockClaude")
-        self.query_llm = llm_handler.get_query_llm()
 
     def _load_file_content(self) -> str:
         """Parses the XML file and extracts relevant text content."""

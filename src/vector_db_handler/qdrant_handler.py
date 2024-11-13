@@ -17,19 +17,28 @@ logger = logger_instance.get_logger()
 
 
 class QdrantHandler:
-    def __init__(self,):
-        self.params = params
+    def __init__(self, params: Dict[str, Any], embedding_model: str="pubmedbert"):
+        self.host = params["host"]
+        self.port = params["port"]
+        self.embedding_model = embedding_model
+        if self.embedding_model == "pubmedbert":
+            self.collection_name = params["collections"]["pubmedbert"]["collection_name"]
+            self.vector_size = params["collections"]["pubmedbert"]["vector_size"]
+            self.distance_metric = params["collections"]["pubmedbert"]["distance_metric"]
+        elif self.embedding_model == "medembed":
+            self.collection_name = params["collections"]["medembed"]["collection_name"]
+            self.vector_size = params["collections"]["medembed"]["vector_size"]
+            self.distance_metric = params["collections"]["medembed"]["distance_metric"]
 
     def get_qdrant_manager(self) -> QdrantManager:
         """Creates a QdrantManager instance using the configuration."""
         try:
-            qdrant_config = vectordb_config["text"]
             qdrant_manager = QdrantManager(
-                host=qdrant_config["host"],
-                port=qdrant_config["port"],
-                collection_name=params["collection_name"],
-                vector_size=params["vector_size"],
-                distance_metric=params["distance_metric"],
+                host=self.host,
+                port=self.port,
+                collection_name=self.collection_name,
+                vector_size=self.vector_size,
+                distance_metric=self.distance_metric,
             )
 
             # Creating Qdrant Collection if not already exists:

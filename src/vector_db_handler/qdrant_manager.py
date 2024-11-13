@@ -1,6 +1,7 @@
 import json
-from typing import Dict, List
-
+import uuid
+from typing import Dict, List, Any
+import numpy as np
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import (
     Distance,
@@ -23,10 +24,10 @@ logger = logger_instance.get_logger()
 
 class QdrantManager:
     def __init__(
-        self, host: str, port: int, collection_name: str, vector_size: int = 1024, distance_metric: str = "COSINE"
+        self, host: str, port: int, collection_name: str, vector_size: int = 768, distance_metric: str = "COSINE"
     ):
         self.collection_name = collection_name
-        self.client = QdrantClient(host=host, port=port)
+        self.client = QdrantClient(host=host, port=port, timeout=60.0)
         self.vector_size = vector_size
         self.distance_metric = distance_metric
 
@@ -53,12 +54,19 @@ class QdrantManager:
 
     def insert_vector(self, vector: List[float], payload: Dict):
         point_id = payload.get("chunk_id", None)
+        logger.info("Inserting vector with ID: " + str(point_id))
         if point_id is None:
             raise ValueError("Payload must include an 'id' field for upserting.")
 
         point = PointStruct(id=point_id, vector=vector, payload=payload)
-
         self.client.upsert(collection_name=self.collection_name, points=[point])
+
+    def insert_vectors(self, vectors_payloads: List[Dict[str, Any]]):
+        points = [
+            PointStruct(id=payload["chunk_id"], vector=vector, payload=payload)
+            for vector, payload in vectors_payloads
+        ]
+        self.client.upsert(collection_name=self.collection_name, points=points)
 
     def search_vectors(self, query_vector: List[float], limit: int = 1):
         return self.client.search(collection_name=self.collection_name, query_vector=query_vector, limit=limit)
@@ -135,3 +143,52 @@ class QdrantManager:
     def __del__(self):
         # Optional: Clean up resources if needed
         pass
+
+
+def main():
+    # Initialize the QdrantManager with test parameters
+    host = "localhost"  # Adjust to your Qdrant server host
+    port = 6333         # Adjust to your Qdrant server port
+    collection_name = "test_collection"
+    vector_size = 1536   # Set this according to your model's vector size
+
+    # Create QdrantManager instance
+    qdrant_manager = QdrantManager(
+        host=host,
+        port=port,
+        collection_name=collection_name,
+        vector_size=vector_size,
+        distance_metric="COSINE"
+    )
+
+    # Step 1: Create Collection
+    if not qdrant_manager.check_if_collection_exists():
+        qdrant_manager.create_collection()
+    print(f"Collection '{collection_name}' is ready.")
+
+    # Step 2: Generate and Insert a Test Vector with Payload
+    test_vector = np.random.rand(vector_size).tolist()  # Random vector for testing
+    test_payload = {
+        "chunk_id": str(uuid.uuid4()),
+        "text": "This is a sample text for testing.",
+        "metadata": {
+            "source": "test",
+            "type": "test_chunk"
+        }
+    }
+
+    qdrant_manager.insert_vector(vector=test_vector, payload=test_payload)
+    print("Test vector inserted successfully.")
+
+    # Step 3: Perform a Search
+    search_results = qdrant_manager.search_vectors(query_vector=test_vector, limit=3)
+    print("Search results:")
+    for result in search_results:
+        print(f"ID: {result.id}, Score: {result.score}, Payload: {result.payload}")
+
+    # Step 4: Delete Collection
+    #qdrant_manager.delete_collection()
+    print(f"Collection '{collection_name}' deleted.")
+
+if __name__ == "__main__":
+    main()

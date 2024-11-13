@@ -91,6 +91,20 @@ def get_embeddings(model_name, texts: List[str], token_limit=512, stride=None):
                 chunk_embeddings.append(chunk_outputs.last_hidden_state)
                 chunk_masks.append(chunk_inputs["attention_mask"])
 
+    #         # Combine chunk embeddings using masked mean pooling
+    #         combined_embeddings = torch.cat(chunk_embeddings, dim=0)  # Concatenate along batch dimension
+    #         combined_mask = torch.cat(chunk_masks, dim=0)  # Concatenate along batch dimension
+    #         embeddings = masked_mean_pooling(combined_embeddings, combined_mask)
+    #
+    #     # Normalize embeddings
+    #     embeddings = F.normalize(embeddings, p=2, dim=1)
+    #     embeddings = embeddings.view(embeddings.size(0), -1)  # Flatten to 1D vector
+    #
+    #     all_embeddings.append(embeddings)
+    #
+    # # Stack all embeddings
+    # return torch.cat(all_embeddings, dim=0)
+
             # Combine chunk embeddings using masked mean pooling
             combined_embeddings = torch.cat(chunk_embeddings, dim=1)
             combined_mask = torch.cat(chunk_masks, dim=1)
@@ -104,24 +118,28 @@ def get_embeddings(model_name, texts: List[str], token_limit=512, stride=None):
     return torch.cat(all_embeddings, dim=0)
 
 
-def tensor_to_list(obj):
-    if isinstance(obj, (torch.Tensor, np.ndarray)):
-        return (
-            obj.detach().cpu().numpy().tolist()
-            if isinstance(obj, torch.Tensor)
-            else obj.tolist()
-        )
-    elif isinstance(obj, (list, tuple)):
-        return [tensor_to_list(item) for item in obj]
-    elif isinstance(obj, dict):
-        return {key: tensor_to_list(value) for key, value in obj.items()}
+def tensor_to_list(item):
+    """Convert tensors and other non-serializable objects to lists."""
+    if isinstance(item, torch.Tensor):  # Check if item is a PyTorch tensor
+        return item.tolist()  # Convert tensor to list
+    elif isinstance(item, list):
+        return [tensor_to_list(sub_item) for sub_item in item]  # Recursively convert lists
+    elif isinstance(item, dict):
+        return {key: tensor_to_list(value) for key, value in item.items()}  # Recursively convert dicts
     else:
-        return obj
-
+        return item  # Return the item if it's already serializable
 
 def save_embeddings_details_to_json(embeddings_details_list, filename):
-    serializable_data = [tensor_to_list(item) for item in embeddings_details_list]
+    """Convert each item in the embeddings details list to JSON-serializable format and save to a JSON file."""
+    # Ensure we process each dictionary in the list to make it JSON-serializable
+    serializable_data = []
+    for item in embeddings_details_list:
+        if isinstance(item, dict):
+            serializable_data.append(tensor_to_list(item))
+        else:
+            raise ValueError("Each item in embeddings_details_list should be a dictionary.")
 
+    # Write the JSON-serializable data to a file
     with open(filename, "w") as f:
         json.dump(serializable_data, f, indent=2)
 

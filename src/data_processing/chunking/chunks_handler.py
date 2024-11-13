@@ -3,23 +3,24 @@ import json
 from src.data_processing.chunking.chunker_factory import ChunkerFactory
 
 
-def write_chunks_to_file(chunks, output_file: str):
+def write_chunks_details_to_file(chunks_details, output_file: str):
     """Write the chunks to a JSON file."""
     with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(chunks, f, ensure_ascii=False, indent=4)
+        json.dump(chunks_details, f, ensure_ascii=False, indent=4)
 
 
 # Example usage of the factory method
 def chunk_annotated_articles(
     input_file_path: str,
     chunker_type: str,
+    **kwargs: dict,
 ):
     # xml_file = "../../../data/gilead_pubtator_results/gnorm2_annotated/bioformer_annotated/PMC_8005792.xml"
     # article_id = os.path.splitext(os.path.basename(input_file_path))[0]
 
     # Get the appropriate chunker instance
     chunker_factory = ChunkerFactory(input_file_path, max_tokens_per_chunk=512)
-    chunker = chunker_factory.get_chunker(chunker_type)
+    chunker = chunker_factory.get_chunker(chunker_type, **kwargs)
 
     # Perform chunking using the selected chunker
     if chunker_type == "passage":

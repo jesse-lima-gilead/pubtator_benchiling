@@ -11,17 +11,17 @@ class ChunkerFactory:
         self.xml_file_path = xml_file_path
         self.max_tokens_per_chunk = max_tokens_per_chunk
 
-    def get_chunker(self, chunker_type):
+    def get_chunker(self, chunker_type, **kwargs):
         """Factory method to return the appropriate chunker based on the chunker_type."""
         if chunker_type == "passage":
-            return PassageChunker(self.xml_file_path)
+            return PassageChunker(self.xml_file_path, **kwargs)
         elif chunker_type == "annotation_aware":
-            return AnnotationAwareChunker(self.xml_file_path, self.max_tokens_per_chunk)
+            return AnnotationAwareChunker(self.xml_file_path, self.max_tokens_per_chunk, **kwargs)
         elif chunker_type == "sliding_window":
-            return SlidingWindowChunker(self.xml_file_path, self.max_tokens_per_chunk)
+            return SlidingWindowChunker(self.xml_file_path, self.max_tokens_per_chunk, **kwargs)
         elif chunker_type == "grouped_annotation_aware_sliding_window":
             return AnnotationAwareChunkerWithSlidingWindow(
-                self.xml_file_path, self.max_tokens_per_chunk
+                self.xml_file_path, self.max_tokens_per_chunk, **kwargs
             )
         # elif chunker_type == 'sentence':
         #     return SentenceChunker(self.xml_file_path)

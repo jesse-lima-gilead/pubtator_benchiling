@@ -41,11 +41,15 @@ class YAMLConfigLoader:
         return self.configs.get(name)
 
 
-# # Usage
-# # Initialize the loader and load all configs
-# config_loader = YAMLConfigLoader()
-#
-# # Get specific config by name
-# # configs = config_loader.get_config('vectordb')['qdrant']
-# configs = config_loader.get_config('app')['paths']['DATA_RAW_PATH']
-# print(configs)
+if __name__ == "__main__":
+    # Usage
+    # Initialize the loader and load all configs
+    config_loader = YAMLConfigLoader()
+
+    # Get specific config by name
+    configs = config_loader.get_config('vectordb')['qdrant']
+    #configs = config_loader.get_config('app')['paths']['DATA_RAW_PATH']
+    print(configs['host'])
+    print(configs['port'])
+    print(configs['collections']['medembed']['collection_name'], configs['collections']['medembed']['vector_size'], configs['collections']['medembed']['distance_metric'])
+    print(configs['collections']['pubmedbert']['collection_name'],configs['collections']['pubmedbert']['vector_size'], configs['collections']['pubmedbert']['distance_metric'])

@@ -8,28 +8,48 @@ class SlidingWindowChunker:
         self,
         xml_file_path,
         max_tokens_per_chunk=512,
-        window_size: int = 512,
-        stride: int = 256,
+        **kwargs,
     ):
         self.xml_file_path = xml_file_path
         self.max_tokens_per_chunk = max_tokens_per_chunk
-        self.window_size = window_size
-        self.stride = stride
+        self.window_size = kwargs.get("window_size", 512)
+        self.stride = kwargs.get("stride", 256)
 
     def parse_bioc_xml(self) -> ET.Element:
         """Parse BioC XML file and return the root element."""
         tree = ET.parse(self.xml_file_path)
         return tree.getroot()
-    
 
-    def remove_unwanted_passages(self, root: ET.Element, unwanted_types: List[str]) -> None:
-        """Remove passages with <infon key="type"> that match any unwanted type."""
-        unwanted_types = ['acknowledgements', 'author', 'authors']
+    import re
+    import xml.etree.ElementTree as ET
+
+    def remove_unwanted_passages(self, root: ET.Element, unwanted_patterns: list[str]) -> None:
+        """
+        Remove passages with <infon key="type"> that match any unwanted types from a list of patterns.
+
+        Args:
+            root (ET.Element): Root element of the BioC XML structure.
+            unwanted_patterns (list[str]): List of regex patterns for passage types to be removed.
+        """
+        # Compile all unwanted patterns into a list of regex patterns for case-insensitive matching
+        regex_patterns = [re.compile(pattern, re.IGNORECASE) for pattern in unwanted_patterns]
+
         passages = root.findall(".//passage")
-        for passage in passages:
-            infon_type = passage.find(".//infon[@key='type']")
-            if infon_type is not None and infon_type.text in unwanted_types:
-                root.remove(passage)
+        # print("Initial Passages in BioC XML:", len(passages))
+
+        # Use list comprehension to filter out passages matching any of the unwanted patterns
+        passages_to_keep = [
+            passage for passage in passages
+            if not (
+                    passage.find(".//infon[@key='type']") is not None and
+                    any(regex.search(passage.find(".//infon[@key='type']").text) for regex in regex_patterns)
+            )
+        ]
+
+        # print(f"Remaining Passages: {len(passages_to_keep)}")
+
+        # Optionally update the root element with the filtered passages
+        root[:] = passages_to_keep
     
 
     def extract_passages(self, root: ET.Element) -> List[ET.Element]:
@@ -118,7 +138,9 @@ class SlidingWindowChunker:
     def sliding_window_chunking(self) -> List[Dict[str, Any]]:
         """Chunk an entire BioC XML file using sliding window."""
         root = self.parse_bioc_xml()
-        self.remove_unwanted_passages(root, unwanted_types=['acknowledgements', 'author', 'authors'])
+        # unwanted_patterns = [r"acknowledge.*", r"conflict of interest.*", r"disclaimer.*"]
+        unwanted_patterns = [r"acknowledge.*"]
+        self.remove_unwanted_passages(root, unwanted_patterns=unwanted_patterns)
         passages = self.extract_passages(root)
 
         all_chunks = []
@@ -130,12 +152,12 @@ class SlidingWindowChunker:
         return all_chunks
 
 
-# Example usage
+# # Example usage
 # if __name__ == "__main__":
-#     file_path = "path/to/your/bioc_xml_file.xml"
+#     xml_file_path = "../../../test_data/gilead_pubtator_results/gnorm2_annotated/bioformer_annotated/PMC_7614604.xml"
 #
-#     chunker = SlidingWindowChunker(window_size=512, stride=256)
-#     chunks = chunker.chunk_file(file_path)
+#     chunker = SlidingWindowChunker(xml_file_path=xml_file_path, window_size=512, stride=256)
+#     chunks = chunker.sliding_window_chunking()
 #
 #     print(f"Number of chunks: {len(chunks)}")
 #     print("\nFirst chunk:")
