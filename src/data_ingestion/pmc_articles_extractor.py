@@ -85,12 +85,14 @@ def save_locally(file_name, content, pmc_local_path):
 
 def extract_pmc_articles(
     query: str,
+    article_ids: list,
     start_date: str = "2019",
     end_date: str = "2024",
     pmc_local_path: str = "../../data/pmc_full_text_articles",
     retmax=50,
 ):
-    article_ids = search_pubmed(query, start_date, end_date, retmax)
+    if len(article_ids) == 0 and query != "":
+        article_ids = search_pubmed(query, start_date, end_date, retmax)
     logger.info(article_ids)
     missing_count = 0
     for article_id in article_ids:

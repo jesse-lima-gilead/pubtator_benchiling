@@ -17,10 +17,12 @@ class PMCIngestor:
         start_date: str,
         end_date: str,
         retmax: int = 50,
+        article_ids: list = [],
         pmc_local_path: str = "../../data/pmc_full_text_articles",
         bioc_local_path: str = "../../data/bioc_xml",
     ):
         self.query = query
+        self.article_ids = article_ids
         self.start_date = start_date
         self.end_date = end_date
         self.retmax = retmax
@@ -33,6 +35,7 @@ class PMCIngestor:
         # Extract the free full text articles from PMC:
         extract_pmc_articles(
             query=self.query,
+            article_ids=self.article_ids,
             start_date=self.start_date,
             end_date=self.end_date,
             pmc_local_path=self.pmc_local_path,
@@ -73,8 +76,10 @@ if __name__ == "__main__":
     retmax = 25
     pmc_local_path: str = "../../test_data/pmc_full_text_articles"
     bioc_local_path: str = "../../test_data/bioc_full_text_articles"
+    article_ids = []
     pmc_ingestor = PMCIngestor(
         query=query,
+        article_ids=article_ids,
         start_date=start_date,
         end_date=end_date,
         pmc_local_path=pmc_local_path,
