@@ -2,6 +2,7 @@ import os
 
 from src.data_ingestion.pmc_articles_extractor import extract_pmc_articles
 from src.data_ingestion.pmc_to_bioc_converter import convert_pmc_to_bioc
+from src.data_ingestion.fetch_metadata import MetadataExtractor
 from src.utils.logger import SingletonLogger
 from src.utils.s3_io_util import S3IOUtil
 
@@ -20,6 +21,7 @@ class PMCIngestor:
         article_ids: list = [],
         pmc_local_path: str = "../../data/pmc_full_text_articles",
         bioc_local_path: str = "../../data/bioc_xml",
+        article_metadata_path: str = "../../data/article_metadata",
     ):
         self.query = query
         self.article_ids = article_ids
@@ -28,6 +30,7 @@ class PMCIngestor:
         self.retmax = retmax
         self.pmc_local_path = pmc_local_path
         self.bioc_local_path = bioc_local_path
+        self.article_metadata_path = article_metadata_path
         self.s3_io_util = S3IOUtil()
 
     # Runs the combined process
@@ -41,6 +44,20 @@ class PMCIngestor:
             pmc_local_path=self.pmc_local_path,
             retmax=self.retmax,
         )
+
+        # Fetch and store metadata of extracted articles
+        for file in os.listdir(self.pmc_local_path):
+            if file.endswith(".xml"):
+                file_path = os.path.join(self.pmc_local_path, file)
+                metadata_path = os.path.join(
+                    self.article_metadata_path, file.replace(".xml", "_metadata.json")
+                )
+                metadata_extractor = MetadataExtractor(
+                    file_path=file_path, metadata_path=metadata_path
+                )
+                metadata = metadata_extractor.parse_xml()
+                metadata_extractor.save_metadata_as_json()
+                logger.info(f"Metadata saved as JSON: {metadata}")
 
         # Convert the PMC Articles to BioC File Format:
         for file in os.listdir(self.pmc_local_path):

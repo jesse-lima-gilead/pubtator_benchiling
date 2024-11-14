@@ -348,7 +348,7 @@ class ArticleProcessor:
 
 if __name__ == "__main__":
     articles_input_dir = f"../../data/ner_processed/gnorm2_annotated"
-    articles_summary_dir = f"../../data/articles_metadata/article_summaries"
+    articles_summary_dir = f"../../data/articles_metadata/summary"
     chunks_output_dir = f"../../data/indexing/chunks"
     embeddings_output_dir = f"../../data/indexing/embeddings"
     embeddings_model = "pubmedbert"
