@@ -24,7 +24,12 @@ logger = logger_instance.get_logger()
 
 class QdrantManager:
     def __init__(
-        self, host: str, port: int, collection_name: str, vector_size: int = 768, distance_metric: str = "COSINE"
+        self,
+        host: str,
+        port: int,
+        collection_name: str,
+        vector_size: int = 768,
+        distance_metric: str = "COSINE",
     ):
         self.collection_name = collection_name
         self.client = QdrantClient(host=host, port=port, timeout=60.0)
@@ -38,7 +43,9 @@ class QdrantManager:
             if self.client.get_collection(self.collection_name):
                 result = True
         except Exception as e:
-            logger.info(f"Collection {self.collection_name} does not exist. Creating now!")
+            logger.info(
+                f"Collection {self.collection_name} does not exist. Creating now!"
+            )
         return result
 
     def create_collection(self):
@@ -47,13 +54,15 @@ class QdrantManager:
             collection_name=self.collection_name,
             vectors_config=VectorParams(
                 size=self.vector_size,  # Adjust based on your embedding model
-                distance=getattr(Distance, self.distance_metric),  # Distance metric (COSINE, EUCLID, etc.)
+                distance=getattr(
+                    Distance, self.distance_metric
+                ),  # Distance metric (COSINE, EUCLID, etc.)
             ),
         )
         logger.info(f"Collection {self.collection_name} created")
 
     def insert_vector(self, vector: List[float], payload: Dict):
-        point_id = payload.get("chunk_id", None)
+        point_id = payload.get("chunk_id") or payload.get("point_id")
         logger.info("Inserting vector with ID: " + str(point_id))
         if point_id is None:
             raise ValueError("Payload must include an 'id' field for upserting.")
@@ -69,17 +78,23 @@ class QdrantManager:
         self.client.upsert(collection_name=self.collection_name, points=points)
 
     def search_vectors(self, query_vector: List[float], limit: int = 1):
-        return self.client.search(collection_name=self.collection_name, query_vector=query_vector, limit=limit)
+        return self.client.search(
+            collection_name=self.collection_name, query_vector=query_vector, limit=limit
+        )
 
     def delete_collection(self):
         self.client.delete_collection(collection_name=self.collection_name)
 
     def delete_points_by_key(self, key: str, value: str):
         # logger.info(f'{key}\n{value}')
-        filter_query = Filter(must=[FieldCondition(key=key, match=MatchValue(value=value))])
+        filter_query = Filter(
+            must=[FieldCondition(key=key, match=MatchValue(value=value))]
+        )
 
         # Retrieve Points(Chunks) that match the filter:
-        scroll_result = self.client.scroll(collection_name=self.collection_name, scroll_filter=filter_query, limit=1000)
+        scroll_result = self.client.scroll(
+            collection_name=self.collection_name, scroll_filter=filter_query, limit=1000
+        )
 
         # Extract PointIDs from Scroll Result:
         point_ids = [point.id for point in scroll_result[0]]
@@ -112,7 +127,11 @@ class QdrantManager:
             scroll_result = self.client.scroll(
                 collection_name=self.collection_name,
                 scroll_filter=Filter(
-                    must=[FieldCondition(key=key, match=MatchExcept(**{"except": ["None"]}))],
+                    must=[
+                        FieldCondition(
+                            key=key, match=MatchExcept(**{"except": ["None"]})
+                        )
+                    ],
                 ),  # No additional filter
                 # with_payload=PayloadSelector(include=[key]),  # Select only the "key" field
                 offset=offset,
@@ -148,9 +167,9 @@ class QdrantManager:
 def main():
     # Initialize the QdrantManager with test parameters
     host = "localhost"  # Adjust to your Qdrant server host
-    port = 6333         # Adjust to your Qdrant server port
+    port = 6333  # Adjust to your Qdrant server port
     collection_name = "test_collection"
-    vector_size = 1536   # Set this according to your model's vector size
+    vector_size = 1536  # Set this according to your model's vector size
 
     # Create QdrantManager instance
     qdrant_manager = QdrantManager(
@@ -158,7 +177,7 @@ def main():
         port=port,
         collection_name=collection_name,
         vector_size=vector_size,
-        distance_metric="COSINE"
+        distance_metric="COSINE",
     )
 
     # Step 1: Create Collection
@@ -171,10 +190,7 @@ def main():
     test_payload = {
         "chunk_id": str(uuid.uuid4()),
         "text": "This is a sample text for testing.",
-        "metadata": {
-            "source": "test",
-            "type": "test_chunk"
-        }
+        "metadata": {"source": "test", "type": "test_chunk"},
     }
 
     qdrant_manager.insert_vector(vector=test_vector, payload=test_payload)
@@ -187,8 +203,9 @@ def main():
         print(f"ID: {result.id}, Score: {result.score}, Payload: {result.payload}")
 
     # Step 4: Delete Collection
-    #qdrant_manager.delete_collection()
+    # qdrant_manager.delete_collection()
     print(f"Collection '{collection_name}' deleted.")
+
 
 if __name__ == "__main__":
     main()

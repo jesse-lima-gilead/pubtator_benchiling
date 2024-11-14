@@ -10,3 +10,7 @@ qdrant:
         collection_name: "articles_sliding_window_prepend_bioformer_pubmedbert"
         vector_size: 768
         distance_metric: "COSINE"
+      metadata:
+        collection_name: "articles_metadata"
+        vector_size: 768
+        distance_metric: "COSINE"

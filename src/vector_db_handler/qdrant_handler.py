@@ -17,18 +17,26 @@ logger = logger_instance.get_logger()
 
 
 class QdrantHandler:
-    def __init__(self, params: Dict[str, Any], embedding_model: str="pubmedbert"):
+    def __init__(self, params: Dict[str, Any], embedding_model: str = "pubmedbert"):
         self.host = params["host"]
         self.port = params["port"]
         self.embedding_model = embedding_model
         if self.embedding_model == "pubmedbert":
-            self.collection_name = params["collections"]["pubmedbert"]["collection_name"]
+            self.collection_name = params["collections"]["pubmedbert"][
+                "collection_name"
+            ]
             self.vector_size = params["collections"]["pubmedbert"]["vector_size"]
-            self.distance_metric = params["collections"]["pubmedbert"]["distance_metric"]
+            self.distance_metric = params["collections"]["pubmedbert"][
+                "distance_metric"
+            ]
         elif self.embedding_model == "medembed":
             self.collection_name = params["collections"]["medembed"]["collection_name"]
             self.vector_size = params["collections"]["medembed"]["vector_size"]
             self.distance_metric = params["collections"]["medembed"]["distance_metric"]
+        elif self.embedding_model == "metadata":
+            self.collection_name = params["collections"]["metadata"]["collection_name"]
+            self.vector_size = params["collections"]["metadata"]["vector_size"]
+            self.distance_metric = params["collections"]["metadata"]["distance_metric"]
 
     def get_qdrant_manager(self) -> QdrantManager:
         """Creates a QdrantManager instance using the configuration."""
@@ -46,9 +54,10 @@ class QdrantHandler:
                 logger.info(f"Creating New Collection {qdrant_manager.collection_name}")
                 qdrant_manager.create_collection()
             else:
-                logger.info(f"Collection {qdrant_manager.collection_name} already exists")
+                logger.info(
+                    f"Collection {qdrant_manager.collection_name} already exists"
+                )
 
             return qdrant_manager
         except KeyError as e:
             raise ValueError(f"Configuration missing for: {e}")
-

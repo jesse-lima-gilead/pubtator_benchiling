@@ -1,11 +1,32 @@
 import json
+import os
+import uuid
 from xml.etree import ElementTree as ET
+from src.vector_db_handler.qdrant_handler import QdrantHandler
+from src.data_processing.embedding.embeddings_handler import (
+    get_embeddings,
+    get_model_info,
+    save_embeddings_details_to_json,
+)
+from src.utils.config_reader import YAMLConfigLoader
+from src.utils.logger import SingletonLogger
+
+# Initialize the config loader
+config_loader = YAMLConfigLoader()
+
+# Retrieve a specific config
+vectordb_config = config_loader.get_config("vectordb")["qdrant"]
+
+# Initialize the logger
+logger_instance = SingletonLogger()
+logger = logger_instance.get_logger()
 
 
 class MetadataExtractor:
-    def __init__(self, file_path: str, metadata_path: str):
+    def __init__(self, file_path: str, metadata_path: str, embeddings_model: str):
         self.file_path = file_path
         self.metadata_path = metadata_path
+        self.embeddings_model = embeddings_model
         self.metadata = {}
 
     def parse_xml(self):
@@ -126,14 +147,84 @@ class MetadataExtractor:
         with open(self.metadata_path, "w") as json_file:
             json.dump(self.metadata, json_file, indent=4)
 
+    def save_metadata_to_vector_db(self):
+        """Save the extracted metadata to a vector database."""
+        metadata = self.parse_xml()
+
+        # Initialize the QdrantHandler
+        model_info = get_model_info(self.embeddings_model)
+        qdrant_handler = QdrantHandler(
+            embedding_model="metadata", params=vectordb_config
+        )
+        qdrant_manager = qdrant_handler.get_qdrant_manager()
+
+        # Extract Fields from Metadata
+        title = metadata["article_meta"].get("title", "")
+        keywords = " ".join(metadata["article_meta"].get("keywords", []))
+        combined_text = f"{title} {keywords}"
+        combined_text_embeddings = get_embeddings(
+            model_name=model_info[0],
+            token_limit=model_info[1],
+            texts=[combined_text],
+        )[0]
+
+        # Prepare the payload with other metadata fields
+        payload = {
+            "point_id": str(uuid.uuid4()),
+            "pmid": metadata.get("article_meta", {}).get("pmid", ""),
+            "pmcid": metadata.get("article_meta", {}).get("pmcid", ""),
+            "doi": metadata.get("article_meta", {}).get("doi", ""),
+            "authors": [
+                f"{author.get('given-names', '')} {author.get('surname', '')}"
+                for author in metadata.get("front", {}).get("authors", [])
+            ],
+            "journal": metadata.get("front", {})
+            .get("journal_metadata", {})
+            .get("journal-title", ""),
+            "publication_date": {
+                "day": metadata.get("front", {})
+                .get("publication_date", {})
+                .get("day", ""),
+                "month": metadata.get("front", {})
+                .get("publication_date", {})
+                .get("month", ""),
+                "year": metadata.get("front", {})
+                .get("publication_date", {})
+                .get("year", ""),
+            },
+            "license": metadata.get("front", {}).get("license", ""),
+        }
+
+        # print(payload)
+
+        # Insert into Qdrant
+        qdrant_manager.insert_vector(vector=combined_text_embeddings, payload=payload)
+
 
 if __name__ == "__main__":
-    # Example usage
-    file_path = (
-        "../../test_data/gilead_pubtator_results/pmc_full_text_articles/PMC_6946810.xml"
-    )
-    metadata_path = "../../test_data/gilead_pubtator_results/pmc_full_text_articles/PMC_6946810_metadata.json"
-    extractor = MetadataExtractor(file_path)
-    metadata = extractor.parse_xml()
-    extractor.save_metadata_as_json()
-    print(metadata)
+    # # Example usage to get metadata from a PMC XML file on local
+    # file_path = (
+    #     "../../test_data/gilead_pubtator_results/pmc_full_text_articles/PMC_6946810.xml"
+    # )
+    # metadata_path = "../../test_data/gilead_pubtator_results/pmc_full_text_articles/PMC_6946810_metadata.json"
+    # extractor = MetadataExtractor(file_path)
+    # metadata = extractor.parse_xml()
+    # extractor.save_metadata_as_json()
+    # print(metadata)
+
+    # Example usage to save metadata to a vector database
+    pmc_xml_dir = "../../data/staging/pmc_xml"
+    embeddings_model = "pubmedbert"
+    for file in os.listdir(pmc_xml_dir):
+        if file.endswith(".xml"):
+            logger.info(f"Processing {file}..")
+            file_path = os.path.join(pmc_xml_dir, file)
+            metadata_path = os.path.join(
+                "../../data/articles_metadata/metadata",
+                file.replace(".xml", "_metadata.json"),
+            )
+            extractor = MetadataExtractor(file_path, metadata_path, embeddings_model)
+            extractor.save_metadata_to_vector_db()
+            # metadata = extractor.parse_xml()
+            # extractor.save_metadata_as_json()
+            logger.info(f"Metadata saved to Vector DB")
