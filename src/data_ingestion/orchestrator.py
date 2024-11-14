@@ -55,9 +55,11 @@ class PMCIngestor:
                 metadata_extractor = MetadataExtractor(
                     file_path=file_path, metadata_path=metadata_path
                 )
-                metadata = metadata_extractor.parse_xml()
-                metadata_extractor.save_metadata_as_json()
-                logger.info(f"Metadata saved as JSON: {metadata}")
+                # metadata = metadata_extractor.parse_xml()
+                # metadata_extractor.save_metadata_as_json()
+                # logger.info(f"Metadata saved as JSON: {metadata}")
+                metadata_extractor.save_metadata_to_vector_db()
+                logger.info(f"Metadata for {file} saved to Vector DB")
 
         # Convert the PMC Articles to BioC File Format:
         for file in os.listdir(self.pmc_local_path):
