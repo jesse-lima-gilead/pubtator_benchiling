@@ -9,12 +9,12 @@ from qdrant_client.http.models import (
     Filter,
     MatchExcept,
     MatchValue,
+    MatchAny,
     PayloadSelector,
     PointIdsList,
     PointStruct,
     VectorParams,
 )
-
 from src.utils.logger import SingletonLogger
 
 # Get the logger instance
@@ -81,6 +81,65 @@ class QdrantManager:
         return self.client.search(
             collection_name=self.collection_name, query_vector=query_vector, limit=limit
         )
+
+    def fetch_points_by_payload(
+        self, payload_filter: Dict[str, Any], limit: int = 10
+    ) -> List[Dict[str, Any]]:
+        """
+        Fetch points from the collection based on matching payload fields.
+
+        Args:
+            payload_filter (Dict[str, Any]): The filter criteria for payload fields in key-value format.
+            limit (int): Maximum number of points to retrieve per batch.
+
+        Returns:
+            List[Dict[str, Any]]: List of matching points with their IDs and payloads.
+        """
+        filter_criteria = []
+        for key, value in payload_filter.items():
+            if isinstance(value, list):
+                # Use MatchAny for list-based values, so any item in the list can match
+                filter_criteria.append(
+                    FieldCondition(key=key, match=MatchAny(any=value))
+                )
+            else:
+                # Use MatchValue for single-value fields
+                filter_criteria.append(
+                    FieldCondition(key=key, match=MatchValue(value=value))
+                )
+
+        # Create the filter object
+        qdrant_filter = Filter(must=filter_criteria)
+
+        # Initialize variables for pagination
+        offset = 0
+        all_points = []
+
+        while True:
+            # Perform a scroll request to retrieve points with the specified filter and limit
+            scroll_result = self.client.scroll(
+                collection_name=self.collection_name,
+                scroll_filter=qdrant_filter,
+                offset=offset,
+                limit=limit,
+            )
+
+            # Extract points and the next offset
+            points, next_offset = scroll_result
+
+            # Add retrieved points to the result list
+            all_points.extend(
+                [{"id": point.id, "payload": point.payload} for point in points]
+            )
+
+            # If there's no next_offset, we have reached the end of the collection
+            if not next_offset:
+                break
+
+            # Update offset for the next batch
+            offset = next_offset
+
+        return all_points
 
     def delete_collection(self):
         self.client.delete_collection(collection_name=self.collection_name)
@@ -168,8 +227,8 @@ def main():
     # Initialize the QdrantManager with test parameters
     host = "localhost"  # Adjust to your Qdrant server host
     port = 6333  # Adjust to your Qdrant server port
-    collection_name = "test_collection"
-    vector_size = 1536  # Set this according to your model's vector size
+    collection_name = "articles_metadata"
+    vector_size = 768  # Set this according to your model's vector size
 
     # Create QdrantManager instance
     qdrant_manager = QdrantManager(
@@ -181,30 +240,38 @@ def main():
     )
 
     # Step 1: Create Collection
-    if not qdrant_manager.check_if_collection_exists():
-        qdrant_manager.create_collection()
-    print(f"Collection '{collection_name}' is ready.")
+    # if not qdrant_manager.check_if_collection_exists():
+    #     qdrant_manager.create_collection()
+    # print(f"Collection '{collection_name}' is ready.")
+    #
+    # # Step 2: Generate and Insert a Test Vector with Payload
+    # test_vector = np.random.rand(vector_size).tolist()  # Random vector for testing
+    # test_payload = {
+    #     "chunk_id": str(uuid.uuid4()),
+    #     "text": "This is a sample text for testing.",
+    #     "metadata": {"source": "test", "type": "test_chunk"},
+    # }
+    #
+    # qdrant_manager.insert_vector(vector=test_vector, payload=test_payload)
+    # print("Test vector inserted successfully.")
+    #
+    # # Step 3: Perform a Search
+    # search_results = qdrant_manager.search_vectors(query_vector=test_vector, limit=3)
+    # print("Search results:")
+    # for result in search_results:
+    #     print(f"ID: {result.id}, Score: {result.score}, Payload: {result.payload}")
+    #
+    # # Step 4: Delete Collection
+    # # qdrant_manager.delete_collection()
+    # print(f"Collection '{collection_name}' deleted.")
 
-    # Step 2: Generate and Insert a Test Vector with Payload
-    test_vector = np.random.rand(vector_size).tolist()  # Random vector for testing
-    test_payload = {
-        "chunk_id": str(uuid.uuid4()),
-        "text": "This is a sample text for testing.",
-        "metadata": {"source": "test", "type": "test_chunk"},
+    # # Step 5: Fetch Points using Payload Filter
+    payload_filter = {
+        "journal": "Nature",
+        # "year": "2023"
     }
-
-    qdrant_manager.insert_vector(vector=test_vector, payload=test_payload)
-    print("Test vector inserted successfully.")
-
-    # Step 3: Perform a Search
-    search_results = qdrant_manager.search_vectors(query_vector=test_vector, limit=3)
-    print("Search results:")
-    for result in search_results:
-        print(f"ID: {result.id}, Score: {result.score}, Payload: {result.payload}")
-
-    # Step 4: Delete Collection
-    # qdrant_manager.delete_collection()
-    print(f"Collection '{collection_name}' deleted.")
+    points = qdrant_manager.fetch_points_by_payload(payload_filter, limit=5000)
+    print(points)
 
 
 if __name__ == "__main__":

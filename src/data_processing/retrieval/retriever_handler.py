@@ -1,112 +1,190 @@
+from typing import List, Dict
 import json
-import os
+from src.vector_db_handler.qdrant_handler import QdrantHandler
+from src.data_processing.embedding.embeddings_handler import (
+    get_embeddings,
+    get_model_info,
+)
+from src.utils.config_reader import YAMLConfigLoader
 from src.utils.logger import SingletonLogger
+
+# Initialize the config loader
+config_loader = YAMLConfigLoader()
+
+# Retrieve a specific config
+vectordb_config = config_loader.get_config("vectordb")["qdrant"]
 
 # Initialize the logger
 logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()
 
-def write_results_to_local(query, search_results, output_dir):
-    results_dic = {}
-    results_dic["user_query"] = query
-    retrieved_results = {}
 
-    for cur_combination, points_list in search_results.items():
-        retrieved_results[cur_combination] = []
-        print(cur_combination)
-        for cur_point in points_list:
-            cur_point_dic = {}
-            cur_point_dic["score"] = cur_point.score
-            cur_point_dic["chunk_text"] = cur_point.payload["chunk_text"]
-            cur_point_dic["article_id"] = cur_point.payload["article_id"]
-            retrieved_results[cur_combination].append(cur_point_dic)
-
-    results_dic["search_results"] = retrieved_results
-
-    # Specify the filename
-    filename = f"{query}.json"
-    # Complete file path
-    file_path = os.path.join(output_dir, filename)
-
-    # Open the file in write mode and serialize the data to JSON
-    with open(file_path, "w", encoding="utf-8") as file:
-        json.dump(results_dic, file, indent=4)
+def initialize_article_qdrant_manager():
+    # Initialize the QdrantHandler
+    qdrant_handler = QdrantHandler(embedding_model="pubmedbert", params=vectordb_config)
+    qdrant_manager = qdrant_handler.get_qdrant_manager()
+    return qdrant_manager
 
 
-def retrieve_chunks(query, chunker_type, merger_type, ner_model, vector_db, model):
-    # Get the appropriate indexer instance
-    pass
-
-def retrieve_query(self, query: str, limit: int = 1):
-    """
-    Retrieves related data to the user's question by querying the vector store.
-
-    Args:
-        query (str): The user's query.
-        limit (int, optional): Defaults to 1. The no. of closest chunks to be returned.
-    """
-    logger.info(f"Processing query: {query}")
-
-    # Generate the embedding for the query
-    query_embedding = self.embed_llm.embed_query(query)
-
-    # Search the vector store for relevant vectors
-    search_results = self.qdrant_manager.search_vectors(query_embedding, limit)
-
-    logger.info(f"Retrieved results: {search_results}")
-
-    # Extract relevant texts from the search results
-    retrieved_chunks = [result.payload["chunk_text"] for result in search_results]
-
-    # Combine the relevant texts into a context for the LLM
-    retrieved_chunks = "\n".join(retrieved_chunks)
-
-    logger.info(f"Retrieved chunks: {retrieved_chunks}")
-
-    return search_results
+def initialize_metadata_qdrant_manager():
+    # Initialize the QdrantHandler
+    qdrant_handler = QdrantHandler(embedding_model="metadata", params=vectordb_config)
+    qdrant_manager = qdrant_handler.get_qdrant_manager()
+    return qdrant_manager
 
 
-# Run the main function
+class Retriever:
+    def __init__(
+        self,
+        embeddings_model: str,
+        embedding_collection: str,
+        metadata_collection: str,
+        top_k: int,
+        top_n: int,
+    ):
+        self.article_qdrant_manager = initialize_article_qdrant_manager()
+        self.metadata_qdrant_manager = initialize_metadata_qdrant_manager()
+        self.embeddings_model = embeddings_model
+        self.embedding_collection = embedding_collection
+        self.metadata_collection = metadata_collection
+        self.top_k = top_k
+        self.top_n = top_n
+
+    def get_user_query_embeddings(self, user_query: str):
+        model_info = get_model_info(self.embeddings_model)
+        # Get embeddings for the user query
+        query_vector = get_embeddings(
+            model_name=model_info[0], token_limit=model_info[1], texts=[user_query]
+        )
+        return query_vector
+
+    def retrieve_chunks(self, query_vector):
+        # Search across chunks, retrieve a larger set to ensure diversity
+        retrieved_chunks = self.article_qdrant_manager.search_vectors(
+            query_vector=query_vector,
+            limit=50,  # Fetch a higher number to ensure we meet distinct article criteria
+        )
+
+        # Collect chunks by article_id and ensure we have chunks from at least N distinct articles
+        chunks_by_article = {}
+        for chunk in retrieved_chunks:
+            article_id = chunk.payload["article_id"]
+            if article_id not in chunks_by_article:
+                chunks_by_article[article_id] = []
+            if len(chunks_by_article[article_id]) < self.top_k:
+                chunks_by_article[article_id].append(chunk)
+
+            # Stop if we've accumulated at least N distinct articles with chunks
+            if len(chunks_by_article) >= self.top_n:
+                break
+
+        return chunks_by_article
+
+    def get_article_ids_filtered_by_metadata(
+        self, payload_filter: Dict[str, str]
+    ) -> List[str]:
+        """
+        Filter article IDs based on metadata criteria.
+
+        Args:
+            retrieved_article_ids (List[str]): List of article IDs from initial similarity-based retrieval.
+            payload_filter (Dict[str, str]): Metadata filter criteria as key-value pairs.
+
+        Returns:
+            List[str]: List of article IDs that match the metadata filter criteria.
+        """
+        # Fetch points matching the payload filter from the metadata collection
+        matching_points = self.metadata_qdrant_manager.fetch_points_by_payload(
+            payload_filter, limit=5000
+        )
+
+        # Extract IDs of articles that meet the metadata filter criteria
+        matching_article_ids = {point["payload"]["pmcid"] for point in matching_points}
+        print(f"Matching article ids: {matching_article_ids}")
+
+        return matching_article_ids
+
+    def retrieve(self, query_vector, metadata_filters):
+        # Step 1: Retrieve chunks ensuring at least N distinct articles
+        chunks_by_article = self.retrieve_chunks(query_vector)
+
+        # Get article IDs of retrieved chunks
+        article_ids_from_similarity = list(chunks_by_article.keys())
+        print(f"Article IDs from similarity: {article_ids_from_similarity}")
+
+        # Step 2: Filter articles by metadata criteria
+        article_ids_from_metadata = self.get_article_ids_filtered_by_metadata(
+            metadata_filters
+        )
+        print(f"Article IDs from metadata: {article_ids_from_metadata}")
+
+        # Step 3: Take intersection of filtered article IDs
+        final_article_ids = list(
+            set(article_ids_from_similarity) & set(article_ids_from_metadata)
+        )
+
+        # Filter the chunks to keep only those from articles passing metadata criteria
+        # final_chunks_by_article = {aid: chunks_by_article[aid] for aid in final_article_ids}
+        final_chunks_by_article = {
+            aid: chunks_by_article[aid] for aid in article_ids_from_similarity
+        }
+
+        return final_chunks_by_article
+
+    def parse_results(self, result):
+        parsed_output = {}
+
+        for article_id, points in result.items():
+            parsed_output[article_id] = []
+
+            for point in points:
+                payload = point.payload  # Access as attribute instead of dict key
+
+                # Extract the desired fields from the payload
+                entry = {
+                    "chunk_id": payload["chunk_id"],
+                    "chunk_text": payload["chunk_text"],
+                    "chunk_score": point.score,  # Access score as attribute
+                }
+
+                parsed_output[article_id].append(entry)
+
+        return parsed_output
+
+
 if __name__ == "__main__":
-    vector_db_list = ["qdrant"]
-    llm_model = "BedrockClaude"
-    chunker_list = [
-        # "sliding_window",
-        # "passage",
-        # "annotation_aware",
-        "grouped_annotation_aware_sliding_window",
-    ]
+    retriever = Retriever(
+        embeddings_model="pubmedbert",
+        embedding_collection=vectordb_config["collections"]["pubmedbert"][
+            "collection_name"
+        ],
+        metadata_collection=vectordb_config["collections"]["metadata"][
+            "collection_name"
+        ],
+        top_k=5,
+        top_n=3,
+    )
 
-    merger_list = [
-        "append",
-        "inline",
-        # "fulltext"
-    ]
+    # Example query
+    user_query = "Effect of PM2.5 in EGFR mutation in lung cancer"
+    logger.info(f"User Query: {user_query}")
+    query_vector = retriever.get_user_query_embeddings(user_query)[0]
 
-    ner_model_list = [
-        "bioformer",
-        # "pubmedbert"
-    ]
+    # Example metadata filters
+    metadata_filters = {
+        "journal": "Nature",
+        # "year": "2023"
+    }
 
-    user_queries = ["EGFR", "KRAS", "ATM"]
-    output_path = "../../../test_data/retrieval_results/"
+    retrieved_chunks = retriever.retrieve(query_vector, metadata_filters)
+    result = retriever.parse_results(retrieved_chunks)
+    print(retrieved_chunks)
+    file_path = "../../../data/results/parsed_result.json"
+    full_result_file_path = "../../../data/results/full_result.json"
 
-    for cur_query in user_queries:
-        query_results = {}
-        for cur_chunker_type in chunker_list:
-            for cur_merger_type in merger_list:
-                for cur_ner_model in ner_model_list:
-                    for cur_vector_db in vector_db_list:
-                        retrieved_result = retrieve_chunks(
-                            cur_query,
-                            cur_chunker_type,
-                            cur_merger_type,
-                            cur_ner_model,
-                            cur_vector_db,
-                            llm_model,
-                        )
-                        combination_str = (
-                            f"{cur_chunker_type}_{cur_merger_type}_{cur_ner_model}"
-                        )
-                        query_results[combination_str] = retrieved_result
-        write_results_to_local(cur_query, query_results, output_path)
+    # Write the parsed result to a JSON file
+    with open(file_path, "w") as json_file:
+        json.dump(result, json_file, indent=4)
+
+    # with open(full_result_file_path, "w") as json_file:
+    #     json.dump(retrieved_chunks, json_file, indent=4)
