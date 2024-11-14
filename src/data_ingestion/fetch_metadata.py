@@ -174,6 +174,9 @@ class MetadataExtractor:
             "pmid": metadata.get("article_meta", {}).get("pmid", ""),
             "pmcid": metadata.get("article_meta", {}).get("pmcid", ""),
             "doi": metadata.get("article_meta", {}).get("doi", ""),
+            "publisher-id": metadata.get("article_meta", {}).get("publisher-id", ""),
+            "title": metadata.get("article_meta", {}).get("title", ""),
+            "keywords": metadata.get("article_meta", {}).get("keywords", ""),
             "authors": [
                 f"{author.get('given-names', '')} {author.get('surname', '')}"
                 for author in metadata.get("front", {}).get("authors", [])
