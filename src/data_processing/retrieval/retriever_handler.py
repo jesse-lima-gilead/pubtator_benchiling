@@ -21,14 +21,14 @@ logger = logger_instance.get_logger()
 
 def initialize_article_qdrant_manager():
     # Initialize the QdrantHandler
-    qdrant_handler = QdrantHandler(embedding_model="pubmedbert", params=vectordb_config)
+    qdrant_handler = QdrantHandler(collection_type="pubmedbert", params=vectordb_config)
     qdrant_manager = qdrant_handler.get_qdrant_manager()
     return qdrant_manager
 
 
 def initialize_metadata_qdrant_manager():
     # Initialize the QdrantHandler
-    qdrant_handler = QdrantHandler(embedding_model="metadata", params=vectordb_config)
+    qdrant_handler = QdrantHandler(collection_type="metadata", params=vectordb_config)
     qdrant_manager = qdrant_handler.get_qdrant_manager()
     return qdrant_manager
 

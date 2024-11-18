@@ -23,7 +23,9 @@ class SlidingWindowChunker:
     import re
     import xml.etree.ElementTree as ET
 
-    def remove_unwanted_passages(self, root: ET.Element, unwanted_patterns: list[str]) -> None:
+    def remove_unwanted_passages(
+        self, root: ET.Element, unwanted_patterns: list[str]
+    ) -> None:
         """
         Remove passages with <infon key="type"> that match any unwanted types from a list of patterns.
 
@@ -32,17 +34,23 @@ class SlidingWindowChunker:
             unwanted_patterns (list[str]): List of regex patterns for passage types to be removed.
         """
         # Compile all unwanted patterns into a list of regex patterns for case-insensitive matching
-        regex_patterns = [re.compile(pattern, re.IGNORECASE) for pattern in unwanted_patterns]
+        regex_patterns = [
+            re.compile(pattern, re.IGNORECASE) for pattern in unwanted_patterns
+        ]
 
         passages = root.findall(".//passage")
         # print("Initial Passages in BioC XML:", len(passages))
 
         # Use list comprehension to filter out passages matching any of the unwanted patterns
         passages_to_keep = [
-            passage for passage in passages
+            passage
+            for passage in passages
             if not (
-                    passage.find(".//infon[@key='type']") is not None and
-                    any(regex.search(passage.find(".//infon[@key='type']").text) for regex in regex_patterns)
+                passage.find(".//infon[@key='type']") is not None
+                and any(
+                    regex.search(passage.find(".//infon[@key='type']").text)
+                    for regex in regex_patterns
+                )
             )
         ]
 
@@ -50,7 +58,6 @@ class SlidingWindowChunker:
 
         # Optionally update the root element with the filtered passages
         root[:] = passages_to_keep
-    
 
     def extract_passages(self, root: ET.Element) -> List[ET.Element]:
         """Extract all passage elements from the BioC XML."""

@@ -154,7 +154,7 @@ class MetadataExtractor:
         # Initialize the QdrantHandler
         model_info = get_model_info(self.embeddings_model)
         qdrant_handler = QdrantHandler(
-            embedding_model="metadata", params=vectordb_config
+            collection_type="metadata", params=vectordb_config
         )
         qdrant_manager = qdrant_handler.get_qdrant_manager()
 

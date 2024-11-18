@@ -73,9 +73,14 @@ class ArticleProcessor:
 
     def get_article_chunks(self, input_file_path: str, article_file: str):
         logger.info(f"Chunking article {article_file}")
-        summary = self.get_article_summary(article_file)
-        summary_tokens = self.get_token_count(summary)
-        window_size = 512 - summary_tokens
+
+        # For Actual Processing
+        # summary = self.get_article_summary(article_file)
+        # summary_tokens = self.get_token_count(summary)
+        # window_size = 512 - summary_tokens
+
+        # For Baseline Processing
+        window_size = 512
         logger.info(f"Dynamic Window Size for chunking: {window_size}")
 
         chunks = chunk_annotated_articles(
@@ -129,6 +134,8 @@ class ArticleProcessor:
                     f"{self.chunks_output_dir}/{article_file.split('.')[0]}.json"
                 )
                 article_id = article_file.split(".")[0]
+
+                # For Actual Processing
                 chunks = self.get_chunks_with_summary(
                     input_file_path=input_file_path, article_file=article_file
                 )
@@ -262,7 +269,7 @@ class ArticleProcessor:
     def store_embeddings_details_at_vectordb(self, chunk_file_path: str):
         # Get the Qdrant Handler with for specific vector db config
         qdrant_handler = QdrantHandler(
-            embedding_model=self.embeddings_model, params=vectordb_config
+            collection_type="baseline", params=vectordb_config
         )
         qdrant_manager = qdrant_handler.get_qdrant_manager()
 
@@ -281,7 +288,7 @@ class ArticleProcessor:
                 chunk_embeddings = get_embeddings(
                     model_name=model_info[0],
                     token_limit=model_info[1],
-                    texts=[chunk["merged_text"]],
+                    texts=[chunk["chunk_text"]],
                 )[0]
                 # logger.info("Embedding generated!")
                 chunk_payload = chunk["payload"]
@@ -349,7 +356,7 @@ class ArticleProcessor:
 if __name__ == "__main__":
     articles_input_dir = f"../../data/ner_processed/gnorm2_annotated"
     articles_summary_dir = f"../../data/articles_metadata/summary"
-    chunks_output_dir = f"../../data/indexing/chunks"
+    chunks_output_dir = f"../../data/indexing/baseline_chunks"
     embeddings_output_dir = f"../../data/indexing/embeddings"
     embeddings_model = "pubmedbert"
     chunker = "sliding_window"

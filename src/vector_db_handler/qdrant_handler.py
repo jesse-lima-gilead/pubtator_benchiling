@@ -17,11 +17,11 @@ logger = logger_instance.get_logger()
 
 
 class QdrantHandler:
-    def __init__(self, params: Dict[str, Any], embedding_model: str = "pubmedbert"):
+    def __init__(self, params: Dict[str, Any], collection_type: str = "pubmedbert"):
         self.host = params["host"]
         self.port = params["port"]
-        self.embedding_model = embedding_model
-        if self.embedding_model == "pubmedbert":
+        self.collection_type = collection_type
+        if self.collection_type == "pubmedbert":
             self.collection_name = params["collections"]["pubmedbert"][
                 "collection_name"
             ]
@@ -29,14 +29,18 @@ class QdrantHandler:
             self.distance_metric = params["collections"]["pubmedbert"][
                 "distance_metric"
             ]
-        elif self.embedding_model == "medembed":
+        elif self.collection_type == "medembed":
             self.collection_name = params["collections"]["medembed"]["collection_name"]
             self.vector_size = params["collections"]["medembed"]["vector_size"]
             self.distance_metric = params["collections"]["medembed"]["distance_metric"]
-        elif self.embedding_model == "metadata":
+        elif self.collection_type == "metadata":
             self.collection_name = params["collections"]["metadata"]["collection_name"]
             self.vector_size = params["collections"]["metadata"]["vector_size"]
             self.distance_metric = params["collections"]["metadata"]["distance_metric"]
+        elif self.collection_type == "baseline":
+            self.collection_name = params["collections"]["baseline"]["collection_name"]
+            self.vector_size = params["collections"]["baseline"]["vector_size"]
+            self.distance_metric = params["collections"]["baseline"]["distance_metric"]
 
     def get_qdrant_manager(self) -> QdrantManager:
         """Creates a QdrantManager instance using the configuration."""
