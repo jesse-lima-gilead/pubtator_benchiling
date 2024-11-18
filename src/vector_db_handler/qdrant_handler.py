@@ -17,22 +17,32 @@ logger = logger_instance.get_logger()
 
 
 class QdrantHandler:
-    def __init__(self, params: Dict[str, Any], collection_type: str = "pubmedbert"):
+    def __init__(
+        self, params: Dict[str, Any], collection_type: str = "processed_pubmedbert"
+    ):
         self.host = params["host"]
         self.port = params["port"]
         self.collection_type = collection_type
-        if self.collection_type == "pubmedbert":
-            self.collection_name = params["collections"]["pubmedbert"][
+        if self.collection_type == "processed_pubmedbert":
+            self.collection_name = params["collections"]["processed_pubmedbert"][
                 "collection_name"
             ]
-            self.vector_size = params["collections"]["pubmedbert"]["vector_size"]
-            self.distance_metric = params["collections"]["pubmedbert"][
+            self.vector_size = params["collections"]["processed_pubmedbert"][
+                "vector_size"
+            ]
+            self.distance_metric = params["collections"]["processed_pubmedbert"][
                 "distance_metric"
             ]
-        elif self.collection_type == "medembed":
-            self.collection_name = params["collections"]["medembed"]["collection_name"]
-            self.vector_size = params["collections"]["medembed"]["vector_size"]
-            self.distance_metric = params["collections"]["medembed"]["distance_metric"]
+        elif self.collection_type == "processed_medembed":
+            self.collection_name = params["collections"]["processed_medembed"][
+                "collection_name"
+            ]
+            self.vector_size = params["collections"]["processed_medembed"][
+                "vector_size"
+            ]
+            self.distance_metric = params["collections"]["processed_medembed"][
+                "distance_metric"
+            ]
         elif self.collection_type == "metadata":
             self.collection_name = params["collections"]["metadata"]["collection_name"]
             self.vector_size = params["collections"]["metadata"]["vector_size"]
@@ -41,6 +51,10 @@ class QdrantHandler:
             self.collection_name = params["collections"]["baseline"]["collection_name"]
             self.vector_size = params["collections"]["baseline"]["vector_size"]
             self.distance_metric = params["collections"]["baseline"]["distance_metric"]
+        else:
+            self.collection_name = params["collections"]["test"]["collection_name"]
+            self.vector_size = params["collections"]["test"]["vector_size"]
+            self.distance_metric = params["collections"]["test"]["distance_metric"]
 
     def get_qdrant_manager(self) -> QdrantManager:
         """Creates a QdrantManager instance using the configuration."""

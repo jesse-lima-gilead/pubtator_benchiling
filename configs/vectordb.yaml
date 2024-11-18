@@ -2,11 +2,11 @@ qdrant:
   host: localhost
   port: 6333
   collections:
-      medembed:
+      processed_medembed:
         collection_name: "articles_sliding_window_prepend_bioformer_medembed"
         vector_size: 768
         distance_metric: "COSINE"
-      pubmedbert:
+      processed_pubmedbert:
         collection_name: "articles_sliding_window_prepend_bioformer_pubmedbert"
         vector_size: 768
         distance_metric: "COSINE"

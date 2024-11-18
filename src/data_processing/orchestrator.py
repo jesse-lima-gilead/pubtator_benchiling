@@ -266,10 +266,12 @@ class ArticleProcessor:
             embeddings_details_list=[embeddings_details], filename=embeddings_file_path
         )
 
-    def store_embeddings_details_at_vectordb(self, chunk_file_path: str):
+    def store_embeddings_details_at_vectordb(
+        self, collection_type: str, chunk_file_path: str
+    ):
         # Get the Qdrant Handler with for specific vector db config
         qdrant_handler = QdrantHandler(
-            collection_type="baseline", params=vectordb_config
+            collection_type=collection_type, params=vectordb_config
         )
         qdrant_manager = qdrant_handler.get_qdrant_manager()
 
@@ -288,7 +290,10 @@ class ArticleProcessor:
                 chunk_embeddings = get_embeddings(
                     model_name=model_info[0],
                     token_limit=model_info[1],
-                    texts=[chunk["chunk_text"]],
+                    # # For Baseline Chunks Processing
+                    # texts=[chunk["payload"]["chunk_text"]],
+                    # For Processed Chunks Processing
+                    texts=[chunk["merged_text"]],
                 )[0]
                 # logger.info("Embedding generated!")
                 chunk_payload = chunk["payload"]
@@ -311,7 +316,10 @@ class ArticleProcessor:
             #     qdrant_manager.insert_vectors(batch)
 
     def process_embeddings(
-        self, embeddings_output_dir: str, store_embeddings_locally: bool = True
+        self,
+        embeddings_output_dir: str,
+        collection_type: str,
+        store_embeddings_locally: bool = True,
     ):
         # ToDo: Implement logic to load the chunks from S3
         # Load the chunks file from local:
@@ -333,13 +341,17 @@ class ArticleProcessor:
                         )
                     else:
                         self.store_embeddings_details_at_vectordb(
-                            chunk_file_path=chunk_file_path
+                            collection_type=collection_type,
+                            chunk_file_path=chunk_file_path,
                         )
 
     def process(
-        self, embeddings_output_dir: str, store_embeddings_locally: bool = True
+        self,
+        embeddings_output_dir: str,
+        collection_type: str,
+        store_embeddings_locally: bool = True,
     ):
-        # Create Chunks of the Gnorm2 Annotated Articles and store them while storing logs in PostgreSQL DB
+        # # Create Chunks of the Gnorm2 Annotated Articles and store them while storing logs in PostgreSQL DB
         logger.info("Creating Chunks...")
         self.process_chunks()
         logger.info("Chunks created successfully!")
@@ -348,15 +360,24 @@ class ArticleProcessor:
         # Create Embeddings and store them locally or in vectorDB
         self.process_embeddings(
             embeddings_output_dir=embeddings_output_dir,
+            collection_type=collection_type,
             store_embeddings_locally=store_embeddings_locally,
         )
         logger.info("Embeddings stored successfully")
 
 
 if __name__ == "__main__":
+    # Processed Chunks Paths
+    chunks_output_dir = f"../../data/indexing/chunks"
+    collection_type = "processed_pubmedbert"
+
+    # # Baseline Chunks Paths
+    # chunks_output_dir = f"../../data/indexing/baseline_chunks"
+    # collection_type = "baseline"
+
+    # Other Params
     articles_input_dir = f"../../data/ner_processed/gnorm2_annotated"
     articles_summary_dir = f"../../data/articles_metadata/summary"
-    chunks_output_dir = f"../../data/indexing/baseline_chunks"
     embeddings_output_dir = f"../../data/indexing/embeddings"
     embeddings_model = "pubmedbert"
     chunker = "sliding_window"
@@ -372,7 +393,9 @@ if __name__ == "__main__":
     )
 
     article_processor.process(
-        embeddings_output_dir=embeddings_output_dir, store_embeddings_locally=False
+        embeddings_output_dir=embeddings_output_dir,
+        collection_type=collection_type,
+        store_embeddings_locally=False,
     )
 
     # article_processor.process_chunks()
