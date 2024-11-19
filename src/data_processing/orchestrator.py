@@ -78,9 +78,10 @@ class ArticleProcessor:
         # For Actual Processing
         # Getting Dynamic Window size based on the article summary
         summary = self.get_article_summary(article_file)
-        summary_words = self.get_words_count(summary)
-        max_tokens = 512
-        tokens_left = max_tokens - math.floor(summary_words * 1.34)
+        summary_tokens = self.get_token_count(summary)
+        model_info = get_model_info(self.embeddings_model)
+        max_tokens = model_info[1]
+        tokens_left = max_tokens - summary_tokens
         buffer = math.floor(tokens_left * 0.15)
         tokens_left_with_buffer = tokens_left - buffer
         words_left = math.floor(tokens_left_with_buffer * 0.75)
