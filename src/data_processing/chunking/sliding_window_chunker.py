@@ -2,6 +2,20 @@ import re
 import xml.etree.ElementTree as ET
 from typing import Any, Dict, List
 
+# from src.data_processing.embedding.embeddings_handler import (
+#     get_embeddings,
+#     get_model_info,
+#     save_embeddings_details_to_json,
+# )
+# import math
+# from transformers import AutoTokenizer
+# def get_token_count(chunk_text: str):
+#     model_info = get_model_info("pubmedbert")
+#     model_path = model_info[0]
+#     tokenizer = AutoTokenizer.from_pretrained(model_path)
+#     rec_tokens = tokenizer.tokenize(chunk_text)
+#     print(rec_tokens)
+#     return len(rec_tokens)
 
 class SlidingWindowChunker:
     def __init__(
@@ -13,14 +27,13 @@ class SlidingWindowChunker:
         self.xml_file_path = xml_file_path
         self.max_tokens_per_chunk = max_tokens_per_chunk
         self.window_size = kwargs.get("window_size", 512)
-        self.stride = kwargs.get("stride", 256)
+        self.stride = self.window_size // 2
 
     def parse_bioc_xml(self) -> ET.Element:
         """Parse BioC XML file and return the root element."""
         tree = ET.parse(self.xml_file_path)
         return tree.getroot()
 
-    import re
     import xml.etree.ElementTree as ET
 
     def remove_unwanted_passages(
@@ -103,8 +116,49 @@ class SlidingWindowChunker:
 
         return passage_dict
 
+    def process_chunks(self, words, start_index, is_final_chunk, base_offset, passage_dict):
+        if is_final_chunk:
+            chunk_words = words[start_index:]
+        else:
+            chunk_words = words[start_index: start_index + self.window_size]
+        chunk_text = "".join(chunk_words)
+        chunk_offset = base_offset + sum(len(w) for w in words[:start_index])
+        # cnt = 0
+        # for word in chunk_words:
+        #     if word.strip() != "":
+        #         cnt += 1
+        # print("words list count: ", len(chunk_words), " so should have atleast: ",len(chunk_words) // 2,)
+        # print(chunk_words)
+        # print("expected words: ",self.window_size // 2," got words: ",cnt, " but got token count: ",get_token_count(chunk_text),)
+        # print("NO. of Words in the CHUNK: ", cnt)
+
+        chunk = {
+            "text": chunk_text,
+            "offset": chunk_offset,
+            "infons": passage_dict["infons"],
+            "annotations": [],
+        }
+
+        # Include relevant annotations that fall within the chunk
+        for ann in passage_dict["annotations"]:
+            ann_start = ann["offset"] - base_offset
+            ann_end = ann_start + ann["length"]
+            chunk_start = sum(len(w) for w in words[:start_index])
+            chunk_end = chunk_start + len(chunk_text)
+
+            if (chunk_start <= ann_start < chunk_end) or (
+                    chunk_start < ann_end <= chunk_end
+            ):
+                chunk["annotations"].append(ann)
+
+        return chunk
+
     def chunk_passage(self, passage_dict: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Create chunks from a single passage using sliding window."""
+        # print()
+        # print("***********")
+        # print("NEW PASSAGE:**************")
+        # print("***********")
         text = passage_dict["text"]
         base_offset = passage_dict["offset"]
 
@@ -115,30 +169,43 @@ class SlidingWindowChunker:
 
         # Create chunks using a sliding window strategy
         for i in range(0, len(words), self.stride):
+            print()
+            start_index = i
+            end_index = start_index + self.window_size
+            # if end_index >= len(words):
             chunk_words = words[i : i + self.window_size]
-            chunk_text = "".join(chunk_words)
-            chunk_offset = base_offset + sum(len(w) for w in words[:i])
+            # handle if the chunk size is smaller than or equal to window size itself
+            if len(chunk_words) < self.window_size:
+                is_final_chunk = True
+                # print("LAST EDGE:*********")
+                chunk = self.process_chunks(words, start_index, is_final_chunk, base_offset, passage_dict)
+                chunks.append(chunk)
+                break
 
-            chunk = {
-                "text": chunk_text,
-                "offset": chunk_offset,
-                "infons": passage_dict["infons"],
-                "annotations": [],
-            }
+            else:
+                # if the words present to the right of the current chunk is <= stride(256) length
+                # lets just include it in the current passage itself
+                still_present_in_the_right = words[end_index: end_index + self.window_size]
+                if len(still_present_in_the_right) <= self.stride:
+                    is_final_chunk = True
+                    # print("LAST BUT ONE EDGE:*********")
+                    chunk = self.process_chunks(words, start_index, is_final_chunk, base_offset, passage_dict)
+                    chunks.append(chunk)
+                    break
 
-            # Include relevant annotations that fall within the chunk
-            for ann in passage_dict["annotations"]:
-                ann_start = ann["offset"] - base_offset
-                ann_end = ann_start + ann["length"]
-                chunk_start = sum(len(w) for w in words[:i])
-                chunk_end = chunk_start + len(chunk_text)
+                # simple case where the words present in the right is greater than stride(256) length which can be handled in the next iteration
+                else:
+                    is_final_chunk = False
+                    chunk = self.process_chunks(words, start_index, is_final_chunk, base_offset, passage_dict)
+                    chunks.append(chunk)
 
-                if (chunk_start <= ann_start < chunk_end) or (
-                    chunk_start < ann_end <= chunk_end
-                ):
-                    chunk["annotations"].append(ann)
+                # # allowing to run normally since we have the window size atleast
+                # # if the chunk size becomes smaller than window size will be handled on top
+                # is_final_chunk = False
+                # chunk = self.process_chunks(words, start_index, is_final_chunk, base_offset, passage_dict)
+                # chunks.append(chunk)
 
-            chunks.append(chunk)
+
 
         return chunks
 
@@ -161,14 +228,31 @@ class SlidingWindowChunker:
 
 # # Example usage
 # if __name__ == "__main__":
-#     xml_file_path = "../../../test_data/gilead_pubtator_results/gnorm2_annotated/bioformer_annotated/PMC_7614604.xml"
+#     xml_file_path = "../../../data/ner_processed/gnorm2_annotated/PMC_5724586.xml"
 #
-#     chunker = SlidingWindowChunker(xml_file_path=xml_file_path, window_size=512, stride=256)
+#     summary = "In 2410 older post-myocardial infarction patients, high body mass index and waist circumference were associated with more rapid annual kidney function decline of 0.35 and 0.21 ml/min/1.73m2 per BMI increment in men and women despite optimal drug treatment. Obese patients declined 30-45% faster versus normal weight individuals."
+#     # summary = "Phosphorylation of PDK-1, AKT, mTOR, p70S6K, and S6 was elevated in breast cancer cell lines and primary tumors compared to normal breast epithelial cells. Moderate-to-high phosphorylation of PDK-1 occurred in 81% of invasive breast carcinomas and was significantly associated with invasiveness. Phosphorylation of putative PDK-1 downstream targets like AKT, mTOR, p70S6K, and S6 was also increased and correlated with PDK-1 phosphorylation and breast cancer. Up to 86% of metastatic tumors had elevated PDK-1 phosphorylation, suggesting PDK-1 activation may promote breast cancer progression. Inhibition of PDK-1 and its downstream signaling cascade may provide additional therapeutic strategies."
+#     tokens_len = get_token_count(summary)
+#     print(tokens_len)
+#     max_tokens = 512
+#     tokens_left = max_tokens - tokens_len
+#     print(tokens_left, " tokens left")
+#     buffer = math.floor(tokens_left * 0.15)
+#     print(buffer, "buffer")
+#     tokens_left_with_buffer = tokens_left - buffer
+#     print(tokens_left_with_buffer, "tokens left aftwr buffer")
+#     words_left = math.floor(tokens_left_with_buffer * 0.75)
+#     print(words_left, "words left aftwr buffer")
+#     window_size = 2 * words_left
+#     print(window_size, "window size")
+#
+#     chunker = SlidingWindowChunker(xml_file_path=xml_file_path, window_size=window_size)
 #     chunks = chunker.sliding_window_chunking()
 #
-#     print(f"Number of chunks: {len(chunks)}")
+#     print(f"\nNumber of chunks: {len(chunks)}")
 #     print("\nFirst chunk:")
-#     print(chunks[0])
+#     print(chunks[0]['annotations'])
+#     print(len(chunks[0]['annotations']))
 
 
 ## Limit 512 Tokens ~ 512*0.75=384 Words
