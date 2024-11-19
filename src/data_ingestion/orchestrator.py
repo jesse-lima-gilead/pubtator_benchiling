@@ -4,6 +4,7 @@ from src.data_ingestion.pmc_articles_extractor import extract_pmc_articles
 from src.data_ingestion.pmc_to_bioc_converter import convert_pmc_to_bioc
 from src.data_ingestion.fetch_metadata import MetadataExtractor
 from src.data_ingestion.articles_summarizer import SummarizeArticle
+from src.data_ingestion.prettify_xml import XMLFormatter
 from src.utils.logger import SingletonLogger
 
 # from src.utils.s3_io_util import S3IOUtil
@@ -75,6 +76,11 @@ class PMCIngestor:
                     os.path.join(self.pmc_local_path, file), self.bioc_local_path
                 )
 
+        # Prettify the BioC XML files:
+        # logger.info("Prettifying the BioC XML files...")
+        # formatter = XMLFormatter(folder_path=self.bioc_local_path)
+        # formatter.process_folder()
+
         # Generate articles summaries
         logger.info("Generating summaries for the articles using BioC XMLs...")
         for file in os.listdir(self.bioc_local_path):
@@ -84,7 +90,7 @@ class PMCIngestor:
                 summary = summarizer.summarize()
                 summary_file_path = os.path.join(
                     self.article_metadata_path,
-                    f"/summary/{file.replace('.xml', '.txt')}",
+                    f"summary/{file.replace('.xml', '.txt')}",
                 )
                 with open(summary_file_path, "w") as f:
                     f.write(summary)
@@ -110,14 +116,14 @@ class PMCIngestor:
 # Example usage
 if __name__ == "__main__":
     logger.info("Execution Started")
-    query = "lung cancer"
+    query = ""
     start_date = "2019"
     end_date = "2024"
     retmax = 25
-    pmc_local_path: str = "../../test_data/pmc_full_text_articles"
-    bioc_local_path: str = "../../test_data/bioc_full_text_articles"
-    article_metadata_path = "../../test_data/pmc_full_text_metadata"
-    article_ids = [
+    pmc_local_path: str = "../../data/staging2/pmc_xml"
+    bioc_local_path: str = "../../data/staging2/bioc_xml"
+    article_metadata_path = "../../data/articles_metadata"
+    golden_dataset_article_ids = [
         "6468187",
         "7541005",
         "4154841",
@@ -258,9 +264,57 @@ if __name__ == "__main__":
         "4212561",
         "8312512",
     ]
+
+    extra_articles_id = [
+        "9413286",
+        "7444693",
+        "7442721",
+        "7737765",
+        "9050543",
+        "8748704",
+        "9167747",
+        "9161072",
+        "9746914",
+        "9674284",
+        "9896310",
+        "11332722",
+        "10117631",
+        "10017705",
+        "10232659",
+        "10443631",
+        "10698546",
+        "10870877",
+        "10645594",
+        "10831337",
+        "10912034",
+        "10907391",
+        "10837166",
+        "10897627",
+        "10915134",
+        "10923916",
+        "11208295",
+        "11319832",
+        "11008188",
+        "11014662",
+        "11116757",
+        "11118283",
+        "11231252",
+        "11245995",
+        "11371094",
+        "11405273",
+        "11387199",
+        "8418271",
+        "8579308",
+        "8784611",
+        "10119142",
+        "10370087",
+        "10619435",
+        "11073880",
+        "8698540",
+    ]
     pmc_ingestor = PMCIngestor(
         query=query,
-        article_ids=article_ids,
+        article_ids=extra_articles_id,
         start_date=start_date,
         end_date=end_date,
         pmc_local_path=pmc_local_path,

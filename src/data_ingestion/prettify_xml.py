@@ -1,6 +1,11 @@
 import os
 import xml.etree.ElementTree as ET
 from xml.dom.minidom import parseString
+from src.utils.logger import SingletonLogger
+
+# Initialize the logger
+logger_instance = SingletonLogger()
+logger = logger_instance.get_logger()
 
 
 class XMLFormatter:
@@ -17,7 +22,7 @@ class XMLFormatter:
             parsed_xml = parseString(xml_content)
             pretty_xml = parsed_xml.toprettyxml(indent="  ")
         except Exception as e:
-            print(f"Error processing {file_path}: {e}")
+            logger.error(f"Error processing {file_path}: {e}")
             return
 
         # Write the prettified XML back to the original file
@@ -31,7 +36,7 @@ class XMLFormatter:
 
             # Only process XML files
             if filename.endswith(".xml"):
-                print(f"Processing: {file_path}")
+                # print(f"Processing: {file_path}")
                 self.prettify_xml(file_path)
 
 
@@ -39,7 +44,7 @@ class XMLFormatter:
 if __name__ == "__main__":
     folder_path = (
         # "../../data/gnorm2_annotated/bioformer_annotated"
-        "../../data/gnorm2_annotated/pubmedbert_annotated"
+        "../../data/ner_processed/gnorm2_annotated"
     )
     formatter = XMLFormatter(folder_path)
     formatter.process_folder()
