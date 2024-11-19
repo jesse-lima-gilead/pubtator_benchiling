@@ -76,6 +76,7 @@ class ArticleProcessor:
         logger.info(f"Chunking article {article_file}")
 
         # For Actual Processing
+        # Getting Dynamic Window size based on the article summary
         summary = self.get_article_summary(article_file)
         summary_words = self.get_words_count(summary)
         max_tokens = 512
