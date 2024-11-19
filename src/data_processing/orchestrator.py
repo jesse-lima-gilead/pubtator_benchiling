@@ -1,9 +1,9 @@
 import json
+import math
 import os
 import uuid
 from typing import Dict, List
 from transformers import AutoTokenizer
-from src.utils.db import session  # Import the session
 from src.alembic_models.chunks import Chunk  # Import the Chunk model
 
 # from src.utils.s3_io_util import S3IOUtil
@@ -13,13 +13,11 @@ from src.data_processing.chunking.chunks_handler import (
 )
 from src.vector_db_handler.qdrant_handler import QdrantHandler
 from src.data_processing.merging.merge_handler import merge_annotations
-from src.utils.articles_summarizer import SummarizeArticle
 from src.data_processing.embedding.embeddings_handler import (
     get_embeddings,
     get_model_info,
     save_embeddings_details_to_json,
 )
-from src.utils.logger import SingletonLogger
 from src.utils.config_reader import YAMLConfigLoader
 from src.utils.logger import SingletonLogger
 
@@ -71,16 +69,24 @@ class ArticleProcessor:
         tokenizer = AutoTokenizer.from_pretrained(model_path)
         return len(tokenizer.tokenize(chunk_text))
 
+    def get_words_count(self, chunk_text: str):
+        return len(chunk_text.split())
+
     def get_article_chunks(self, input_file_path: str, article_file: str):
         logger.info(f"Chunking article {article_file}")
 
         # For Actual Processing
-        # summary = self.get_article_summary(article_file)
-        # summary_tokens = self.get_token_count(summary)
-        # window_size = 512 - summary_tokens
+        summary = self.get_article_summary(article_file)
+        summary_words = self.get_words_count(summary)
+        max_tokens = 512
+        tokens_left = max_tokens - math.floor(summary_words * 1.34)
+        buffer = math.floor(tokens_left * 0.15)
+        tokens_left_with_buffer = tokens_left - buffer
+        words_left = math.floor(tokens_left_with_buffer * 0.75)
+        window_size = 2 * words_left
 
         # For Baseline Processing
-        window_size = 512
+        # window_size = 512
         logger.info(f"Dynamic Window Size for chunking: {window_size}")
 
         chunks = chunk_annotated_articles(

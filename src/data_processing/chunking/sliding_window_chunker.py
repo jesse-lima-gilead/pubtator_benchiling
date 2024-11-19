@@ -169,3 +169,16 @@ class SlidingWindowChunker:
 #     print(f"Number of chunks: {len(chunks)}")
 #     print("\nFirst chunk:")
 #     print(chunks[0])
+
+
+## Limit 512 Tokens ~ 512*0.75=384 Words
+## Summary ~ 80 Words without spaces ~ 80*1.34=107 Tokens
+## 384-80=304 Words Left for the chunk text ~ 300 Words
+## Our words have spaces, we are counting 1 space as 1 word
+## Thus in 300 limit, we can have actual ~150 words, ie 150*1.34=201 Tokens
+
+## 500 Words ie 250 words and 250 spaces
+## 250 words = 250*1.34=335 Tokens
+
+## Total tokens = 335+107=442 Tokens
+## Buffer = 512-442=70 Tokens ie. 70*0.75=52 Words buffer

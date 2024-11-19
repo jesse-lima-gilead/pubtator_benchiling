@@ -126,7 +126,7 @@ class Retriever:
         # Filter the chunks to keep only those from articles passing metadata criteria
         # final_chunks_by_article = {aid: chunks_by_article[aid] for aid in final_article_ids}
         final_chunks_by_article = {
-            aid: chunks_by_article[aid] for aid in article_ids_from_similarity
+            aid: chunks_by_article[aid] for aid in final_article_ids
         }
 
         return final_chunks_by_article

@@ -3,6 +3,7 @@ import os
 from src.data_ingestion.pmc_articles_extractor import extract_pmc_articles
 from src.data_ingestion.pmc_to_bioc_converter import convert_pmc_to_bioc
 from src.data_ingestion.fetch_metadata import MetadataExtractor
+from src.data_ingestion.articles_summarizer import SummarizeArticle
 from src.utils.logger import SingletonLogger
 
 # from src.utils.s3_io_util import S3IOUtil
@@ -37,6 +38,7 @@ class PMCIngestor:
     # Runs the combined process
     def run(self):
         # Extract the free full text articles from PMC:
+        logger.info("Extracting PMC Articles...")
         extract_pmc_articles(
             query=self.query,
             article_ids=self.article_ids,
@@ -47,6 +49,7 @@ class PMCIngestor:
         )
 
         # Fetch and store metadata of extracted articles
+        logger.info("Fetching metadata for the articles...")
         for file in os.listdir(self.pmc_local_path):
             if file.endswith(".xml"):
                 file_path = os.path.join(self.pmc_local_path, file)
@@ -65,13 +68,28 @@ class PMCIngestor:
                 logger.info(f"Metadata for {file} saved to Vector DB")
 
         # Convert the PMC Articles to BioC File Format:
+        logger.info("Converting PMC Articles to BioC XML...")
         for file in os.listdir(self.pmc_local_path):
             if file.endswith(".xml"):
                 convert_pmc_to_bioc(
                     os.path.join(self.pmc_local_path, file), self.bioc_local_path
                 )
 
-        # # Save the PMC XML and BIOC XML to S3:
+        # Generate articles summaries
+        logger.info("Generating summaries for the articles using BioC XMLs...")
+        for file in os.listdir(self.bioc_local_path):
+            if file.endswith(".xml"):
+                file_path = os.path.join(self.bioc_local_path, file)
+                summarizer = SummarizeArticle(input_file_path=file_path)
+                summary = summarizer.summarize()
+                summary_file_path = os.path.join(
+                    self.article_metadata_path,
+                    f"/summary/{file.replace('.xml', '.txt')}",
+                )
+                with open(summary_file_path, "w") as f:
+                    f.write(summary)
+
+        # # Save the PMC XML, BIOC XML, Metadata (Summary) to S3:
         # for pmc_file in os.listdir(self.pmc_local_path):
         #     if pmc_file.endswith(".xml"):
         #         self.s3_io_util.upload_file(

@@ -16,6 +16,6 @@ class PromptBuilder:
             f"Instruction:\n {self.article_summary_instructions}\n\n"
             f"Additional guidelines:\n {self.article_summary_guidelines}\n\n"
             f"PMC Article:\n {pmc_article_text}\n\n"
-            "Provide ONLY the Summary text, without any introductory phrases, meta-commentary, or concluding remarks."
+            # "Provide ONLY the Summary text, without any introductory phrases, meta-commentary, or concluding remarks."
         )
         return combined_prompt
