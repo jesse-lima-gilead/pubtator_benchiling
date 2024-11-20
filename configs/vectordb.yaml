@@ -3,11 +3,11 @@ qdrant:
   port: 6333
   collections:
       processed_medembed:
-        collection_name: "articles_sliding_window_prepend_bioformer_medembed"
+        collection_name: "medembed_processed_articles"
         vector_size: 768
         distance_metric: "COSINE"
       processed_pubmedbert:
-        collection_name: "articles_sliding_window_prepend_bioformer_pubmedbert"
+        collection_name: "pubmedbert_processed_articles"
         vector_size: 768
         distance_metric: "COSINE"
       metadata:

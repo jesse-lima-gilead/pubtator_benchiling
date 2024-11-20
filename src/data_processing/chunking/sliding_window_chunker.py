@@ -17,6 +17,7 @@ from typing import Any, Dict, List
 #     print(rec_tokens)
 #     return len(rec_tokens)
 
+
 class SlidingWindowChunker:
     def __init__(
         self,
@@ -116,11 +117,13 @@ class SlidingWindowChunker:
 
         return passage_dict
 
-    def process_chunks(self, words, start_index, is_final_chunk, base_offset, passage_dict):
+    def process_chunks(
+        self, words, start_index, is_final_chunk, base_offset, passage_dict
+    ):
         if is_final_chunk:
             chunk_words = words[start_index:]
         else:
-            chunk_words = words[start_index: start_index + self.window_size]
+            chunk_words = words[start_index : start_index + self.window_size]
         chunk_text = "".join(chunk_words)
         chunk_offset = base_offset + sum(len(w) for w in words[:start_index])
         # cnt = 0
@@ -147,7 +150,7 @@ class SlidingWindowChunker:
             chunk_end = chunk_start + len(chunk_text)
 
             if (chunk_start <= ann_start < chunk_end) or (
-                    chunk_start < ann_end <= chunk_end
+                chunk_start < ann_end <= chunk_end
             ):
                 chunk["annotations"].append(ann)
 
@@ -169,7 +172,7 @@ class SlidingWindowChunker:
 
         # Create chunks using a sliding window strategy
         for i in range(0, len(words), self.stride):
-            print()
+            # print()
             start_index = i
             end_index = start_index + self.window_size
             # if end_index >= len(words):
@@ -178,25 +181,33 @@ class SlidingWindowChunker:
             if len(chunk_words) < self.window_size:
                 is_final_chunk = True
                 # print("LAST EDGE:*********")
-                chunk = self.process_chunks(words, start_index, is_final_chunk, base_offset, passage_dict)
+                chunk = self.process_chunks(
+                    words, start_index, is_final_chunk, base_offset, passage_dict
+                )
                 chunks.append(chunk)
                 break
 
             else:
                 # if the words present to the right of the current chunk is <= stride(256) length
                 # lets just include it in the current passage itself
-                still_present_in_the_right = words[end_index: end_index + self.window_size]
+                still_present_in_the_right = words[
+                    end_index : end_index + self.window_size
+                ]
                 if len(still_present_in_the_right) <= self.stride:
                     is_final_chunk = True
                     # print("LAST BUT ONE EDGE:*********")
-                    chunk = self.process_chunks(words, start_index, is_final_chunk, base_offset, passage_dict)
+                    chunk = self.process_chunks(
+                        words, start_index, is_final_chunk, base_offset, passage_dict
+                    )
                     chunks.append(chunk)
                     break
 
                 # simple case where the words present in the right is greater than stride(256) length which can be handled in the next iteration
                 else:
                     is_final_chunk = False
-                    chunk = self.process_chunks(words, start_index, is_final_chunk, base_offset, passage_dict)
+                    chunk = self.process_chunks(
+                        words, start_index, is_final_chunk, base_offset, passage_dict
+                    )
                     chunks.append(chunk)
 
                 # # allowing to run normally since we have the window size atleast
@@ -204,8 +215,6 @@ class SlidingWindowChunker:
                 # is_final_chunk = False
                 # chunk = self.process_chunks(words, start_index, is_final_chunk, base_offset, passage_dict)
                 # chunks.append(chunk)
-
-
 
         return chunks
 
@@ -266,3 +275,7 @@ class SlidingWindowChunker:
 
 ## Total tokens = 335+107=442 Tokens
 ## Buffer = 512-442=70 Tokens ie. 70*0.75=52 Words buffer
+
+## Buffer Usage:
+## To Store the annotations
+## To Store words that generates a lot of tokens
