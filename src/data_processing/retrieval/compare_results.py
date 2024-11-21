@@ -14,7 +14,7 @@ def run():
     merged_data = pd.merge(
         results_with_annotations,
         results_without_annotations,
-        on=["User Query", "Article ID"],
+        on=["User Query", "Article ID", "Chunk ID"],
         suffixes=("_WithAnnotations", "_WithoutAnnotations"),
         how="outer",  # Ensures only matching rows are included
     )
@@ -23,7 +23,7 @@ def run():
     result_file_path = "../../../data/results/comparison_results.csv"
     merged_data.to_csv(result_file_path, index=False)
 
-    print("Merged data has been saved to 'merged_output.csv'")
+    print("Merged data has been saved to 'comparison_results.csv'")
 
 
 if __name__ == "__main__":
