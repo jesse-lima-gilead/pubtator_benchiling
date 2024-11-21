@@ -145,7 +145,20 @@ class QdrantManager:
         self.client.delete_collection(collection_name=self.collection_name)
 
     def delete_points_by_key(self, key: str, value: str):
-        # logger.info(f'{key}\n{value}')
+        """
+        Deletes points from the Qdrant collection where the specified `field_name` in the payload
+        matches any value in the provided list of `values`.
+
+        Args:
+            field_name (str): The payload field name to filter points by.
+            values (list[str]): List of values to match for deletion.
+        """
+        if not key:
+            print("No field name provided for deletion.")
+            return
+        if not value:
+            print("No values provided for deletion.")
+            return
         filter_query = Filter(
             must=[FieldCondition(key=key, match=MatchValue(value=value))]
         )

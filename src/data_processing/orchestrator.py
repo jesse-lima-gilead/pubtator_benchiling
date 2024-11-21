@@ -298,10 +298,10 @@ class ArticleProcessor:
                 chunk_embeddings = get_embeddings(
                     model_name=model_info[0],
                     token_limit=model_info[1],
-                    # # For Baseline Chunks Processing
-                    # texts=[chunk["payload"]["chunk_text"]],
-                    # For Processed Chunks Processing
-                    texts=[chunk["merged_text"]],
+                    # For Baseline Chunks Processing
+                    texts=[chunk["payload"]["chunk_text"]],
+                    # # For Processed Chunks Processing
+                    # texts=[chunk["merged_text"]],
                 )[0]
                 # logger.info("Embedding generated!")
                 chunk_payload = chunk["payload"]
@@ -360,9 +360,9 @@ class ArticleProcessor:
         store_embeddings_locally: bool = True,
     ):
         # # Create Chunks of the Gnorm2 Annotated Articles and store them while storing logs in PostgreSQL DB
-        logger.info("Creating Chunks...")
-        self.process_chunks()
-        logger.info("Chunks created successfully!")
+        # logger.info("Creating Chunks...")
+        # self.process_chunks()
+        # logger.info("Chunks created successfully!")
 
         logger.info("Creating and storing embeddings...")
         # Create Embeddings and store them locally or in vectorDB
@@ -376,12 +376,12 @@ class ArticleProcessor:
 
 if __name__ == "__main__":
     # Processed Chunks Paths
-    chunks_output_dir = f"../../data/indexing/chunks"
-    collection_type = "processed_pubmedbert"
+    # chunks_output_dir = f"../../data/indexing/chunks"
+    # collection_type = "processed_pubmedbert"
 
     # # Baseline Chunks Paths
-    # chunks_output_dir = f"../../data/indexing/baseline_chunks"
-    # collection_type = "baseline"
+    chunks_output_dir = f"../../data/indexing/baseline_chunks"
+    collection_type = "baseline"
 
     # Other Params
     articles_input_dir = f"../../data/ner_processed/gnorm2_annotated"
