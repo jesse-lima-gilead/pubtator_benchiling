@@ -87,8 +87,73 @@ class MetadataExtractor:
             ),
         }
 
+        # Extract references if processing the back section
+        if tag_name == "back":
+            section_data["references"] = self.extract_references(section)
+
         # Remove empty fields
         return {k: v for k, v in section_data.items() if v}
+
+    def extract_references(self, section):
+        """Extract references from the <ref-list> in the <back> section."""
+        references = []
+
+        # Locate the <ref-list> tag
+        ref_list = section.find(".//ref-list")
+        if ref_list is None:
+            print("No <ref-list> found in the <back> section.")
+            return None
+
+        # Iterate over all <ref> elements
+        for ref in ref_list.findall(".//ref"):
+            ref_data = {}
+
+            # Extract the reference ID and label
+            ref_data["id"] = ref.get("id", None)
+            ref_data["label"] = self.get_text(ref, ".//label")
+
+            # Check for <mixed-citation> and <element-citation>
+            citation = ref.find(".//mixed-citation") or ref.find(".//element-citation")
+            if citation is None:
+                print(f"No citation found for ref ID: {ref.get('id')}")
+                continue
+
+            # Extract publication details
+            ref_data["publication-type"] = citation.get("publication-type", None)
+            ref_data["article-title"] = self.get_text(citation, ".//article-title")
+            ref_data["source"] = self.get_text(citation, ".//source")
+            ref_data["year"] = self.get_text(citation, ".//year")
+            ref_data["volume"] = self.get_text(citation, ".//volume")
+            ref_data["fpage"] = self.get_text(citation, ".//fpage")
+            ref_data["lpage"] = self.get_text(citation, ".//lpage")
+
+            # Extract publication identifiers (e.g., DOI, PMID)
+            ref_data["pub-id"] = {
+                pub_id.get("pub-id-type"): pub_id.text.strip()
+                for pub_id in citation.findall(".//pub-id")
+                if pub_id.text
+            }
+
+            # Extract author information from <person-group>
+            authors = []
+            person_group = citation.find(".//person-group[@person-group-type='author']")
+            if person_group is not None:
+                for name in person_group.findall(".//name"):
+                    author_data = {
+                        "surname": self.get_text(name, "surname"),
+                        "given-names": self.get_text(name, "given-names"),
+                    }
+                    authors.append(author_data)
+                if person_group.find(".//etal") is not None:
+                    authors.append({"etal": True})
+            ref_data["authors"] = authors
+
+            # Append the reference data if not empty
+            if ref_data:
+                references.append(ref_data)
+
+        # Return the list of references
+        return references if references else None
 
     def extract_authors(self, section):
         """Extract author information from the <front> or <back> section."""
@@ -196,6 +261,35 @@ class MetadataExtractor:
                 .get("year", ""),
             },
             "license": metadata.get("front", {}).get("license", ""),
+            "references": [
+                {
+                    "id": ref.get("id", ""),
+                    "label": ref.get("label", ""),
+                    "publication_type": ref.get("publication-type", ""),
+                    "article_title": ref.get("article-title", ""),
+                    "source": ref.get("source", ""),
+                    "year": ref.get("year", ""),
+                    "volume": ref.get("volume", ""),
+                    "fpage": ref.get("fpage", ""),
+                    "lpage": ref.get("lpage", ""),
+                    "pub_id": {
+                        "doi": ref.get("pub-id", {}).get("doi", ""),
+                        "pmid": ref.get("pub-id", {}).get("pmid", ""),
+                    },
+                    "authors": [
+                        {
+                            "surname": author.get("surname", ""),
+                            "given_names": author.get("given-names", ""),
+                            "etal": author.get("etal", False),
+                        }
+                        for author in ref.get("authors", [])
+                    ],
+                }
+                for ref in metadata.get("back", {}).get("references", [])
+            ],
+            "competing_interests": metadata.get("back", {}).get(
+                "competing_interests", ""
+            ),
         }
 
         # print(payload)
@@ -205,29 +299,30 @@ class MetadataExtractor:
 
 
 if __name__ == "__main__":
-    # # Example usage to get metadata from a PMC XML file on local
-    # file_path = (
-    #     "../../test_data/gilead_pubtator_results/pmc_full_text_articles/PMC_6946810.xml"
-    # )
-    # metadata_path = "../../test_data/gilead_pubtator_results/pmc_full_text_articles/PMC_6946810_metadata.json"
-    # extractor = MetadataExtractor(file_path)
+    # Example usage to get metadata from a PMC XML file on local
+    file_path = (
+        "../../test_data/gilead_pubtator_results/pmc_full_text_articles/PMC_6946810.xml"
+    )
+    metadata_path = "../../test_data/gilead_pubtator_results/pmc_full_text_articles/PMC_6946810_metadata.json"
+    extractor = MetadataExtractor(file_path, metadata_path, "pubmedbert")
+    extractor.save_metadata_to_vector_db()
     # metadata = extractor.parse_xml()
     # extractor.save_metadata_as_json()
     # print(metadata)
 
-    # Example usage to save metadata to a vector database
-    pmc_xml_dir = "../../data/staging/pmc_xml"
-    embeddings_model = "pubmedbert"
-    for file in os.listdir(pmc_xml_dir):
-        if file.endswith(".xml"):
-            logger.info(f"Processing {file}..")
-            file_path = os.path.join(pmc_xml_dir, file)
-            metadata_path = os.path.join(
-                "../../data/articles_metadata/metadata",
-                file.replace(".xml", "_metadata.json"),
-            )
-            extractor = MetadataExtractor(file_path, metadata_path, embeddings_model)
-            extractor.save_metadata_to_vector_db()
-            # metadata = extractor.parse_xml()
-            # extractor.save_metadata_as_json()
-            logger.info(f"Metadata saved to Vector DB")
+    # # Example usage to save metadata to a vector database
+    # pmc_xml_dir = "../../data/staging/pmc_xml"
+    # embeddings_model = "pubmedbert"
+    # for file in os.listdir(pmc_xml_dir):
+    #     if file.endswith(".xml"):
+    #         logger.info(f"Processing {file}..")
+    #         file_path = os.path.join(pmc_xml_dir, file)
+    #         metadata_path = os.path.join(
+    #             "../../data/articles_metadata/metadata",
+    #             file.replace(".xml", "_metadata.json"),
+    #         )
+    #         extractor = MetadataExtractor(file_path, metadata_path, embeddings_model)
+    #         extractor.save_metadata_to_vector_db()
+    #         # metadata = extractor.parse_xml()
+    #         # extractor.save_metadata_as_json()
+    #         logger.info(f"Metadata saved to Vector DB")

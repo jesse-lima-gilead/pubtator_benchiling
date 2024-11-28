@@ -14,8 +14,8 @@ class PromptBuilder:
         combined_prompt = (
             f"{self.article_summary_persona}\n\n"
             f"Instruction:\n {self.article_summary_instructions}\n\n"
-            f"Additional guidelines:\n {self.article_summary_guidelines}\n\n"
+            f"Guidelines:\n {self.article_summary_guidelines}\n\n"
             f"PMC Article:\n {pmc_article_text}\n\n"
-            # "Provide ONLY the Summary text, without any introductory phrases, meta-commentary, or concluding remarks."
+            f"The Output Format should STRICTLY be JSON.\n"
         )
         return combined_prompt

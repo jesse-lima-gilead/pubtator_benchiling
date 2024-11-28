@@ -19,33 +19,44 @@ This project is designed to search entities and relationships within biomedical 
 The project workflow is divided into four key processes:
 
 ### 1. **Data Ingestion**
-- Extract full-text articles from PubMed Central (PMC) via API.
-- Create summaries of articles using Claude to provide context for downstream tasks.
-- Extract article metadata and store it in a vector database for metadata-based filtering.
-- Convert PMC full-text articles to BioC format, which is required for subsequent processing.
+- Extract full-text articles from PubMed Central (PMC) via API and store them in the S3 `pubtator-poc` bucket under the `pmc_full_text_articles` directory.
+- Create summaries of articles using the Bedrock Claude model (anthropic.claude-v2:1) to provide context for downstream tasks. The summaries are stored in the `articles_directory` and range between 50-80 words.
+- Extract article metadata, including `pmid`, `pmcid`, `doi`, `publisher-id`, `title`, `keywords`, `authors`, `journal data`, `funding`, and `publication_date`, and store it in a vector database for metadata-based filtering.
+- Convert PMC full-text articles to BioC format, which is required for subsequent processing, and store the BioC converted articles under the `bioc_full_text_articles` directory.
 
 **Steps:**
-1. **PMC Article Extraction** → Summarize the article using Claude.
-2. **Metadata Extraction** → Store metadata in a vector database.
-3. **BioC Conversion** → Convert PMC XML files into BioC XML format.
+PMC Article Extraction → Article Summarization → Metadata Extraction → BioC Conversion
 
 ### 2. **Data Preprocessing**
-- Process BioC XML files using:
-  - **AIONER**: Biomedical Named Entity Recognition (BioNER) to recognize biomedical entities.
-  - **GNorm2**: Gene name recognition and normalization.
+- Process BioC XML files using the following models:
+  - **AIONER**: Biomedical Named Entity Recognition (BioNER) to identify biomedical entities. The Aioner ECS task reads articles from the `bioc_full_text_articles` directory, processes them, and stores the annotated files in the `aioner_annotated` directory.
+  - **GNorm2**: Gene name recognition and normalization. The GNorm2 task reads the Aioner-processed files from the `aioner_annotated` directory, processes them, and writes the output files to the `gnorm2_annotated` directory.
 - Both AIONER and GNorm2 are executed as AWS Fargate containers.
 
+**Steps:**
+AIONER Processing → GNorm2 Processing
+
 ### 3. **Data Processing**
-- Use sliding window chunking on passage contents from GNorm2 outputs.
+- Apply sliding window chunking to passage contents from GNorm2 outputs in the `gnorm2_annotated` directory.
 - Enhance chunks with contextual information by prepending summaries and annotations.
-- Generate embeddings using the `NeuML/pubmedbert-base-embeddings` model.
-- Store chunks and embeddings in Qdrant vector database along with chunk metadata.
+- Generate embeddings using the `NeuML/pubmedbert-base-embeddings` model for the enhanced chunks.
+- Store the chunks and their embeddings in the Qdrant vector database, along with the chunk metadata.
+
+**Steps:**
+Chunking → Prepending Summary → Prepending Annotations → Generate Embeddings → Store in Qdrant DB
 
 ### 4. **Data Retrieval**
 - Accept user queries and apply optional filters.
 - Perform similarity searches on the vector database using query embeddings.
 - Filter and retrieve chunks that match the query criteria, based on metadata.
 - Retrieve the top 3 articles with up to 5 chunks from each article and output the results as JSON files.
+
+**Steps:**
+1. `get_user_query_embeddings` → Retrieve the embeddings for the user query.
+2. `retrieve_chunks` → Retrieve chunks from the vector database using the query embeddings.
+3. `filter_article_ids_by_metadata` → Filter articles based on metadata criteria (e.g., journal, year).
+4. `get_intersection_article_ids` → Get the final set of article IDs that match both the query and metadata filters.
+5. `parse_and_store_results` → Format and store the final results as JSON files.
 
 ---
 
@@ -123,6 +134,14 @@ The important directories to be known:
      ```bash
      python src/data_processing/Retrieval/retriever_handler.py
      ```
+   - **Example Query:**
+     ```python
+     user_query = "Effect of PM2.5 in EGFR mutation in lung cancer"
+     metadata_filters = {
+        "journal": "Nature",
+        "year": "2023"
+     }
+     ```
    - Results are stored as JSON files in the `results/` directory.
 
 ---
@@ -134,97 +153,6 @@ The important directories to be known:
 - **Large Language Model**: Claude (via AWS Bedrock)
 - **Container Management**: AWS Fargate
 - **Package Management**: Poetry
+- **Storage**: Amazon S3
 
 ---
-
-
-
-
-To calculate accuracy metrics using the annotation counts, you can design some logical metrics that measure the quality of annotations based on the special cases you are tracking. Here are a few metrics you can consider:
-
-### 1. **Correct Annotations (CA)**
-This metric will count all the annotations that do not fall into the error categories (`incorrect_text`, `wrong_species_geneid`, `partial_annotation`, `combined_case`). You can calculate it as:
-\[ \text{CA} = \text{Total Annotations} - (\text{incorrect_text} + \text{wrong_species_geneid} + \text{partial_annotation} + \text{combined_case}) \]
-
-### 2. **Annotation Accuracy (AA)**
-This metric reflects the proportion of correct annotations out of the total number of annotations:
-\[ \text{AA} = \frac{\text{CA}}{\text{Total Annotations}} \times 100 \]
-
-### 3. **Error Rate (ER)**
-This metric reflects the proportion of erroneous annotations:
-\[ \text{ER} = \frac{\text{incorrect_text} + \text{wrong_species_geneid} + \text{partial_annotation} + \text{combined_case}}{\text{Total Annotations}} \times 100 \]
-
-### 4. **Missed Annotation Rate (MAR)**
-This metric indicates the proportion of missed annotations (i.e., words starting with `?`) relative to the total number of annotations and text:
-\[ \text{MAR} = \frac{\text{missed_annotations}}{\text{Total Annotations} + \text{missed_annotations}} \times 100 \]
-
-### 5. **Precision (P)**
-You could consider precision as a measure of the proportion of annotations that were identified correctly out of the total annotations, excluding missed ones:
-\[ \text{P} = \frac{\text{CA}}{\text{CA} + \text{missed_annotations}} \times 100 \]
-
-### 6. **Recall (R)**
-Recall would reflect how many correct annotations were identified compared to the total annotations that should have been identified (including missed annotations):
-\[ \text{R} = \frac{\text{CA}}{\text{Total Annotations} + \text{missed_annotations}} \times 100 \]
-
-### Example Calculation
-Based on your report:
-
-```text
-annotation_count: 46
-incorrect_text: 9
-wrong_species_geneid: 0
-partial_annotation: 0
-combined_case: 0
-missed_annotations: 0
-```
-
-Here’s how the metrics would look:
-1. **Correct Annotations (CA)**:
-\[ 46 - (9 + 0 + 0 + 0) = 37 \]
-2. **Annotation Accuracy (AA)**:
-\[ \frac{37}{46} \times 100 = 80.43\% \]
-3. **Error Rate (ER)**:
-\[ \frac{9}{46} \times 100 = 19.57\% \]
-4. **Missed Annotation Rate (MAR)**:
-\[ \frac{0}{46 + 0} \times 100 = 0\% \]
-5. **Precision (P)**:
-\[ \frac{37}{37 + 0} \times 100 = 100\% \]
-6. **Recall (R)**:
-\[ \frac{37}{46 + 0} \times 100 = 80.43\% \]
-
-### Python Code to Compute Metrics
-
-Here’s a Python function to compute and print these metrics:
-
-```python
-def calculate_metrics(annotation_count, incorrect_text, wrong_species_geneid, partial_annotation, combined_case, missed_annotations):
-    # Calculate Correct Annotations (CA)
-    correct_annotations = annotation_count - (incorrect_text + wrong_species_geneid + partial_annotation + combined_case)
-
-    # Calculate metrics
-    annotation_accuracy = (correct_annotations / annotation_count) * 100
-    error_rate = ((incorrect_text + wrong_species_geneid + partial_annotation + combined_case) / annotation_count) * 100
-    missed_annotation_rate = (missed_annotations / (annotation_count + missed_annotations)) * 100 if missed_annotations > 0 else 0
-    precision = (correct_annotations / (correct_annotations + missed_annotations)) * 100 if correct_annotations + missed_annotations > 0 else 0
-    recall = (correct_annotations / (annotation_count + missed_annotations)) * 100 if annotation_count + missed_annotations > 0 else 0
-
-    # Print the metrics
-    print(f"Correct Annotations (CA): {correct_annotations}")
-    print(f"Annotation Accuracy (AA): {annotation_accuracy:.2f}%")
-    print(f"Error Rate (ER): {error_rate:.2f}%")
-    print(f"Missed Annotation Rate (MAR): {missed_annotation_rate:.2f}%")
-    print(f"Precision (P): {precision:.2f}%")
-    print(f"Recall (R): {recall:.2f}%")
-
-# Example usage with your data
-calculate_metrics(
-    annotation_count=46,
-    incorrect_text=9,
-    wrong_species_geneid=0,
-    partial_annotation=0,
-    combined_case=0,
-    missed_annotations=0
-)
-```
-
-This will print the accuracy metrics based on the data you have. You can adjust the input values as needed for other XML files.

@@ -4,6 +4,7 @@ from src.utils.logger import SingletonLogger
 from src.llm_handler.llm_factory import LLMFactory
 import os
 import re
+import json
 
 # Get the logger instance
 logger_instance = SingletonLogger()
@@ -39,70 +40,73 @@ class SummarizeArticle:
         except FileNotFoundError:
             raise ValueError(f"File not found: {self.input_file_path}")
 
-    def get_clean_summary(self, text: str):
-        """
-        Remove meta-commentary from the given summary text.
-
-        Args:
-            text (str): The summary text with possible meta-commentary.
-
-        Returns:
-            str: The cleaned summary text.
-        """
-        # Define patterns for meta-commentary (adjust as needed)
-        patterns = [
-            r"^Abstract .*?",
-            r"^Summary .*?",
-            r"^In summary .*?",
-            r"^In conclusion .*?",
-            r"^Here is a one-liner summary of the .*?",
-            r"^Here is a concise summary of .*?"
-            r"^The article discusses the following .*?"
-            r"^The main findings from the article are as follows .*?"
-            r"^The article can be summarized as follows .*?"
-            r"^Summary of the file content .*?",
-        ]
-
-        # Remove any matching meta-commentary
-        for pattern in patterns:
-            clean_summary = re.sub(pattern, "", text, flags=re.IGNORECASE).strip()
+    def get_clean_summary(self, response_content):
+        try:
+            # Parse the JSON string into a dictionary
+            data = json.loads(response_content)
+            # Extract the summary key
+            clean_summary = data.get("summary", "No summary found")
+        except json.JSONDecodeError as e:
+            print("Error parsing JSON:", e)
 
         return clean_summary
 
     def summarize(self):
-        # Prepare the Prompt for the LLM
-        custom_article_summary_prompt = (
-            self.prompt_builder.get_article_summary_combined_prompt(
-                self.pmc_article_text
+        summary_generated = False
+        while not summary_generated:
+            # Prepare the Prompt for the LLM
+            custom_article_summary_prompt = (
+                self.prompt_builder.get_article_summary_combined_prompt(
+                    self.pmc_article_text
+                )
             )
-        )
-        logger.info(f"Generated prompt: {custom_article_summary_prompt}")
+            logger.info(f"Generated prompt: {custom_article_summary_prompt}")
 
-        # Generate the response using Query LLM
-        llm_summary_response = self.query_llm.invoke(
-            input=custom_article_summary_prompt
-        )
+            # Generate the response using Query LLM
+            llm_summary_response = self.query_llm.invoke(
+                input=custom_article_summary_prompt
+            )
 
-        # Parse the LLM response to fetch the summary
-        response_content = llm_summary_response.content
-        # clean_summary = self.get_clean_summary(response_content)
-        response_lines = response_content.strip().splitlines()
-        if len(response_lines) > 1:
-            clean_summary = response_lines[-1]
-        else:
-            clean_summary = response_lines[0]
+            # Parse the LLM response to fetch the summary
+            response_content = llm_summary_response.content
+            print(response_content)
 
-        logger.info(f"Generated summary: {clean_summary}")
-        return clean_summary
+            try:
+                # Extract the JSON block using regex
+                match = re.search(
+                    r"```json(.*?)```", response_content, re.DOTALL | re.IGNORECASE
+                )
+                if match:
+                    json_str = match.group(
+                        1
+                    ).strip()  # Extract the content inside ```json ... ```
+                    # Validate and parse the JSON response
+                    parsed_response = json.loads(json_str)
+                    if (
+                        isinstance(parsed_response, dict)
+                        and "summary" in parsed_response
+                    ):
+                        clean_summary = parsed_response["summary"]
+                        summary_generated = True
+                        return clean_summary
+                    else:
+                        logger.error(
+                            "Response JSON is not in the expected format. Trying again!"
+                        )
+                else:
+                    logger.error(
+                        "No valid JSON block found in the response. Trying again!"
+                    )
+            except json.JSONDecodeError:
+                logger.error("Response contains invalid JSON. Trying again!")
 
 
 # Usage
 if __name__ == "__main__":
-    input_file_path = "../../data/ner_processed/gnorm2_annotated/PMC_7614604.xml"
+    input_file_path = "../../data/ner_processed/gnorm2_annotated/PMC_8418271.xml"
     summarizer = SummarizeArticle(input_file_path)
     summary = summarizer.summarize()
-    print("Summary of the file content:")
-    print(summary)
+    print(f"\nArticle Summary:\n{summary}")
 
     # for cur_file in os.listdir(articles_dir):
     #     input_file_path = f"{articles_dir}/{cur_file}"

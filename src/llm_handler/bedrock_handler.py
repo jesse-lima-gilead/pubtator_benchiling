@@ -7,7 +7,7 @@ from src.utils.aws_connect import AWSConnection
 class BedrockHandler:
     def __init__(self, **kwargs):
         self.max_tokens = kwargs.get("max_tokens", 50000)
-        self.temperature = kwargs.get("temperature", 0.1)
+        self.temperature = kwargs.get("temperature", 0.15)
         self.top_p = kwargs.get("top_p", 0.95)
         self.top_k = kwargs.get("top_k", 250)
         self.bedrock_client = AWSConnection().get_client("bedrock-runtime")

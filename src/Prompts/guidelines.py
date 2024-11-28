@@ -1,7 +1,11 @@
 # guidelines.py
 ARTICLE_SUMMARY_GUIDELINES = """
-- You are provided with Pubmed Central articles.
-- Focus on the main objectives, key methods, principal findings, and major conclusions of the article.
-- Ensure the summary is concise yet informative, capturing the essence of the research.
-- Highlight the article's significance in its field.
+If the response contains anything other than the above JSON structure, it will be considered invalid.
+
+If you cannot generate a summary, respond in the following JSON format:
+```json
+{
+    "article_source": "PMC",
+    "summary": "Unable to summarize the article due to insufficient or unclear content."
+}
 """
