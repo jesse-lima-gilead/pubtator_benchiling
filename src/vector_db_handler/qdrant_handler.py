@@ -20,8 +20,7 @@ class QdrantHandler:
     def __init__(
         self, params: Dict[str, Any], collection_type: str = "processed_pubmedbert"
     ):
-        self.host = params["host"]
-        self.port = params["port"]
+        self.url = params["url"]
         self.collection_type = collection_type
         if self.collection_type == "processed_pubmedbert":
             self.collection_name = params["collections"]["processed_pubmedbert"][
@@ -60,8 +59,7 @@ class QdrantHandler:
         """Creates a QdrantManager instance using the configuration."""
         try:
             qdrant_manager = QdrantManager(
-                host=self.host,
-                port=self.port,
+                url=self.url,
                 collection_name=self.collection_name,
                 vector_size=self.vector_size,
                 distance_metric=self.distance_metric,

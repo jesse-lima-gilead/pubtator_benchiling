@@ -25,14 +25,13 @@ logger = logger_instance.get_logger()
 class QdrantManager:
     def __init__(
         self,
-        host: str,
-        port: int,
+        url: str,
         collection_name: str,
         vector_size: int = 768,
         distance_metric: str = "COSINE",
     ):
         self.collection_name = collection_name
-        self.client = QdrantClient(host=host, port=port, timeout=60.0)
+        self.client = QdrantClient(url=url, timeout=60.0)
         self.vector_size = vector_size
         self.distance_metric = distance_metric
 
@@ -238,15 +237,13 @@ class QdrantManager:
 
 def main():
     # Initialize the QdrantManager with test parameters
-    host = "localhost"  # Adjust to your Qdrant server host
-    port = 6333  # Adjust to your Qdrant server port
+    url = "http://localhost:6333"
     collection_name = "articles_metadata"
     vector_size = 768  # Set this according to your model's vector size
 
     # Create QdrantManager instance
     qdrant_manager = QdrantManager(
-        host=host,
-        port=port,
+        url=url,
         collection_name=collection_name,
         vector_size=vector_size,
         distance_metric="COSINE",

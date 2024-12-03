@@ -1,6 +1,5 @@
 qdrant:
-  host: localhost
-  port: 6333
+  url: "http://localhost:6333"
   collections:
       processed_medembed:
         collection_name: "medembed_processed_articles"
