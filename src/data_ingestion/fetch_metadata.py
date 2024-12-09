@@ -15,7 +15,10 @@ from src.utils.logger import SingletonLogger
 config_loader = YAMLConfigLoader()
 
 # Retrieve a specific config
+# Docker Qdrant
 vectordb_config = config_loader.get_config("vectordb")["qdrant"]
+# # Cloud Qdrant
+# vectordb_config = config_loader.get_config("vectordb")["qdrant_cloud"]
 
 # Initialize the logger
 logger_instance = SingletonLogger()

@@ -25,7 +25,10 @@ from src.utils.logger import SingletonLogger
 config_loader = YAMLConfigLoader()
 
 # Retrieve a specific config
+# Docker Qdrant
 vectordb_config = config_loader.get_config("vectordb")["qdrant"]
+# # Cloud Qdrant
+# vectordb_config = config_loader.get_config("vectordb")["qdrant_cloud"]
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -299,9 +302,9 @@ class ArticleProcessor:
                     model_name=model_info[0],
                     token_limit=model_info[1],
                     # For Baseline Chunks Processing
-                    texts=[chunk["payload"]["chunk_text"]],
+                    # texts=[chunk["payload"]["chunk_text"]],
                     # For Processed Chunks Processing
-                    # texts=[chunk["merged_text"]],
+                    texts=[chunk["merged_text"]],
                 )[0]
                 # logger.info("Embedding generated!")
                 chunk_payload = chunk["payload"]
@@ -376,19 +379,19 @@ class ArticleProcessor:
 
 if __name__ == "__main__":
     # # Processed Chunks Paths
-    chunks_output_dir = f"../../litqa_data/indexing/chunks"
-    # collection_type = "processed_pubmedbert"
+    chunks_output_dir = f"../../data/indexing/chunks"
+    collection_type = "processed_pubmedbert"
 
     # # Baseline Chunks Paths
     # chunks_output_dir = f"../../litqa_data/indexing/baseline_chunks"
-    collection_type = "baseline"
+    # collection_type = "baseline"
 
     # Other Params
     articles_input_dir = (
-        f"../../litqa_data/ner_processed/gnorm2_annotated_with_questions"
+        f"../../data/ner_processed/gnorm2_annotated"
     )
-    articles_summary_dir = f"../../litqa_data/articles_metadata/summary"
-    embeddings_output_dir = f"../../litqa_data/indexing/embeddings"
+    articles_summary_dir = f"../../data/articles_metadata/summary"
+    embeddings_output_dir = f"../../data/indexing/embeddings"
     embeddings_model = "pubmedbert"
     chunker = "sliding_window"
     merger = "prepend"

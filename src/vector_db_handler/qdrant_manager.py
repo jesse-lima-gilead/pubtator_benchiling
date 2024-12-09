@@ -1,7 +1,9 @@
 import json
+import os
 import uuid
 from typing import Dict, List, Any
 import numpy as np
+from dotenv import load_dotenv
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import (
     Distance,
@@ -21,6 +23,7 @@ from src.utils.logger import SingletonLogger
 logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()
 
+load_dotenv()  # Load environment variables from .env file
 
 class QdrantManager:
     def __init__(
@@ -31,7 +34,10 @@ class QdrantManager:
         distance_metric: str = "COSINE",
     ):
         self.collection_name = collection_name
-        self.client = QdrantClient(url=url, timeout=60.0)
+        if "https" in url:
+            self.client = QdrantClient(url=url, api_key=os.getenv("QDRANT_API_KEY"), timeout=60.0)
+        else:
+            self.client = QdrantClient(url=url, timeout=60.0)
         self.vector_size = vector_size
         self.distance_metric = distance_metric
 

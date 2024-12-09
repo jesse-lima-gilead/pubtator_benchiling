@@ -21,3 +21,22 @@ qdrant:
         collection_name: "test_collection"
         vector_size: 768
         distance_metric: "COSINE"
+qdrant_cloud:
+  url: "https://5e4c7f7a-0b0c-46fb-a8a4-0e8229cbaa76.eu-west-2-0.aws.cloud.qdrant.io:6333"
+  collections:
+      processed_pubmedbert:
+        collection_name: "pubmedbert_processed_articles"
+        vector_size: 768
+        distance_metric: "COSINE"
+      metadata:
+        collection_name: "articles_metadata"
+        vector_size: 768
+        distance_metric: "COSINE"
+      baseline:
+        collection_name: "baseline_articles"
+        vector_size: 768
+        distance_metric: "COSINE"
+      test:
+        collection_name: "test_collection"
+        vector_size: 768
+        distance_metric: "COSINE"
