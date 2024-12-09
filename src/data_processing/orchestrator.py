@@ -128,7 +128,7 @@ class ArticleProcessor:
             chunk["summary"] = summary
             chunk[
                 "merged_text_with_summary"
-            ] = f"Summary:\n{summary}\nText:\n{chunk['merged_text']}"
+            ] = f"Summary:\n{summary}\n{chunk['merged_text']}"
             chunks_with_summary.append(chunk)
 
         return chunks_with_summary

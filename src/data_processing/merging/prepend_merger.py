@@ -15,17 +15,20 @@ class PrependMerger:
 
         # Append the annotations section
         if annotations:
-
             # Deduplicating annotations using a set to track unique combinations
             unique_entries = set()
             distinct_annotations = []
 
             for ann in annotations:
-                unique_key = (ann["text"], ann["type"], ann["ncbi_label"], ann["ncbi_id"])
+                unique_key = (
+                    ann["text"],
+                    ann["type"],
+                    ann["ncbi_label"],
+                    ann["ncbi_id"],
+                )
                 if unique_key not in unique_entries:
                     unique_entries.add(unique_key)
                     distinct_annotations.append(ann)
-
 
             merged_text += "Annotations:\n"
             for ann in distinct_annotations:
@@ -51,7 +54,7 @@ class PrependMerger:
                 )
                 merged_text += f"{annotation_block}\n"
 
-        merged_text += f"\n{text}"
+        merged_text += f"Chunk Text:\n{text}"
 
         return merged_text
 

@@ -17,3 +17,13 @@ Don'ts:
 2. Do not include any non-JSON text in the response.
 3. Do not add unnecessary details, tangential information, or concluding remarks.
 """
+
+LLM_RESPONSE_INSTRUCTIONS = """
+Do's:
+1. Use the provided context to generate responses.
+2. Provide clear and concise answers to the user queries.
+3. Provide the response in a string.
+
+Don'ts:
+1. Generate information on your own.
+"""

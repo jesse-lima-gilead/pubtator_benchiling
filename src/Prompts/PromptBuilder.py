@@ -1,7 +1,12 @@
 # prompt_builder.py
-from src.Prompts.guidelines import ARTICLE_SUMMARY_GUIDELINES
-from src.Prompts.instructions import ARTICLE_SUMMARY_INSTRUCTIONS
-from src.Prompts.persona import ARTICLE_SUMMARY_PERSONA
+from typing import List
+
+from src.Prompts.guidelines import ARTICLE_SUMMARY_GUIDELINES, LLM_RESPONSE_GUIDELINES
+from src.Prompts.instructions import (
+    ARTICLE_SUMMARY_INSTRUCTIONS,
+    LLM_RESPONSE_INSTRUCTIONS,
+)
+from src.Prompts.persona import ARTICLE_SUMMARY_PERSONA, LLM_RESPONSE_PERSONA
 
 
 class PromptBuilder:
@@ -9,6 +14,9 @@ class PromptBuilder:
         self.article_summary_persona = ARTICLE_SUMMARY_PERSONA
         self.article_summary_instructions = ARTICLE_SUMMARY_INSTRUCTIONS
         self.article_summary_guidelines = ARTICLE_SUMMARY_GUIDELINES
+        self.llm_response_persona = LLM_RESPONSE_PERSONA
+        self.llm_response_guidelines = LLM_RESPONSE_GUIDELINES
+        self.llm_response_instructions = LLM_RESPONSE_INSTRUCTIONS
 
     def get_article_summary_combined_prompt(self, pmc_article_text) -> str:
         combined_prompt = (
@@ -17,5 +25,16 @@ class PromptBuilder:
             f"Guidelines:\n {self.article_summary_guidelines}\n\n"
             f"PMC Article:\n {pmc_article_text}\n\n"
             f"The Output Format should STRICTLY be JSON.\n"
+        )
+        return combined_prompt
+
+    def get_llm_response_prompt(self, user_query: str, relevant_chunks: List[str]):
+        combined_prompt = (
+            f"{self.llm_response_persona}\n\n"
+            f"Instruction:\n {self.llm_response_instructions}\n\n"
+            f"Guidelines:\n {self.llm_response_guidelines}\n\n"
+            f"User: {user_query}\n\n"
+            f"Relevant Content:\n\n"
+            f"{' '.join(relevant_chunks)}"
         )
         return combined_prompt

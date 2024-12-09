@@ -187,7 +187,8 @@ def write_bioc_to_local(pubmed_collection, bioc_output_dir):
         single_doc_collection.add_document(document)
 
         # Convert the collection to BioC XML format
-        bioc_xml = bioc.dumps(single_doc_collection, pretty_print=True)
+        # bioc_xml = bioc.dumps(single_doc_collection, pretty_print=True)
+        bioc_xml = bioc.dumps(single_doc_collection)
 
         # Use pmc_id as the filename
         file_path = os.path.join(bioc_output_dir, f"PMC_{document.id}.xml")
@@ -201,8 +202,8 @@ def write_bioc_to_local(pubmed_collection, bioc_output_dir):
 
 # if __name__ == "__main__":
 #     # Define paths
-#     pmc_file = '../../data/test/pmc/7214407.xml'  # Path to the PMC XML file
-#     output_bioc_file = '../../data/test/bioc/'  # Path for the output BioC XML file
+#     pmc_file = '../../data/golden_dataset/staging/pmc_xml/PMC_2480972.xml'  # Path to the PMC XML file
+#     output_bioc_file = '../../data'  # Path for the output BioC XML file
 #
 #     # Convert the PMC XML file to BioC format
 #     convert_pmc_to_bioc(pmc_file, output_bioc_file)
