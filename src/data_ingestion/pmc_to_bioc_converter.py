@@ -178,6 +178,25 @@ def extract_back_data(back, bioc_document):
     #     bioc_document.add_passage(bioc_passage)
 
 
+def clean_text(text):
+    """
+    Clean up text by splitting based on newlines, removing empty lines, and trimming spaces within each line.
+    Args:
+        text (str): The raw text to be cleaned.
+    Returns:
+        str: The cleaned-up text.
+    """
+    # Split text into lines
+    lines = text.split("\n")
+
+    # Process each line: remove extra white spaces and remove empty lines
+    cleaned_lines = [line.strip() for line in lines if line.strip() != ""]
+
+    # Join cleaned lines back into a single text with single newline separation
+    cleaned_text = "\n ".join(cleaned_lines)
+
+    return cleaned_text
+
 def write_bioc_to_local(pubmed_collection, bioc_output_dir):
     for document in pubmed_collection.documents:
         # Create a new BioC collection for each document
@@ -185,6 +204,12 @@ def write_bioc_to_local(pubmed_collection, bioc_output_dir):
         single_doc_collection.source = pubmed_collection.source
         single_doc_collection.date = pubmed_collection.date
         single_doc_collection.add_document(document)
+
+        for passage in document.passages:
+            if passage.text:
+                original_text = passage.text
+                processed_text = clean_text(original_text)
+                passage.text = processed_text
 
         # Convert the collection to BioC XML format
         # bioc_xml = bioc.dumps(single_doc_collection, pretty_print=True)
