@@ -22,7 +22,7 @@ The project workflow is divided into four key processes:
 - Extract full-text articles from PubMed Central (PMC) via API and store them in the S3 `pubtator-poc` bucket under the `pmc_full_text_articles` directory.
 - Create summaries of articles using the Bedrock Claude model (anthropic.claude-v2:1) to provide context for downstream tasks. The summaries are stored in the `articles_directory` and range between 50-80 words.
 - Extract article metadata, including `pmid`, `pmcid`, `doi`, `publisher-id`, `title`, `keywords`, `authors`, `journal data`, `funding`, and `publication_date`, and store it in a vector database for metadata-based filtering.
-- Convert PMC full-text articles to BioC format, which is required for subsequent processing, and store the BioC converted articles under the `bioc_full_text_articles` directory.
+- Convert PMC full-text articles into BioC format, ensuring the removal of excessive newlines and trimming of leading and trailing whitespaces within each line. Maintain the original text structure to support subsequent processing. Save the converted BioC articles in the `bioc_full_text_articles` directory.
 
 **Steps:**
 PMC Article Extraction → Article Summarization → Metadata Extraction → BioC Conversion
