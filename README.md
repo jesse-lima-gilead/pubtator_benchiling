@@ -27,7 +27,7 @@ The project workflow is divided into four key processes:
 **Steps:**
 PMC Article Extraction → Article Summarization → Metadata Extraction → BioC Conversion
 
-### 2. **Data Preprocessing**
+### 2. **Data Enrichment**
 - Process BioC XML files using the following models:
   - **AIONER**: Biomedical Named Entity Recognition (BioNER) to identify biomedical entities. The Aioner ECS task reads articles from the `bioc_full_text_articles` directory, processes them, and stores the annotated files in the `aioner_annotated` directory.
   - **GNorm2**: Gene name recognition and normalization. The GNorm2 task reads the Aioner-processed files from the `aioner_annotated` directory, processes them, and writes the output files to the `gnorm2_annotated` directory.
