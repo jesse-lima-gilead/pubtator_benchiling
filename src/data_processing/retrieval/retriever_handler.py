@@ -385,28 +385,28 @@ def run(run_type: str = "processed"):
     user_queries = [
         "How many differential H3K27Ac peaks are there between queen and worker honeybees?",
         "What is the mechanism by which Nrf1 protect the heart from Ischemia/Reperfusion injury?",
-        "For the cavity above p-hydroxybenzylidene moiety of the chromophore found in mSandy2 is filled by which rotamers adopted by Leucine found at position 63?",
-        "How many genes show changes in 5mC methylation of their promoter regions in Alzheimer's patients at Braak stages V/VI, compared to control?",
-        "Which RNA large language model accurately predicts 3D structures from a string of RNA sequences?",
-        "What are the top 5 immunogenicity neo antigens on cancer cells predicted by NeoDISC?",
-        "Based on PRS, which are the genes strongly assocaited with metabolic syndrome in brain tissues?",
-        "What are the top Gen AI use cases that are piloted in the Pharma R&D organizations to drive scientific breakthroughs?",
-        "What percentage of the control population carry ϵ4 allele of the APOE gene related to Alzhemier's disease?",
-        "What is PHQ9 score and how does it act as a potential indicator of depression?",
-        "Among TANGLE and ABMIL which method works best for image classification?",
-        "Explain how MIRO works to analyze microscopic data?",
-        "What is the mechanism of action by which ravolizumab acts on the complement system in myasthenia gravis?",
-        "What gene expression is altered in fetal growth restriction due to polyamine deficiency?",
-        "What cell death pathway is trigggered in the hepatocytes of  Mdm2Hep mice?",
-        "Where does fission take place in the neurons of Fmr1 KO mice and what are the fission rates in axons and dendrites?",
-        "In the cell fate mapping experiments of Aplnr-CreERT2 mice which cell type contributes to CAV1+ arteries?",
-        "Which part of the Arf1 component in the TGN acts as a site for non endocytic clathrin assembly?",
-        "What is effect of PGS1 knockdown on cardioplin in HEK293T cells using PRM-SRS microscopic method?",
-        "What are the different types of microscopy data formats that Vitessce supports?",
-        "What are the performance metrics of the algorithms submitted for the PANDA challenge?",
-        "How does clonal evoluation and tumor cell profileration change in the tumor microenviroment and how this impacts subclones?",
-        "Describe the association between cilia and MVB-derived smEVs",
-        "What are the properties of slender collagen fibers and its relevance in forming fibrous networks in the process of biopolymer gels?",
+        # "For the cavity above p-hydroxybenzylidene moiety of the chromophore found in mSandy2 is filled by which rotamers adopted by Leucine found at position 63?",
+        # "How many genes show changes in 5mC methylation of their promoter regions in Alzheimer's patients at Braak stages V/VI, compared to control?",
+        # "Which RNA large language model accurately predicts 3D structures from a string of RNA sequences?",
+        # "What are the top 5 immunogenicity neo antigens on cancer cells predicted by NeoDISC?",
+        # "Based on PRS, which are the genes strongly assocaited with metabolic syndrome in brain tissues?",
+        # "What are the top Gen AI use cases that are piloted in the Pharma R&D organizations to drive scientific breakthroughs?",
+        # "What percentage of the control population carry ϵ4 allele of the APOE gene related to Alzhemier's disease?",
+        # "What is PHQ9 score and how does it act as a potential indicator of depression?",
+        # "Among TANGLE and ABMIL which method works best for image classification?",
+        # "Explain how MIRO works to analyze microscopic data?",
+        # "What is the mechanism of action by which ravolizumab acts on the complement system in myasthenia gravis?",
+        # "What gene expression is altered in fetal growth restriction due to polyamine deficiency?",
+        # "What cell death pathway is trigggered in the hepatocytes of  Mdm2Hep mice?",
+        # "Where does fission take place in the neurons of Fmr1 KO mice and what are the fission rates in axons and dendrites?",
+        # "In the cell fate mapping experiments of Aplnr-CreERT2 mice which cell type contributes to CAV1+ arteries?",
+        # "Which part of the Arf1 component in the TGN acts as a site for non endocytic clathrin assembly?",
+        # "What is effect of PGS1 knockdown on cardioplin in HEK293T cells using PRM-SRS microscopic method?",
+        # "What are the different types of microscopy data formats that Vitessce supports?",
+        # "What are the performance metrics of the algorithms submitted for the PANDA challenge?",
+        # "How does clonal evoluation and tumor cell profileration change in the tumor microenviroment and how this impacts subclones?",
+        # "Describe the association between cilia and MVB-derived smEVs",
+        # "What are the properties of slender collagen fibers and its relevance in forming fibrous networks in the process of biopolymer gels?",
     ]
 
     final_result = []
@@ -429,7 +429,7 @@ def run(run_type: str = "processed"):
 
     # Flatten the list of results
     final_result = flatten_list(final_result)
-    # print(final_result)
+    print(final_result)
 
     # Write final_result to a csv
     headers = [
@@ -442,17 +442,17 @@ def run(run_type: str = "processed"):
         "Chunk Level LLM Response",
     ]
 
-    with open(results_file_path, "w") as file:
-        writer = csv.writer(file)
-        writer.writerow(headers)
-        writer.writerows(final_result)
+    # with open(results_file_path, "w") as file:
+    #     writer = csv.writer(file)
+    #     writer.writerow(headers)
+    #     writer.writerows(final_result)
 
-        # result_file = f"{index}_result.json"
-        # result_file_path = os.path.join(output_path, result_file)
-        #
-        # # Write the parsed result to a JSON file
-        # with open(result_file_path, "w") as json_file:
-        #     json.dump(result, json_file, indent=4)
+    # result_file = f"{index}_result.json"
+    # result_file_path = os.path.join(output_path, result_file)
+    #
+    # # Write the parsed result to a JSON file
+    # with open(result_file_path, "w") as json_file:
+    #     json.dump(result, json_file, indent=4)
 
 
 if __name__ == "__main__":

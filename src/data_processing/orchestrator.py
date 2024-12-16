@@ -3,8 +3,12 @@ import math
 import os
 import uuid
 from typing import Dict, List
+from collections import Counter
 from transformers import AutoTokenizer
-from src.alembic_models.chunks import Chunk  # Import the Chunk model
+from src.alembic_models.chunks_with_annotations import (
+    ChunkWithAnnotations,
+)  # Import the Chunk model
+from src.utils.db import session  # Import the session
 
 # from src.utils.s3_io_util import S3IOUtil
 from src.data_processing.chunking.chunks_handler import (
@@ -78,27 +82,38 @@ class ArticleProcessor:
     def get_article_chunks(self, input_file_path: str, article_file: str):
         logger.info(f"Chunking article {article_file}")
 
-        # For Actual Processing
-        # Getting Dynamic Window size based on the article summary
-        summary = self.get_article_summary(article_file)
-        summary_tokens = self.get_token_count(summary)
-        model_info = get_model_info(self.embeddings_model)
-        max_tokens = model_info[1]
-        tokens_left = max_tokens - summary_tokens
-        buffer = math.floor(tokens_left * 0.15)
-        tokens_left_with_buffer = tokens_left - buffer
-        words_left = math.floor(tokens_left_with_buffer * 0.75)
-        window_size = 2 * words_left
+        if (
+            self.chunker == "sliding_window"
+            or self.chunker == "grouped_annotation_aware_sliding_window"
+        ):
+            # For Actual Processing using Sliding Window
+            # Getting Dynamic Window size based on the article summary
+            summary = self.get_article_summary(article_file)
+            summary_tokens = self.get_token_count(summary)
+            model_info = get_model_info(self.embeddings_model)
+            max_tokens = model_info[1]
+            tokens_left = max_tokens - summary_tokens
+            buffer = math.floor(tokens_left * 0.15)
+            tokens_left_with_buffer = tokens_left - buffer
+            words_left = math.floor(tokens_left_with_buffer * 0.75)
+            window_size = 2 * words_left
 
-        # For Baseline Processing
-        # window_size = 512
-        logger.info(f"Dynamic Window Size for chunking: {window_size}")
+            # For Baseline Processing
+            # window_size = 512
+            logger.info(f"Dynamic Window Size for chunking: {window_size}")
 
-        chunks = chunk_annotated_articles(
-            input_file_path=input_file_path,
-            chunker_type=self.chunker,
-            window_size=window_size,
-        )
+            chunks = chunk_annotated_articles(
+                input_file_path=input_file_path,
+                chunker_type=self.chunker,
+                window_size=window_size,
+            )
+
+        else:
+            chunks = chunk_annotated_articles(
+                input_file_path=input_file_path,
+                chunker_type=self.chunker,
+            )
+
         return chunks
 
     def get_chunks_with_merged_annotations(
@@ -136,6 +151,42 @@ class ArticleProcessor:
 
         return chunks_with_summary
 
+    def calculate_annotations_per_bioconcept(
+        self, chunk_annotations: List[Dict]
+    ) -> Dict[str, int]:
+        """
+        Calculates the count of annotations per bioconcept.
+
+        Args:
+            chunk_annotations (List[Dict]): List of annotation dictionaries.
+
+        Returns:
+            Dict[str, int]: Dictionary with counts of each bioconcept, including 0 for those not present.
+        """
+        # List of bioconcepts to calculate counts for
+        bioconcepts = {
+            "Species",
+            "Gene",
+            "CellLine",
+            "Strain",
+            "Disease",
+            "Chemical",
+            "Variant",
+        }
+
+        # Initialize a Counter to track counts
+        type_counts = Counter()
+
+        # Count annotations per bioconcept
+        for annotation in chunk_annotations:
+            annotation_type = annotation.get("type")
+            if annotation_type in bioconcepts:
+                type_counts[annotation_type] += 1
+
+        # Ensure all bioconcepts are represented in the output with 0 if not present
+        result = {concept: type_counts.get(concept, 0) for concept in bioconcepts}
+        return result
+
     def process_chunks(self):
         for article_file in os.listdir(self.articles_input_dir):
             if article_file.endswith(".xml"):
@@ -162,14 +213,14 @@ class ArticleProcessor:
                     merged_text = chunk["merged_text"]
                     merged_text_with_summary = chunk["merged_text_with_summary"]
                     chunk_annotations = chunk["annotations"]
-                    chunk_length = len(chunk_text)
+                    annotations_per_bioconcept = (
+                        self.calculate_annotations_per_bioconcept(chunk_annotations)
+                    )
+                    chunk_length = self.get_token_count(chunk_text)
                     # token_count = len(merged_text_with_summary.split())
                     token_count = self.get_token_count(merged_text_with_summary)
                     chunk_annotations_count = len(chunk_annotations)
                     chunk_annotations_ids = [ann["id"] for ann in chunk_annotations]
-                    chunk_annotations_types = list(
-                        set([ann["type"] for ann in chunk_annotations])
-                    )
                     chunk_offset = chunk["offset"]
                     chunk_infons = chunk["infons"]
                     chunker_type = self.chunker
@@ -190,7 +241,13 @@ class ArticleProcessor:
                             "token_count": token_count,
                             "chunk_annotations_count": chunk_annotations_count,
                             "chunk_annotations_ids": chunk_annotations_ids,
-                            "chunk_annotations_types": chunk_annotations_types,
+                            "genes": annotations_per_bioconcept["Gene"],
+                            "species": annotations_per_bioconcept["Species"],
+                            "cell_lines": annotations_per_bioconcept["CellLine"],
+                            "strains": annotations_per_bioconcept["Strain"],
+                            "diseases": annotations_per_bioconcept["Disease"],
+                            "chemicals": annotations_per_bioconcept["Chemical"],
+                            "variants": annotations_per_bioconcept["Variant"],
                             "chunk_offset": chunk_offset,
                             "chunk_infons": chunk_infons,
                             "chunker_type": chunker_type,
@@ -206,7 +263,8 @@ class ArticleProcessor:
                     all_chunk_details.append(chunk_details)
 
                     # Insert into PostgreSQL
-                    chunk_record = Chunk(
+                    chunk_record = ChunkWithAnnotations(
+                        article_id=article_id,
                         chunk_id=chunk_id,
                         chunk_sequence=chunk_sequence,
                         chunk_name=chunk_name,
@@ -214,21 +272,26 @@ class ArticleProcessor:
                         token_count=token_count,
                         chunk_annotations_count=chunk_annotations_count,
                         chunk_annotations_ids=chunk_annotations_ids,
-                        chunk_annotations_types=chunk_annotations_types,
+                        genes=annotations_per_bioconcept["Gene"],
+                        species=annotations_per_bioconcept["Species"],
+                        cell_lines=annotations_per_bioconcept["CellLine"],
+                        strains=annotations_per_bioconcept["Strain"],
+                        diseases=annotations_per_bioconcept["Disease"],
+                        chemicals=annotations_per_bioconcept["Chemical"],
+                        variants=annotations_per_bioconcept["Variant"],
                         chunk_offset=chunk_offset,
                         chunk_infons=chunk_infons,
                         chunker_type=chunker_type,
                         merger_type=merger_type,
                         aioner_model=aioner_model,
                         gnorm2_model=gnorm2_model,
-                        article_id=article_id,
                     )
-                    # session.add(chunk_record)
-                    # session.commit()
+                    session.add(chunk_record)
+                    session.commit()
 
-                # Write chunks to local file
-                write_chunks_details_to_file(all_chunk_details, chunks_output_path)
-                logger.info("Chunks file saved to local")
+                # # Write chunks to local file
+                # write_chunks_details_to_file(all_chunk_details, chunks_output_path)
+                # logger.info("Chunks file saved to local")
 
                 # Write chunks to S3 bucket
                 # for chunk_file in os.listdir(self.chunks_output_path):
@@ -362,19 +425,19 @@ class ArticleProcessor:
         collection_type: str,
         store_embeddings_locally: bool = True,
     ):
-        # # Create Chunks of the Gnorm2 Annotated Articles and store them while storing logs in PostgreSQL DB
-        # logger.info("Creating Chunks...")
-        # self.process_chunks()
-        # logger.info("Chunks created successfully!")
+        # Create Chunks of the Gnorm2 Annotated Articles and store them while storing logs in PostgreSQL DB
+        logger.info("Creating Chunks...")
+        self.process_chunks()
+        logger.info("Chunks created successfully!")
 
-        logger.info("Creating and storing embeddings...")
-        # Create Embeddings and store them locally or in vectorDB
-        self.process_embeddings(
-            embeddings_output_dir=embeddings_output_dir,
-            collection_type=collection_type,
-            store_embeddings_locally=store_embeddings_locally,
-        )
-        logger.info("Embeddings stored successfully")
+        # logger.info("Creating and storing embeddings...")
+        # # Create Embeddings and store them locally or in vectorDB
+        # self.process_embeddings(
+        #     embeddings_output_dir=embeddings_output_dir,
+        #     collection_type=collection_type,
+        #     store_embeddings_locally=store_embeddings_locally,
+        # )
+        # logger.info("Embeddings stored successfully")
 
 
 if __name__ == "__main__":
@@ -387,14 +450,12 @@ if __name__ == "__main__":
     # collection_type = "baseline"
 
     # Other Params
-    articles_input_dir = (
-        f"../../data/ner_processed/gnorm2_annotated"
-    )
-    articles_summary_dir = f"../../data/articles_metadata/summary"
+    articles_input_dir = f"../../data/golden_dataset/ner_processed/gnorm2_annotated"
+    articles_summary_dir = f"../../data/golden_dataset/articles_metadata/summary"
     embeddings_output_dir = f"../../data/indexing/embeddings"
     embeddings_model = "pubmedbert"
-    chunker = "sliding_window"
-    merger = "prepend"
+    chunker = "passage"
+    merger = "inline"
 
     article_processor = ArticleProcessor(
         embeddings_model=embeddings_model,

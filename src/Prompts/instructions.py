@@ -23,6 +23,7 @@ Do's:
 1. Use the provided context to generate responses.
 2. Provide clear and concise answers to the user queries.
 3. Provide the response in a string.
+4. Provide citations to the response.
 
 Don'ts:
 1. Generate information on your own.

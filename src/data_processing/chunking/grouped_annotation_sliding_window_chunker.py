@@ -6,11 +6,15 @@ import xml.etree.ElementTree as ET
 
 class AnnotationAwareChunkerWithSlidingWindow:
     def __init__(
-        self, xml_file_path: str, max_tokens_per_chunk: int = 512, stride: int = 256
+        self,
+        xml_file_path,
+        max_tokens_per_chunk=512,
+        **kwargs,
     ):
         self.xml_file_path = xml_file_path
         self.max_tokens_per_chunk = max_tokens_per_chunk
-        self.stride = stride
+        self.window_size = kwargs.get("window_size", 512)
+        self.stride = self.window_size // 2
 
     def parse_bioc_xml(self) -> ET.Element:
         """Parse BioC XML file and return the root element."""
@@ -90,7 +94,7 @@ class AnnotationAwareChunkerWithSlidingWindow:
         unique_chunks = set()
 
         for i in range(0, len(words), self.stride):
-            chunk_words = words[i : i + self.max_tokens_per_chunk]
+            chunk_words = words[i : i + self.window_size]
             chunk_text = "".join(chunk_words)
             chunk_offset = base_offset + sum(len(w) for w in words[:i])
 
