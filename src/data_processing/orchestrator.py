@@ -10,11 +10,11 @@ from src.alembic_models.chunks_with_annotations import (
 )  # Import the Chunk model
 from src.utils.db import session  # Import the session
 
-# from src.utils.s3_io_util import S3IOUtil
 from src.data_processing.chunking.chunks_handler import (
     chunk_annotated_articles,
     write_chunks_details_to_file,
 )
+from src.utils.s3_io_util import S3IOUtil
 from src.vector_db_handler.qdrant_handler import QdrantHandler
 from src.data_processing.merging.merge_handler import merge_annotations
 from src.data_processing.embedding.embeddings_handler import (
@@ -59,6 +59,7 @@ class ArticleProcessor:
         self.articles_input_dir = articles_input_dir
         self.articles_summary_dir = articles_summary_dir
         self.chunks_output_dir = chunks_output_dir
+        self.s3_io_util = S3IOUtil()
 
     def get_article_summary(self, article_file):
         # ToDo: Put the article summariser in data ingestion orchestrator
@@ -289,18 +290,31 @@ class ArticleProcessor:
                     session.add(chunk_record)
                     session.commit()
 
-                # # Write chunks to local file
-                # write_chunks_details_to_file(all_chunk_details, chunks_output_path)
-                # logger.info("Chunks file saved to local")
+                # Write chunks to local file
+                write_chunks_details_to_file(all_chunk_details, chunks_output_path)
+                logger.info("Chunks file saved to local")
 
                 # Write chunks to S3 bucket
-                # for chunk_file in os.listdir(self.chunks_output_path):
-                #     if chunk_file.endswith(".json"):
-                #         self.s3_io_util.upload_file(
-                #             file_path=os.path.join(self.bioc_local_path, chunk_file),
-                #             object_name=f"bioc_full_text_articles/{self.chunks_output_path}",
-                #         )
-                #         logger.info(f"Chunk file saved to S3")
+                self.s3_io_util.upload_file(
+                            file_path=chunks_output_path,
+                            object_name=f"chunks/{article_id}.json",
+                        )
+                logger.info(f"Chunk file saved to S3")
+
+                # Move Summary files to archive
+                self.s3_io_util.move_file(
+                    source_key=f"summary/{article_id}.txt",
+                    dest_key=f"archive/summary/{article_id}.txt",
+                )
+                logger.info(f"Summary file moved to archive")
+
+                # Move Gnorm2 files to archive
+                self.s3_io_util.move_file(
+                    source_key=f"gnorm2_annotated/bioformer_annotated/{article_id}.xml",
+                    dest_key=f"archive/gnorm2_annotated/bioformer_annotated/{article_id}.xml",
+                )
+
+                logger.info(f"Gnorm2 Annotated file saved to S3")
 
     def get_chunks_embeddings_details(self, chunks: List[Dict], chunk_file_path: str):
         try:
@@ -367,7 +381,12 @@ class ArticleProcessor:
                     # For Baseline Chunks Processing
                     # texts=[chunk["payload"]["chunk_text"]],
                     # For Processed Chunks Processing
-                    texts=[chunk["merged_text"]],
+                    # texts=[chunk["merged_text"]],
+                    texts=[
+                        chunk["merged_text"]
+                        if collection_type == "processed_pubmedbert"
+                        else chunk["payload"]["chunk_text"]
+                    ],
                 )[0]
                 # logger.info("Embedding generated!")
                 chunk_payload = chunk["payload"]
@@ -419,6 +438,12 @@ class ArticleProcessor:
                             chunk_file_path=chunk_file_path,
                         )
 
+                # Move Chunk files to archive
+                self.s3_io_util.move_file(
+                    source_key=f"chunks/{chunks_file}",
+                    dest_key=f"archive/chunks/{chunks_file}",
+                )
+
     def process(
         self,
         embeddings_output_dir: str,
@@ -430,32 +455,35 @@ class ArticleProcessor:
         self.process_chunks()
         logger.info("Chunks created successfully!")
 
-        # logger.info("Creating and storing embeddings...")
-        # # Create Embeddings and store them locally or in vectorDB
-        # self.process_embeddings(
-        #     embeddings_output_dir=embeddings_output_dir,
-        #     collection_type=collection_type,
-        #     store_embeddings_locally=store_embeddings_locally,
-        # )
-        # logger.info("Embeddings stored successfully")
+        logger.info("Creating and storing embeddings...")
+        # Create Embeddings and store them locally or in vectorDB
+        self.process_embeddings(
+            embeddings_output_dir=embeddings_output_dir,
+            collection_type=collection_type,
+            store_embeddings_locally=store_embeddings_locally,
+        )
+        logger.info("Embeddings stored successfully")
 
 
 if __name__ == "__main__":
-    # # Processed Chunks Paths
-    chunks_output_dir = f"../../data/indexing/chunks"
+    # Processed Chunks Paths
+    chunks_output_dir = f"../../data/poc_dataset/indexing/chunks"
     collection_type = "processed_pubmedbert"
 
     # # Baseline Chunks Paths
-    # chunks_output_dir = f"../../litqa_data/indexing/baseline_chunks"
+    # chunks_output_dir = f"../../data/poc_dataset/indexing/chunks"
+    # # chunks_output_dir = f"../../data/poc_dataset/indexing/baseline_chunks"
     # collection_type = "baseline"
 
     # Other Params
-    articles_input_dir = f"../../data/golden_dataset/ner_processed/gnorm2_annotated"
-    articles_summary_dir = f"../../data/golden_dataset/articles_metadata/summary"
-    embeddings_output_dir = f"../../data/indexing/embeddings"
+    articles_input_dir = (
+        f"../../data/poc_dataset/ner_processed/gnorm2_annotated"
+    )
+    articles_summary_dir = f"../../data/poc_dataset/articles_metadata/summary"
+    embeddings_output_dir = f"../../data/poc_dataset/indexing/embeddings"
     embeddings_model = "pubmedbert"
-    chunker = "passage"
-    merger = "inline"
+    chunker = "sliding_window"
+    merger = "prepend"
 
     article_processor = ArticleProcessor(
         embeddings_model=embeddings_model,

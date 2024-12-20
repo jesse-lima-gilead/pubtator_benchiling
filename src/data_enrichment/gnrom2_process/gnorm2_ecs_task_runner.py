@@ -2,6 +2,13 @@ import boto3
 import os
 import json
 from dotenv import load_dotenv
+from src.utils.config_reader import YAMLConfigLoader
+
+# Initialize the config loader
+config_loader = YAMLConfigLoader()
+
+#aws resource config
+aws_config = config_loader.get_config("aws")["aws"]
 
 # Load environment variables
 load_dotenv()
@@ -20,11 +27,11 @@ ec2_client = session.client("ec2")
 
 # Environment variables
 VPC_ID = os.getenv("VPC_ID")
-BUCKET_NAME = os.getenv("BUCKET_NAME")
+BUCKET_NAME = aws_config["s3"]["bucket_name"]
 INPUT_DIRECTORY = os.getenv("GNORM2_INPUT_DIRECTORY")
-CLUSTER_NAME = os.getenv("CLUSTER_NAME")
-TASK_DEFINITION = os.getenv("GNORM2_TASK_DEFINITION")
-CONTAINER_NAME = os.getenv("GNORM2_CONTAINER_NAME")
+CLUSTER_NAME = aws_config["ecs"]["cluster_name"]
+TASK_DEFINITION = aws_config["ecs"]["tasks"]["gnorm2"]["task_definition"]
+CONTAINER_NAME = aws_config["ecs"]["tasks"]["gnorm2"]["container_name"]
 SECURITY_GROUP_ID = os.getenv("SECURITY_GROUP_ID")
 
 

@@ -97,6 +97,22 @@ class S3IOUtil:
             logger.info(f"File {object_name} does not exist: {e}")
             return False
 
+    def move_file(self, source_key, dest_key):
+        """Move a file within the S3 bucket."""
+        try:
+            # Copy the file to the new location
+            copy_source = {"Bucket": self.bucket_name, "Key": source_key}
+            self.bucket.copy(copy_source, dest_key)
+            logger.info(f"File {source_key} copied to {dest_key}.")
+
+            # Delete the original file
+            self.bucket.Object(source_key).delete()
+            logger.info(f"File {source_key} deleted after moving to {dest_key}.")
+        except ClientError as e:
+            logger.info(f"Failed to move file: {e}")
+            return False
+        return True
+
 
 # if __name__ == "__main__":
 #     s3_util = S3IOUtil()

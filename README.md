@@ -79,6 +79,14 @@ The important directories to be known:
   - `bioc_xml/`: BioC format XML files.
   - `pmc_xml/`: Raw PMC XML files before annotation processing.
 
+### **data_enrichment/**
+- `aioner_process/`
+  - `aioner_ecs_task_runner.py`: Script for running AIONER fargate containers.
+  - `Dockerfile/`: File used to create the AIONER Docker Image in the ECR.
+- `gnorm2_process/`
+  - `gnorm2_ecs_task_runner/`: Script for running GNorm2 fargate containers.
+  - `Dockerfile/`: File used to create the GNorm2 Docker Image in the ECR.
+
 ### **data_ingestion/**
 - `orchestrator.py`: Orchestrates the data ingestion pipeline.
 - `pmc_articles_extractor.py`: Extracts PubMed Central articles.

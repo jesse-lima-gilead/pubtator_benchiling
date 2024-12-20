@@ -80,7 +80,7 @@ class SlidingWindowChunker:
     def passage_to_dict(self, passage: ET.Element) -> Dict[str, Any]:
         """Convert a passage element to a dictionary."""
         passage_dict = {
-            "text": passage.find("text").text,
+            "text": passage.find("text").text if passage.find("text") is not None else "",
             "offset": int(passage.find("offset").text),
             "infons": {
                 infon.get("key"): infon.text for infon in passage.findall("infon")

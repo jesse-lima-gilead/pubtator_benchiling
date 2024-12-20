@@ -1,6 +1,15 @@
 aws:
   infra:
-    sso_region: "eu-central-1"
+    sso_region: "us-west-2"
   s3:
-    bucket_name: "gilead-pubtator"
-    bucket_region: "us-east-1"
+    bucket_name: "pubtator-poc"
+    bucket_region: "us-west-2"
+  ecs:
+    cluster_name: "pubtator-fargate-cluster"
+    tasks:
+      aioner:
+        task_definition: "aioner-ncbi-task"
+        container_name: "aioner-ncbi"
+      gnorm2:
+        task_definition: "gnorm2-ncbi-task"
+        container_name: "gnorm2-ncbi"
