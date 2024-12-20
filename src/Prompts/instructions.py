@@ -20,11 +20,14 @@ Don'ts:
 
 LLM_RESPONSE_INSTRUCTIONS = """
 Do's:
-1. Use the provided context to generate responses.
-2. Provide clear and concise answers to the user queries.
-3. Provide the response in a string.
-4. Provide citations to the response.
+1. Use the provided context (text passages and metadata) to generate responses.
+2. Highlight and mention the relevant parts of the context you used as citations.
+3. Provide the response in the format specified below:
+   - "Response": A clear and concise answer to the user query.
+   - "Citations": A list of citations, including the highlighted context and its corresponding PMC Id.
+4. Always base your answers strictly on the provided context.
 
 Don'ts:
-1. Generate information on your own.
+1. Generate information that is not present in the provided context.
+2. Omit citations from the response if context is used.
 """

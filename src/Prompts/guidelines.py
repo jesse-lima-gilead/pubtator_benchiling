@@ -12,7 +12,7 @@ If you cannot generate a summary, respond in the following JSON format:
 
 LLM_RESPONSE_GUIDELINES = """
 Always consider the following while generating responses:
-- Always maintain a polite and professional tone.
-- If you don't know the answer, it’s better to admit it rather than providing incorrect information.
-- If answer is not known, mention that the provided context doesn't contain relevant information.
+1. Maintain a polite and professional tone.
+2. If the provided context doesn't contain sufficient information to answer the query, clearly state that the answer cannot be generated.
+3. Adhere strictly to the format and structure provided.
 """

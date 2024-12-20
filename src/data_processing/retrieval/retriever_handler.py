@@ -1,4 +1,5 @@
 import csv
+import re
 import os.path
 from collections import defaultdict
 from typing import List, Dict
@@ -93,6 +94,8 @@ class Retriever:
             if len(chunks_by_article) >= self.top_n:
                 break
 
+        # print(chunks_by_article)
+        # print()
         return chunks_by_article
 
     def get_llm_response_prompt(self, user_query: str, relevant_chunks: List[str]):
@@ -103,10 +106,14 @@ class Retriever:
         logger.info(f"Generated prompt: {llm_prompt}")
         return llm_prompt
 
-    def generate_results_from_llm(self, user_query: str, relevant_chunks: List[str]):
+    def generate_results_from_llm(
+        self, user_query: str, relevant_chunks: List[str], article_id: str
+    ):
         # Generate the prompt
         llm_prompt = self.prompt_builder.get_llm_response_prompt(
-            user_query=user_query, relevant_chunks=relevant_chunks
+            user_query=user_query,
+            relevant_chunks=relevant_chunks,
+            article_id=article_id,
         )
 
         # Generate the response using Query LLM
@@ -204,7 +211,69 @@ class Retriever:
 
         return parsed_output
 
-    def process_results_with_llm(self, result):
+    def validate_response(self, response_json):
+        try:
+            response = json.loads(response_json)
+            assert "Response" in response and isinstance(
+                response["Response"], str
+            ), "Missing or invalid 'Response'."
+            assert "Citations" in response and isinstance(
+                response["Citations"], list
+            ), "Missing or invalid 'Citations'."
+
+            for citation in response["Citations"]:
+                assert "PMCId" in citation and isinstance(
+                    citation["PMCId"], str
+                ), "Missing or invalid 'PMCId'."
+                assert "highlightedText" in citation and isinstance(
+                    citation["highlightedText"], str
+                ), "Missing or invalid 'highlightedText'."
+
+            return True, "Response is valid."
+        except AssertionError as e:
+            return False, str(e)
+        except Exception as e:
+            return False, f"Invalid JSON format: {e}"
+
+    def parse_llm_response(self, article_response: str):
+        """
+        Extracts the Response and Citations from the LLM response using regex.
+
+        Args:
+            response_text (str): The text containing the LLM response.
+
+        Returns:
+            dict: A dictionary containing the Response and Citations.
+        """
+        # Regex pattern to match the JSON structure
+        response_pattern = r'"Response":\s*"(.*?)",'
+        citations_pattern = r'"Citations":\s*\[(.*?)\]'
+
+        # Extract the Response
+        response_match = re.search(response_pattern, article_response, re.DOTALL)
+        response = response_match.group(1) if response_match else None
+
+        # Extract the Citations block
+        citations_match = re.search(citations_pattern, article_response, re.DOTALL)
+        citations = citations_match.group(1) if citations_match else None
+
+        # Parse the Citations JSON if found
+        citations_list = []
+        if citations:
+            # Use regex to extract individual citation components
+            citation_items = re.findall(
+                r'{\s*"PMCId":\s*"(.*?)",\s*"highlightedText":\s*"(.*?)"\s*}',
+                citations,
+                re.DOTALL,
+            )
+            citations_list = [
+                {"PMCId": pmc_id, "highlightedText": text}
+                for pmc_id, text in citation_items
+            ]
+
+        return {"Response": response, "Citations": citations_list}
+
+    def process_results_with_llm(self, result: List[Dict]) -> List[Dict]:
         """
         Process the result variable and generate LLM responses based on the selected approach.
 
@@ -220,20 +289,37 @@ class Retriever:
             article_id = entry["article_id"]
             chunks_by_article[article_id].append(entry)
 
+        # print(f"Chunks by article: {chunks_by_article}")
+
         updated_results = []
 
         for article_id, chunks in chunks_by_article.items():
             # Collect all chunk texts for the article and generate the per-article response
             chunks_text_list = [chunk["chunk_text"] for chunk in chunks]
             article_response = self.generate_results_from_llm(
-                user_query=chunks[0]["user_query"], relevant_chunks=chunks_text_list
+                user_query=chunks[0]["user_query"],
+                relevant_chunks=chunks_text_list,
+                article_id=article_id,
             ).content
+
+            # # Validate the response
+            # is_valid, validation_message = self.validate_response(article_response)
+            # if not is_valid:
+            #     logger.info(f"Invalid response for article {article_id}: {validation_message}")
+            #     continue
+            # else:
+            #     response_with_citations = self.parse_llm_response(article_response)
+
+            # print("Article Response")
+            # print(article_response)
 
             for chunk in chunks:
                 # Generate the per-chunk response
                 chunk_text = chunk["chunk_text"]
                 chunk_response = self.generate_results_from_llm(
-                    user_query=chunk["user_query"], relevant_chunks=[chunk_text]
+                    user_query=chunk["user_query"],
+                    relevant_chunks=[chunk_text],
+                    article_id=article_id,
                 ).content
 
                 # Add both responses to the chunk
@@ -254,9 +340,7 @@ def run(run_type: str = "processed"):
     print("Runtype:", run_type)
     if run_type == "processed":
         output_path = "../../../data/results/processed/without_filter"
-        results_file_path = (
-            "../../../data/results/negetive_queries_processed_results.csv"
-        )
+        results_file_path = "../../../data/results/queries_processed_results.csv"
         retriever = Retriever(
             embeddings_model="pubmedbert",
             embeddings_collection_type="processed_pubmedbert",
@@ -266,9 +350,7 @@ def run(run_type: str = "processed"):
         )
     elif run_type == "baseline":
         output_path = "../../../data/results/baseline/without_filter"
-        results_file_path = (
-            "../../../data/results/negetive_queries_baseline_results.csv"
-        )
+        results_file_path = "../../../data/results/queries_baseline_results.csv"
         retriever = Retriever(
             embeddings_model="pubmedbert",
             embeddings_collection_type="baseline",
@@ -352,62 +434,62 @@ def run(run_type: str = "processed"):
     #     "HSP70AA1 and parkinsons disease",
     # ]
 
-    # user_queries = [
-    #     "How does the phosphorylation levels of p70S6K(T389) differ between cancerous and non-cancerous breast cancer cell lines?",
-    #     "What is the effect of NVP-BKM120 on insulin levels in WT and MKR mice compared to vehicle-treated controls?",
-    #     "What was the change in DRI for Skov3 and OV2008  cells upon treatment with Mifeprestone. Which of these cell lines had a higher DRI?",
-    #     "How does obesity affect  p55α and p50α levels?",
-    #     "Which VOC is found at higher concentration in HBEC-3kt53 cells and why?",
-    #     "What are the reported specificity and sensitivity values of US±FNA for neck cancer detection in intermediate/high prevalence populations?",
-    #     "What is the glucose metabolism phenotype of SIRT6BAC mice ?",
-    #     "List the  cytokines that are in increased in the HFD mice?",
-    #     "How does XCR1 expression correlate with estrogen receptor (ER) status in breast cancer, and how does this association differ from the reported ER-responsiveness of its ligand, XCL1?",
-    #     "How does LDP compare to metformin in inhibiting IGF-1/IGF-1R/AKT signaling in gastric dysplasia of diabetic mice?",
-    #     "How does ILQ affect the migration and proliferation of SKOV3 and OVCAR3 ovarian cancer cells in vitro, as assessed by wound healing and transwell assays?",
-    #     "How does the miR-200/SUZ12/E-cadherin axis regulate epithelial-mesenchymal transition (EMT) and metastasis in breast cancer stem cells (BCSCs)?",
-    #     "What is the diagnostic work up for a 47 year old patient with hemosputum?",
-    #     "What was the percent decrease in migration of MDA-MB-231 cells upon treatment with oxymatrine?",
-    #     "What is the implications of high SHOC2 levels in patients with breast cancer along with its significance in ER negative patients?",
-    #     "Which CDH23 isoforms are capable of localizing to the stereocillia?",
-    #     "Deleting which set of amino acids from C. elegans protein COSA-1 would most likely affect the ability of COSA-1 to recruit MSH5 and ZHP3?",
-    #     "What is the structural change in the protein conformational ensemble from the A456V mutation in Human Glucokinase that accelerates glucose binding?",
-    #     "How many putative G4-forming sequences are located within the human gene TMPRSS2?",
-    #     "Approximately what percentage of adr-1(-), adr-2(-), and adr-1(-);adr-2(-) mutant C. elegans will die after exposure to 36ºC for 6 hours, where survival is assessed after 14h of recovery at 20ºC?",
-    #     "By what factor did T cells with a anti-CD19 synNotch -> sIL-2 receptor circut expand within a mouse tumor?",
-    #     "What is the measured dissociation constant for the Wnt5b-Ror2 complex in cytonemes of zebrafish?",
-    #     "Which three residues with evolutionary divergence in the G domains of RAS isoforms also impose selectivity constraints of pan-KRAS non-covalent inhibition?",
-    #     "For the channelrhodopsin found in Hyphochytrium catenoides (HcKCR1), the homology based structure predicted by ColabFold has a poor prediction for which one of the following transmembrane helices out of the 7 seven transmembrane helices in the structure ?",
-    #     "Grafting ECL3 region from adenosine A3 receptor A3AR onto A2AAR does what to the efficacy of binding to the A3AR antagonist CF101 ?",
-    #     "In Arabidopsis, which of the following 20 S proteasome subunits has CWC15 not been shown to interact with in its role promoting degradation of the protein Serrate?",
-    #     "How does the chromatin occupancy of rTetR-VP48 change when you inhibit the cofactor P300?",
-    # ]
-
     user_queries = [
-        "How many differential H3K27Ac peaks are there between queen and worker honeybees?",
-        "What is the mechanism by which Nrf1 protect the heart from Ischemia/Reperfusion injury?",
-        # "For the cavity above p-hydroxybenzylidene moiety of the chromophore found in mSandy2 is filled by which rotamers adopted by Leucine found at position 63?",
-        # "How many genes show changes in 5mC methylation of their promoter regions in Alzheimer's patients at Braak stages V/VI, compared to control?",
-        # "Which RNA large language model accurately predicts 3D structures from a string of RNA sequences?",
-        # "What are the top 5 immunogenicity neo antigens on cancer cells predicted by NeoDISC?",
-        # "Based on PRS, which are the genes strongly assocaited with metabolic syndrome in brain tissues?",
-        # "What are the top Gen AI use cases that are piloted in the Pharma R&D organizations to drive scientific breakthroughs?",
-        # "What percentage of the control population carry ϵ4 allele of the APOE gene related to Alzhemier's disease?",
-        # "What is PHQ9 score and how does it act as a potential indicator of depression?",
-        # "Among TANGLE and ABMIL which method works best for image classification?",
-        # "Explain how MIRO works to analyze microscopic data?",
-        # "What is the mechanism of action by which ravolizumab acts on the complement system in myasthenia gravis?",
-        # "What gene expression is altered in fetal growth restriction due to polyamine deficiency?",
-        # "What cell death pathway is trigggered in the hepatocytes of  Mdm2Hep mice?",
-        # "Where does fission take place in the neurons of Fmr1 KO mice and what are the fission rates in axons and dendrites?",
-        # "In the cell fate mapping experiments of Aplnr-CreERT2 mice which cell type contributes to CAV1+ arteries?",
-        # "Which part of the Arf1 component in the TGN acts as a site for non endocytic clathrin assembly?",
-        # "What is effect of PGS1 knockdown on cardioplin in HEK293T cells using PRM-SRS microscopic method?",
-        # "What are the different types of microscopy data formats that Vitessce supports?",
-        # "What are the performance metrics of the algorithms submitted for the PANDA challenge?",
-        # "How does clonal evoluation and tumor cell profileration change in the tumor microenviroment and how this impacts subclones?",
-        # "Describe the association between cilia and MVB-derived smEVs",
-        # "What are the properties of slender collagen fibers and its relevance in forming fibrous networks in the process of biopolymer gels?",
+        "How does the phosphorylation levels of p70S6K(T389) differ between cancerous and non-cancerous breast cancer cell lines?",
+        "What is the effect of NVP-BKM120 on insulin levels in WT and MKR mice compared to vehicle-treated controls?",
+        "What was the change in DRI for Skov3 and OV2008  cells upon treatment with Mifeprestone. Which of these cell lines had a higher DRI?",
+        "How does obesity affect  p55α and p50α levels?",
+        "Which VOC is found at higher concentration in HBEC-3kt53 cells and why?",
+        "What are the reported specificity and sensitivity values of US±FNA for neck cancer detection in intermediate/high prevalence populations?",
+        "What is the glucose metabolism phenotype of SIRT6BAC mice ?",
+        "List the  cytokines that are in increased in the HFD mice?",
+        "How does XCR1 expression correlate with estrogen receptor (ER) status in breast cancer, and how does this association differ from the reported ER-responsiveness of its ligand, XCL1?",
+        "How does LDP compare to metformin in inhibiting IGF-1/IGF-1R/AKT signaling in gastric dysplasia of diabetic mice?",
+        "How does ILQ affect the migration and proliferation of SKOV3 and OVCAR3 ovarian cancer cells in vitro, as assessed by wound healing and transwell assays?",
+        "How does the miR-200/SUZ12/E-cadherin axis regulate epithelial-mesenchymal transition (EMT) and metastasis in breast cancer stem cells (BCSCs)?",
+        "What is the diagnostic work up for a 47 year old patient with hemosputum?",
+        "What was the percent decrease in migration of MDA-MB-231 cells upon treatment with oxymatrine?",
+        "What is the implications of high SHOC2 levels in patients with breast cancer along with its significance in ER negative patients?",
+        "Which CDH23 isoforms are capable of localizing to the stereocillia?",
+        "Deleting which set of amino acids from C. elegans protein COSA-1 would most likely affect the ability of COSA-1 to recruit MSH5 and ZHP3?",
+        "What is the structural change in the protein conformational ensemble from the A456V mutation in Human Glucokinase that accelerates glucose binding?",
+        "How many putative G4-forming sequences are located within the human gene TMPRSS2?",
+        "Approximately what percentage of adr-1(-), adr-2(-), and adr-1(-);adr-2(-) mutant C. elegans will die after exposure to 36ºC for 6 hours, where survival is assessed after 14h of recovery at 20ºC?",
+        "By what factor did T cells with a anti-CD19 synNotch -> sIL-2 receptor circut expand within a mouse tumor?",
+        "What is the measured dissociation constant for the Wnt5b-Ror2 complex in cytonemes of zebrafish?",
+        "Which three residues with evolutionary divergence in the G domains of RAS isoforms also impose selectivity constraints of pan-KRAS non-covalent inhibition?",
+        "For the channelrhodopsin found in Hyphochytrium catenoides (HcKCR1), the homology based structure predicted by ColabFold has a poor prediction for which one of the following transmembrane helices out of the 7 seven transmembrane helices in the structure ?",
+        "Grafting ECL3 region from adenosine A3 receptor A3AR onto A2AAR does what to the efficacy of binding to the A3AR antagonist CF101 ?",
+        "In Arabidopsis, which of the following 20 S proteasome subunits has CWC15 not been shown to interact with in its role promoting degradation of the protein Serrate?",
+        "How does the chromatin occupancy of rTetR-VP48 change when you inhibit the cofactor P300?",
     ]
+
+    # user_queries = [
+    #     "How many differential H3K27Ac peaks are there between queen and worker honeybees?",
+    #     "What is the mechanism by which Nrf1 protect the heart from Ischemia/Reperfusion injury?",
+    #     "For the cavity above p-hydroxybenzylidene moiety of the chromophore found in mSandy2 is filled by which rotamers adopted by Leucine found at position 63?",
+    #     "How many genes show changes in 5mC methylation of their promoter regions in Alzheimer's patients at Braak stages V/VI, compared to control?",
+    #     "Which RNA large language model accurately predicts 3D structures from a string of RNA sequences?",
+    #     "What are the top 5 immunogenicity neo antigens on cancer cells predicted by NeoDISC?",
+    #     "Based on PRS, which are the genes strongly assocaited with metabolic syndrome in brain tissues?",
+    #     "What are the top Gen AI use cases that are piloted in the Pharma R&D organizations to drive scientific breakthroughs?",
+    #     "What percentage of the control population carry ϵ4 allele of the APOE gene related to Alzhemier's disease?",
+    #     "What is PHQ9 score and how does it act as a potential indicator of depression?",
+    #     "Among TANGLE and ABMIL which method works best for image classification?",
+    #     "Explain how MIRO works to analyze microscopic data?",
+    #     "What is the mechanism of action by which ravolizumab acts on the complement system in myasthenia gravis?",
+    #     "What gene expression is altered in fetal growth restriction due to polyamine deficiency?",
+    #     "What cell death pathway is trigggered in the hepatocytes of  Mdm2Hep mice?",
+    #     "Where does fission take place in the neurons of Fmr1 KO mice and what are the fission rates in axons and dendrites?",
+    #     "In the cell fate mapping experiments of Aplnr-CreERT2 mice which cell type contributes to CAV1+ arteries?",
+    #     "Which part of the Arf1 component in the TGN acts as a site for non endocytic clathrin assembly?",
+    #     "What is effect of PGS1 knockdown on cardioplin in HEK293T cells using PRM-SRS microscopic method?",
+    #     "What are the different types of microscopy data formats that Vitessce supports?",
+    #     "What are the performance metrics of the algorithms submitted for the PANDA challenge?",
+    #     "How does clonal evoluation and tumor cell profileration change in the tumor microenviroment and how this impacts subclones?",
+    #     "Describe the association between cilia and MVB-derived smEVs",
+    #     "What are the properties of slender collagen fibers and its relevance in forming fibrous networks in the process of biopolymer gels?",
+    # ]
 
     final_result = []
 
@@ -421,15 +503,21 @@ def run(run_type: str = "processed"):
             # "year": "2023"
         }
 
+        # Get the relevant chunks from Vector store
         retrieved_chunks = retriever.retrieve(query_vector, metadata_filters)
+
+        # Parse the retrival results and return a list of dict for the relevant chunks
+        # {User Query,Article ID,Chunk ID,Chunk Text,Score}
         result = retriever.parse_results(user_query, retrieved_chunks)
+
+        # Pass the parsed results to the LLM model and get the response
         llm_result = retriever.process_results_with_llm(result)
-        # print(llm_result)
+        print(f"LLM Result: {llm_result}")
         final_result.append([list(d.values()) for d in llm_result])
 
     # Flatten the list of results
     final_result = flatten_list(final_result)
-    print(final_result)
+    # print(final_result)
 
     # Write final_result to a csv
     headers = [
@@ -438,14 +526,14 @@ def run(run_type: str = "processed"):
         "Chunk ID",
         "Chunk Text",
         "Score",
-        "Article Level LLM Response",
-        "Chunk Level LLM Response",
+        "Article Level LLM Response with Citations",
+        "Chunk Level LLM Response with Citations",
     ]
 
-    # with open(results_file_path, "w") as file:
-    #     writer = csv.writer(file)
-    #     writer.writerow(headers)
-    #     writer.writerows(final_result)
+    with open(results_file_path, "w") as file:
+        writer = csv.writer(file)
+        writer.writerow(headers)
+        writer.writerows(final_result)
 
     # result_file = f"{index}_result.json"
     # result_file_path = os.path.join(output_path, result_file)
@@ -456,6 +544,6 @@ def run(run_type: str = "processed"):
 
 
 if __name__ == "__main__":
-    run_type = "processed"
-    # run_type = "baseline"
+    # run_type = "processed"
+    run_type = "baseline"
     run(run_type=run_type)
