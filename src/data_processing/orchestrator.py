@@ -47,7 +47,7 @@ class ArticleProcessor:
         embeddings_model: str = "pubmedbert",
         chunker: str = "sliding_window",
         merger: str = "prepend",
-        articles_input_dir: str = "../../data/ner_processed/gnorm2_annotated/",
+        articles_input_dir: str = "../../data/ner_processed/all_in_one_annotated/",
         articles_summary_dir: str = "../../data/articles_metadata/article_summaries/",
         chunks_output_dir: str = "../../data/indexing/chunks/",
     ):
@@ -165,27 +165,33 @@ class ArticleProcessor:
             Dict[str, int]: Dictionary with counts of each bioconcept, including 0 for those not present.
         """
         # List of bioconcepts to calculate counts for
+        # Predefined bioconcepts
         bioconcepts = {
-            "Species",
             "Gene",
-            "CellLine",
+            "Species",
             "Strain",
+            "Genus",
+            "CellLine",
             "Disease",
             "Chemical",
-            "Variant",
         }
 
         # Initialize a Counter to track counts
         type_counts = Counter()
 
-        # Count annotations per bioconcept
+        # Count annotations per bioconcept, classifying unknown types as "Variant"
         for annotation in chunk_annotations:
             annotation_type = annotation.get("type")
             if annotation_type in bioconcepts:
                 type_counts[annotation_type] += 1
+            else:
+                type_counts["Variant"] += 1  # Classify all other types as "Variant"
 
         # Ensure all bioconcepts are represented in the output with 0 if not present
-        result = {concept: type_counts.get(concept, 0) for concept in bioconcepts}
+        result = {
+            concept: type_counts.get(concept, 0)
+            for concept in bioconcepts.union({"Variant"})
+        }
         return result
 
     def process_chunks(self):
@@ -244,8 +250,9 @@ class ArticleProcessor:
                             "chunk_annotations_ids": chunk_annotations_ids,
                             "genes": annotations_per_bioconcept["Gene"],
                             "species": annotations_per_bioconcept["Species"],
-                            "cell_lines": annotations_per_bioconcept["CellLine"],
                             "strains": annotations_per_bioconcept["Strain"],
+                            "genus": annotations_per_bioconcept["Genus"],
+                            "cell_lines": annotations_per_bioconcept["CellLine"],
                             "diseases": annotations_per_bioconcept["Disease"],
                             "chemicals": annotations_per_bioconcept["Chemical"],
                             "variants": annotations_per_bioconcept["Variant"],
@@ -294,27 +301,27 @@ class ArticleProcessor:
                 write_chunks_details_to_file(all_chunk_details, chunks_output_path)
                 logger.info("Chunks file saved to local")
 
-                # Write chunks to S3 bucket
-                self.s3_io_util.upload_file(
-                            file_path=chunks_output_path,
-                            object_name=f"chunks/{article_id}.json",
-                        )
-                logger.info(f"Chunk file saved to S3")
-
-                # Move Summary files to archive
-                self.s3_io_util.move_file(
-                    source_key=f"summary/{article_id}.txt",
-                    dest_key=f"archive/summary/{article_id}.txt",
-                )
-                logger.info(f"Summary file moved to archive")
-
-                # Move Gnorm2 files to archive
-                self.s3_io_util.move_file(
-                    source_key=f"gnorm2_annotated/bioformer_annotated/{article_id}.xml",
-                    dest_key=f"archive/gnorm2_annotated/bioformer_annotated/{article_id}.xml",
-                )
-
-                logger.info(f"Gnorm2 Annotated file saved to S3")
+                # # Write chunks to S3 bucket
+                # self.s3_io_util.upload_file(
+                #             file_path=chunks_output_path,
+                #             object_name=f"chunks/{article_id}.json",
+                #         )
+                # logger.info(f"Chunk file saved to S3")
+                #
+                # # Move Summary files to archive
+                # self.s3_io_util.move_file(
+                #     source_key=f"summary/{article_id}.txt",
+                #     dest_key=f"archive/summary/{article_id}.txt",
+                # )
+                # logger.info(f"Summary file moved to archive")
+                #
+                # # Move Gnorm2 files to archive
+                # self.s3_io_util.move_file(
+                #     source_key=f"gnorm2_annotated/bioformer_annotated/{article_id}.xml",
+                #     dest_key=f"archive/gnorm2_annotated/bioformer_annotated/{article_id}.xml",
+                # )
+                #
+                # logger.info(f"Gnorm2 Annotated file saved to S3")
 
     def get_chunks_embeddings_details(self, chunks: List[Dict], chunk_file_path: str):
         try:
@@ -467,7 +474,7 @@ class ArticleProcessor:
 
 if __name__ == "__main__":
     # Processed Chunks Paths
-    chunks_output_dir = f"../../data/poc_dataset/indexing/chunks"
+    chunks_output_dir = f"../../data/indexing/chunks"
     collection_type = "processed_pubmedbert"
 
     # # Baseline Chunks Paths
@@ -476,11 +483,9 @@ if __name__ == "__main__":
     # collection_type = "baseline"
 
     # Other Params
-    articles_input_dir = (
-        f"../../data/poc_dataset/ner_processed/gnorm2_annotated"
-    )
-    articles_summary_dir = f"../../data/poc_dataset/articles_metadata/summary"
-    embeddings_output_dir = f"../../data/poc_dataset/indexing/embeddings"
+    articles_input_dir = f"../../data/ner_processed/all_in_one_annotated"
+    articles_summary_dir = f"../../data/articles_metadata/summary"
+    embeddings_output_dir = f"../../data/indexing/embeddings"
     embeddings_model = "pubmedbert"
     chunker = "sliding_window"
     merger = "prepend"
@@ -494,12 +499,12 @@ if __name__ == "__main__":
         chunks_output_dir=chunks_output_dir,
     )
 
-    article_processor.process(
-        embeddings_output_dir=embeddings_output_dir,
-        collection_type=collection_type,
-        store_embeddings_locally=False,
-    )
+    # article_processor.process(
+    #     embeddings_output_dir=embeddings_output_dir,
+    #     collection_type=collection_type,
+    #     store_embeddings_locally=False,
+    # )
 
-    # article_processor.process_chunks()
+    article_processor.process_chunks()
 
     # article_processor.process_embeddings(store_embeddings_locally=False, embeddings_output_dir=embeddings_output_dir)

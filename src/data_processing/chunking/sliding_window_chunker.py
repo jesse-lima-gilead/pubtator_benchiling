@@ -80,7 +80,9 @@ class SlidingWindowChunker:
     def passage_to_dict(self, passage: ET.Element) -> Dict[str, Any]:
         """Convert a passage element to a dictionary."""
         passage_dict = {
-            "text": passage.find("text").text if passage.find("text") is not None else "",
+            "text": passage.find("text").text
+            if passage.find("text") is not None
+            else "",
             "offset": int(passage.find("offset").text),
             "infons": {
                 infon.get("key"): infon.text for infon in passage.findall("infon")
@@ -94,27 +96,41 @@ class SlidingWindowChunker:
             offset = annotation.find("location").get("offset")
             length = annotation.find("location").get("length")
             text = annotation.findtext("text")
-            if type.lower() == "species":
-                ncbi_label = "NCBI Taxonomy"
-                ncbi_id = annotation.findtext('infon[@key="NCBI Taxonomy"]')
-            elif type.lower() == "gene":
-                ncbi_label = "NCBI Gene"
-                ncbi_id = annotation.findtext('infon[@key="NCBI Gene"]')
+            if type and type.lower() == "gene":
+                identifier = annotation.findtext('infon[@key="NCBI Gene"]')
+            elif type and type.lower() in ["species", "strain", "genus"]:
+                identifier = annotation.findtext('infon[@key="NCBI Taxonomy"]')
+            elif type and type.lower() in ["chemical", "disease", "cellline"]:
+                identifier = annotation.findtext('infon[@key="identifier"]')
+            elif type and annotation.findtext('infon[@key="Identifier"]') is not None:
+                # Capture all other annotations with "Identifier" key (e.g., tmVar annotations)
+                identifier = annotation.findtext('infon[@key="Identifier"]')
             else:
-                ncbi_label = "NCBI ID"
-                ncbi_id = "N/A"
+                additional_identifiers = []
+                for infon in annotation.findall("infon"):
+                    key = infon.get("key")
+                    if key and key.lower() not in [
+                        "type",
+                        "identifier",
+                        "ncbi gene",
+                        "ncbi taxonomy",
+                    ]:
+                        additional_identifiers.append(infon.text)
+
+                if additional_identifiers:
+                    identifier = ", ".join(
+                        additional_identifiers
+                    )  # Join multiple identifiers if there are any
 
             ann_dict = {
                 "id": id,
                 "text": text,
                 "type": type,
-                "ncbi_label": ncbi_label,
-                "ncbi_id": ncbi_id,
+                "identifier": identifier,
                 "offset": int(offset),
                 "length": int(length),
             }
             passage_dict["annotations"].append(ann_dict)
-
         return passage_dict
 
     def process_chunks(

@@ -23,8 +23,7 @@ class PrependMerger:
                 unique_key = (
                     ann["text"],
                     ann["type"],
-                    ann["ncbi_label"],
-                    ann["ncbi_id"],
+                    ann["identifier"],
                 )
                 if unique_key not in unique_entries:
                     unique_entries.add(unique_key)
@@ -35,8 +34,7 @@ class PrependMerger:
                 # Extract common fields
                 annotation_text = ann["text"]
                 annotation_type = ann["type"]
-                annotation_label = ann["ncbi_label"]
-                annotation_id = ann["ncbi_id"]
+                annotation_identifier = ann["identifier"]
                 # annotation_offset = ann["offset"]
                 # annotation_length = ann["length"]
 
@@ -46,7 +44,7 @@ class PrependMerger:
                     f"\n"
                     f"Type - {annotation_type}"
                     f"\n"
-                    f"{annotation_label} - {annotation_id}"
+                    f"{annotation_identifier}"
                     # f"\n"
                     # f"Text Offset - {annotation_offset}"
                     # f"\n"
