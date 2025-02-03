@@ -7,7 +7,7 @@ from src.utils.config_reader import YAMLConfigLoader
 # Initialize the config loader
 config_loader = YAMLConfigLoader()
 
-#aws resource config
+# aws resource config
 aws_config = config_loader.get_config("aws")["aws"]
 
 # Load environment variables
@@ -29,6 +29,7 @@ ec2_client = session.client("ec2")
 VPC_ID = os.getenv("VPC_ID")
 BUCKET_NAME = aws_config["s3"]["bucket_name"]
 INPUT_DIRECTORY = os.getenv("AIONER_INPUT_DIRECTORY")
+OUTPUT_DIRECTORY = os.getenv("AIONER_OUTPUT_DIRECTORY")
 CLUSTER_NAME = aws_config["ecs"]["cluster_name"]
 TASK_DEFINITION = aws_config["ecs"]["tasks"]["aioner"]["task_definition"]
 CONTAINER_NAME = aws_config["ecs"]["tasks"]["aioner"]["container_name"]
@@ -51,7 +52,7 @@ def list_files_in_s3(bucket_name, prefix):
     try:
         response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
         files = [
-            item["Key"].split("/")[-1]
+            item["Key"]
             for item in response.get("Contents", [])
             if item["Key"] != prefix
         ]
@@ -60,7 +61,9 @@ def list_files_in_s3(bucket_name, prefix):
         raise RuntimeError(f"Failed to list files in S3 bucket {bucket_name}: {e}")
 
 
-def trigger_ecs_task(file_list, subnets, bucket_name, security_group_id):
+def trigger_ecs_task(
+    file_list, subnets, bucket_name, security_group_id, output_directory
+):
     """Triggers an ECS task for processing the given file list."""
     try:
         response = ecs_client.run_task(
@@ -73,6 +76,7 @@ def trigger_ecs_task(file_list, subnets, bucket_name, security_group_id):
                         "environment": [
                             {"name": "FILE_LIST", "value": json.dumps(file_list)},
                             {"name": "S3_BUCKET", "value": bucket_name},
+                            {"name": "S3_OUTPUT_DIRECTORY", "value": output_directory},
                         ],
                     }
                 ]
@@ -123,7 +127,9 @@ if __name__ == "__main__":
         for i in range(0, len(files), batch_size):
             file_batch = files[i : i + batch_size]
             print(f"Triggering ECS task for batch: {file_batch}")
-            response = trigger_ecs_task(file_batch, subnets, BUCKET_NAME, SECURITY_GROUP_ID)
+            response = trigger_ecs_task(
+                file_batch, subnets, BUCKET_NAME, SECURITY_GROUP_ID, OUTPUT_DIRECTORY
+            )
             print(f"ECS Task Response: {response}")
 
         print(f"Successfully triggered ECS tasks for {len(files)} files.")

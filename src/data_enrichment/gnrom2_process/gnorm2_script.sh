@@ -1,22 +1,26 @@
 #!/bin/sh
 
-# Ensure the necessary environment variables are provided
+# Ensure the S3 bucket name is provided as an environment variable
 if [ -z "$S3_BUCKET" ]; then
   echo "Error: S3_BUCKET environment variable is not set."
   exit 1
 fi
 
+# Ensure the file list is passed as an argument
 if [ -z "$FILE_LIST" ]; then
   echo "Error: FILE_LIST environment variable is not set."
   exit 1
 fi
 
+# Ensure the output directory is passed as an argument
+if [ -z "$S3_OUTPUT_DIRECTORY" ]; then
+  echo "Error: S3_OUTPUT_DIRECTORY environment variable is not set."
+  exit 1
+fi
+
 echo "S3_BUCKET is set to: $S3_BUCKET"
 echo "FILE_LIST is set to: $FILE_LIST"
-
-# Name of the S3 directories
-S3_INPUT_DIRECTORY="aioner_annotated/bioformer_annotated/"
-S3_OUTPUT_DIRECTORY="gnorm2_annotated/bioformer_annotated/"
+echo "S3_OUTPUT_DIRECTORY is set to: $S3_OUTPUT_DIRECTORY"
 
 # Local directory to store downloaded files
 LOCAL_DIRECTORY="/app/GNorm2/input"
@@ -34,7 +38,7 @@ echo "Files to process: $files"
 # Download specific files from S3 to the local directory
 echo "Downloading specified files from S3..."
 for file in $files; do
-  aws s3 cp "s3://${S3_BUCKET}/${S3_INPUT_DIRECTORY}${file}" "$LOCAL_DIRECTORY/${file}"
+  aws s3 cp "s3://${S3_BUCKET}/${file}" "$LOCAL_DIRECTORY"
 
   if [ $? -ne 0 ]; then
     echo "Error: Failed to download file $file from S3."
@@ -75,17 +79,6 @@ if [ $? -ne 0 ]; then
   echo "Error: Failed to upload processed files to S3."
   exit 1
 fi
-
-# Move processed input files to the archive directory in S3
-echo "Moving processed input files to archive directory..."
-for file in $files; do
-  aws s3 mv "s3://${S3_BUCKET}/${S3_INPUT_DIRECTORY}${file}" "s3://${S3_BUCKET}/archive/${S3_INPUT_DIRECTORY}${file}"
-
-  if [ $? -ne 0 ]; then
-    echo "Error: Failed to move file $file to archive."
-    exit 1
-  fi
-done
 
 echo "Script executed successfully."
 

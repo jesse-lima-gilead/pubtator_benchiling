@@ -1,5 +1,5 @@
-# Use TensorFlow 2.3.0 as the base image
-FROM tensorflow/tensorflow:2.3.0
+# Use TensorFlow 2.3.1 as the base image
+FROM tensorflow/tensorflow:2.3.1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -39,7 +39,7 @@ RUN rm -rf /app/AIONER/example/input/*
 COPY aioner_script.sh /app/AIONER/aioner_script.sh
 
 # Give execute permissions to the script
-RUN chmod +x /app/aioner_script.sh
+RUN chmod +x /app/AIONER/aioner_script.sh
 
 # Install the required Python packages
 RUN pip install --no-cache-dir stanza==1.4.0 \

@@ -1,5 +1,5 @@
-# Use TensorFlow 2.3.0 as the base image
-FROM tensorflow/tensorflow:2.3.0
+# Use TensorFlow 2.3.1 as the base image
+FROM tensorflow/tensorflow:2.3.1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \

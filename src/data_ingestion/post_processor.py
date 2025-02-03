@@ -133,12 +133,12 @@ class BioCFileMerger:
 # Example usage
 if __name__ == "__main__":
     input_dirs = {
-        "disease": Path("./data/taggerone_disease_annotated/"),
-        "chemical": Path("./data/nlmchem_annotated"),
-        "cellline": Path("./data/taggerone_cellLine_annotated"),
-        "tmvar": Path("./data/tmvar_annotated"),
+        "disease": Path("./data/ner_processed/taggerone_disease_annotated/"),
+        "chemical": Path("./data/ner_processed/nlmchem_annotated"),
+        "cellline": Path("./data/ner_processed/taggerone_cellLine_annotated"),
+        "tmvar": Path("./data/ner_processed/tmvar_annotated"),
     }
-    output_dir = "./data/output"
+    output_dir = "./data/ner_processed/annotations_merged"
 
     merger = BioCFileMerger(input_dirs, output_dir)
     merger.merge_files()
