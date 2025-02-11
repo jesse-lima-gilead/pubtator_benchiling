@@ -1,16 +1,28 @@
-# This is a sample Python script.
+from contextlib import asynccontextmanager
 
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
+from fastapi import FastAPI
+
+from src.routes import document_routes, query_routes
+from src.utils.logger import SingletonLogger
+
+# Instantiate the singleton logger
+logger_instance = SingletonLogger()
+logger = logger_instance.get_logger()
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f"Hi, {name}")  # Press ⌘F8 to toggle the breakpoint.
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Starting up the application")
+    yield
+    logger.info("Shutting down the application")
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == "__main__":
-    print_hi("PyCharm")
+# Initialising the FastAPI app
+app = FastAPI(lifespan=lifespan)
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+# Include routers
+app.include_router(document_routes.router, prefix="")
+app.include_router(query_routes.router, prefix="")
+
+# Example usage of the logger in main.py
+logger.debug("Debug message from main.py")
