@@ -197,6 +197,7 @@ class Retriever:
                     "article_id": article_id,
                     "chunk_id": payload["chunk_id"],
                     "chunk_text": payload["chunk_text"],
+                    "merged_text": payload["merged_text"],
                     "chunk_score": point.score,  # Access score as attribute
                 }
 
@@ -273,7 +274,7 @@ class Retriever:
 
         return {"Response": response, "Citations": citations_list}
 
-    def process_results_with_llm(self, result: List[Dict]) -> List[Dict]:
+    def process_results_with_llm(self, result: List[Dict], run_type: str) -> List[Dict]:
         """
         Process the result variable and generate LLM responses based on the selected approach.
 
@@ -294,8 +295,13 @@ class Retriever:
         updated_results = []
 
         for article_id, chunks in chunks_by_article.items():
+            print("Article ID:", article_id)
+            print("Chunks:", chunks[0])
             # Collect all chunk texts for the article and generate the per-article response
-            chunks_text_list = [chunk["chunk_text"] for chunk in chunks]
+            if run_type == "processed":
+                chunks_text_list = [chunk["merged_text"] for chunk in chunks]
+            else:
+                chunks_text_list = [chunk["chunk_text"] for chunk in chunks]
             article_response = self.generate_results_from_llm(
                 user_query=chunks[0]["user_query"],
                 relevant_chunks=chunks_text_list,
@@ -339,7 +345,7 @@ def flatten_list(nested_list):
 def run(run_type: str = "processed"):
     print("Runtype:", run_type)
     if run_type == "processed":
-        output_path = "../../../data/results/processed/without_filter"
+        output_path = "../../../data/results/processed/"
         results_file_path = "../../../data/results/queries_processed_results.csv"
         retriever = Retriever(
             embeddings_model="pubmedbert",
@@ -349,7 +355,7 @@ def run(run_type: str = "processed"):
             top_n=3,
         )
     elif run_type == "baseline":
-        output_path = "../../../data/results/baseline/without_filter"
+        output_path = "../../../data/results/baseline/"
         results_file_path = "../../../data/results/queries_baseline_results.csv"
         retriever = Retriever(
             embeddings_model="pubmedbert",
@@ -511,7 +517,7 @@ def run(run_type: str = "processed"):
         result = retriever.parse_results(user_query, retrieved_chunks)
 
         # Pass the parsed results to the LLM model and get the response
-        llm_result = retriever.process_results_with_llm(result)
+        llm_result = retriever.process_results_with_llm(result, run_type)
         print(f"LLM Result: {llm_result}")
         final_result.append([list(d.values()) for d in llm_result])
 
@@ -525,7 +531,7 @@ def run(run_type: str = "processed"):
         "Article ID",
         "Chunk ID",
         "Chunk Text",
-        "Score",
+        "Merged Text" "Similarity Score",
         "Article Level LLM Response with Citations",
         "Chunk Level LLM Response with Citations",
     ]

@@ -106,10 +106,13 @@ class SummarizeArticle:
 
 # Usage
 if __name__ == "__main__":
-    input_file_path = "../../data/ner_processed/gnorm2_annotated/PMC_8418271.xml"
+    input_file_path = "../../data/staging/bioc_xml/PMC_6946810.xml"
+    output_file_path = "../../data/articles_metadata/summary/PMC_6946810.txt"
     summarizer = SummarizeArticle(input_file_path)
     summary = summarizer.summarize()
     print(f"\nArticle Summary:\n{summary}")
+    with open(output_file_path, "w") as file:
+        file.write(summary)
 
     # for cur_file in os.listdir(articles_dir):
     #     input_file_path = f"{articles_dir}/{cur_file}"

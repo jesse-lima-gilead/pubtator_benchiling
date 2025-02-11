@@ -317,29 +317,29 @@ class MetadataExtractor:
 
 if __name__ == "__main__":
     # Example usage to get metadata from a PMC XML file on local
-    file_path = (
-        "../../test_data/gilead_pubtator_results/pmc_full_text_articles/PMC_6946810.xml"
-    )
-    metadata_path = "../../test_data/gilead_pubtator_results/pmc_full_text_articles/PMC_6946810_metadata.json"
-    extractor = MetadataExtractor(file_path, metadata_path, "pubmedbert")
-    extractor.save_metadata_to_vector_db()
+    # file_path = (
+    #     "../../data/staging/pmc_xml/PMC_6946810.xml"
+    # )
+    # metadata_path = "../../data/articles_metadata/metadata/PMC_6946810_metadata.json"
+    # extractor = MetadataExtractor(file_path, metadata_path, "pubmedbert")
+    # extractor.save_metadata_to_vector_db()
     # metadata = extractor.parse_xml()
     # extractor.save_metadata_as_json()
     # print(metadata)
 
-    # # Example usage to save metadata to a vector database
-    # pmc_xml_dir = "../../data/staging/pmc_xml"
-    # embeddings_model = "pubmedbert"
-    # for file in os.listdir(pmc_xml_dir):
-    #     if file.endswith(".xml"):
-    #         logger.info(f"Processing {file}..")
-    #         file_path = os.path.join(pmc_xml_dir, file)
-    #         metadata_path = os.path.join(
-    #             "../../data/articles_metadata/metadata",
-    #             file.replace(".xml", "_metadata.json"),
-    #         )
-    #         extractor = MetadataExtractor(file_path, metadata_path, embeddings_model)
-    #         extractor.save_metadata_to_vector_db()
-    #         # metadata = extractor.parse_xml()
-    #         # extractor.save_metadata_as_json()
-    #         logger.info(f"Metadata saved to Vector DB")
+    # Example usage to save metadata to a vector database
+    pmc_xml_dir = "../../data/staging/pmc_xml"
+    embeddings_model = "pubmedbert"
+    for file in os.listdir(pmc_xml_dir):
+        if file.endswith(".xml"):
+            logger.info(f"Processing {file}..")
+            file_path = os.path.join(pmc_xml_dir, file)
+            metadata_path = os.path.join(
+                "../../data/articles_metadata/metadata",
+                file.replace(".xml", "_metadata.json"),
+            )
+            extractor = MetadataExtractor(file_path, metadata_path, embeddings_model)
+            extractor.save_metadata_to_vector_db()
+            # metadata = extractor.parse_xml()
+            # extractor.save_metadata_as_json()
+            logger.info(f"Metadata saved to Vector DB")

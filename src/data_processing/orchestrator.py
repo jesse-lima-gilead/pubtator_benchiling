@@ -16,8 +16,7 @@ from src.data_processing.chunking.chunks_handler import (
     chunk_annotated_articles,
     write_chunks_details_to_file,
 )
-
-# from src.utils.s3_io_util import S3IOUtil
+from src.utils.s3_io_util import S3IOUtil
 from src.vector_db_handler.qdrant_handler import QdrantHandler
 from src.data_processing.merging.merge_handler import merge_annotations
 from src.data_processing.embedding.embeddings_handler import (
@@ -32,10 +31,10 @@ from src.utils.logger import SingletonLogger
 config_loader = YAMLConfigLoader()
 
 # Retrieve a specific config
-# # Docker Qdrant
-# vectordb_config = config_loader.get_config("vectordb")["qdrant"]
-# Cloud Qdrant
-vectordb_config = config_loader.get_config("vectordb")["qdrant_cloud"]
+# Docker Qdrant
+vectordb_config = config_loader.get_config("vectordb")["qdrant"]
+# # Cloud Qdrant
+# vectordb_config = config_loader.get_config("vectordb")["qdrant_cloud"]
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -290,32 +289,32 @@ class ArticleProcessor:
 
                     all_chunk_details.append(chunk_details)
 
-                    # # Insert into PostgreSQL
-                    # chunk_record = ChunkWithAnnotations(
-                    #     article_id=article_id,
-                    #     chunk_id=chunk_id,
-                    #     chunk_sequence=chunk_sequence,
-                    #     chunk_name=chunk_name,
-                    #     chunk_length=chunk_length,
-                    #     token_count=token_count,
-                    #     chunk_annotations_count=chunk_annotations_count,
-                    #     chunk_annotations_ids=chunk_annotations_ids,
-                    #     genes=annotations_per_bioconcept["Gene"],
-                    #     species=annotations_per_bioconcept["Species"],
-                    #     cell_lines=annotations_per_bioconcept["CellLine"],
-                    #     strains=annotations_per_bioconcept["Strain"],
-                    #     diseases=annotations_per_bioconcept["Disease"],
-                    #     chemicals=annotations_per_bioconcept["Chemical"],
-                    #     variants=annotations_per_bioconcept["Variant"],
-                    #     chunk_offset=chunk_offset,
-                    #     chunk_infons=chunk_infons,
-                    #     chunker_type=chunker_type,
-                    #     merger_type=merger_type,
-                    #     aioner_model=aioner_model,
-                    #     gnorm2_model=gnorm2_model,
-                    # )
-                    # session.add(chunk_record)
-                    # session.commit()
+                    # Insert into PostgreSQL
+                    chunk_record = ChunkWithAnnotations(
+                        article_id=article_id,
+                        chunk_id=chunk_id,
+                        chunk_sequence=chunk_sequence,
+                        chunk_name=chunk_name,
+                        chunk_length=chunk_length,
+                        token_count=token_count,
+                        chunk_annotations_count=chunk_annotations_count,
+                        chunk_annotations_ids=chunk_annotations_ids,
+                        genes=annotations_per_bioconcept["Gene"],
+                        species=annotations_per_bioconcept["Species"],
+                        cell_lines=annotations_per_bioconcept["CellLine"],
+                        strains=annotations_per_bioconcept["Strain"],
+                        diseases=annotations_per_bioconcept["Disease"],
+                        chemicals=annotations_per_bioconcept["Chemical"],
+                        variants=annotations_per_bioconcept["Variant"],
+                        chunk_offset=chunk_offset,
+                        chunk_infons=chunk_infons,
+                        chunker_type=chunker_type,
+                        merger_type=merger_type,
+                        aioner_model=aioner_model,
+                        gnorm2_model=gnorm2_model,
+                    )
+                    session.add(chunk_record)
+                    session.commit()
 
                 # Save chunks to file
                 self.file_handler.write_file_as_json(
@@ -406,8 +405,6 @@ class ArticleProcessor:
         logger.info("Putting the embeddings in QdrantDB")
         # Load the chunks file from local:
         chunks = self.file_handler.read_json_file(chunk_file_path)
-        # with open(f"{chunk_file_path}", "r") as f:
-        #     chunks = json.load(f)
         for chunk in chunks:
             model_info = get_model_info(self.embeddings_model)
             # logger.info("Generating embeddings for the chunk")
@@ -426,12 +423,15 @@ class ArticleProcessor:
             )[0]
             # logger.info("Embedding generated!")
             chunk_payload = chunk["payload"]
+            chunk_payload["merged_text"] = chunk["merged_text"]
 
             # # Add the Embeddings and the Payload to a batch
             # batch.append((chunk_embeddings, chunk_payload))
 
-            # Insert into Qdrant
-            qdrant_manager.insert_vector(vector=chunk_embeddings, payload=chunk_payload)
+                # Insert into Qdrant
+                qdrant_manager.insert_vector(
+                    vector=chunk_embeddings, payload=chunk_payload
+                )
 
             #     # Insert in batches
             #     if len(batch) >= batch_size:
