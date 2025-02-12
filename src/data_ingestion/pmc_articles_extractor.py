@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 
 import requests
 
+from src.file_handler.base_handler import FileHandler
 from src.utils.logger import SingletonLogger
 
 # Initialize the logger
@@ -75,20 +76,21 @@ def fetch_data(article_id, only_body=False):
     return xml_content
 
 
-def save_locally(file_name, content, pmc_local_path):
-    os.makedirs(pmc_local_path, exist_ok=True)
-    file_path = os.path.join(pmc_local_path, f"PMC_{file_name}.xml")
-
-    with open(file_path, "wb") as file:
-        file.write(content)
+# def save_locally(file_name, content, pmc_local_path):
+#     os.makedirs(pmc_local_path, exist_ok=True)
+#     file_path = os.path.join(pmc_local_path, f"PMC_{file_name}.xml")
+#
+#     with open(file_path, "wb") as file:
+#         file.write(content)
 
 
 def extract_pmc_articles(
     query: str,
     article_ids: list,
-    start_date: str = "2019",
-    end_date: str = "2024",
-    pmc_local_path: str = "../../data/pmc_full_text_articles",
+    start_date: str,
+    end_date: str,
+    pmc_path: str,
+    file_handler: FileHandler,
     retmax=50,
 ):
     if len(article_ids) == 0 and query != "":
@@ -98,7 +100,10 @@ def extract_pmc_articles(
     for article_id in article_ids:
         content = fetch_data(article_id)
         if content:
-            save_locally(article_id, content, pmc_local_path)
+            file_name = f"PMC_{article_id}.xml"
+            file_path = file_handler.get_file_path(pmc_path, file_name)
+            file_handler.write_file(file_path, content)
+            # save_locally(article_id, content, pmc_local_path)
         else:
             missing_count += 1
 

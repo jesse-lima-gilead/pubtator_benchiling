@@ -2,6 +2,8 @@ import json
 import os
 import uuid
 from xml.etree import ElementTree as ET
+
+from src.file_handler.base_handler import FileHandler
 from src.vector_db_handler.qdrant_handler import QdrantHandler
 from src.data_processing.embedding.embeddings_handler import (
     get_embeddings,
@@ -15,10 +17,10 @@ from src.utils.logger import SingletonLogger
 config_loader = YAMLConfigLoader()
 
 # Retrieve a specific config
-# Docker Qdrant
-vectordb_config = config_loader.get_config("vectordb")["qdrant"]
-# # Cloud Qdrant
-# vectordb_config = config_loader.get_config("vectordb")["qdrant_cloud"]
+# # Docker Qdrant
+# vectordb_config = config_loader.get_config("vectordb")["qdrant"]
+# Cloud Qdrant
+vectordb_config = config_loader.get_config("vectordb")["qdrant_cloud"]
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -26,15 +28,23 @@ logger = logger_instance.get_logger()
 
 
 class MetadataExtractor:
-    def __init__(self, file_path: str, metadata_path: str, embeddings_model: str):
+    def __init__(
+        self,
+        file_path: str,
+        metadata_path: str,
+        file_handler: FileHandler,
+        embeddings_model: str,
+    ):
         self.file_path = file_path
         self.metadata_path = metadata_path
+        self.file_handler = file_handler
         self.embeddings_model = embeddings_model
         self.metadata = {}
 
     def parse_xml(self):
         """Parse the XML file and extract metadata from <article-meta>, <front>, and <back> tags."""
-        tree = ET.parse(self.file_path)
+        tree = self.file_handler.parse_xml_file(self.file_path)
+        # tree = ET.parse(self.file_path)
         root = tree.getroot()
 
         # Extract <article-meta> metadata and place it first in the output
@@ -212,8 +222,12 @@ class MetadataExtractor:
 
     def save_metadata_as_json(self):
         """Save the extracted metadata as a JSON file."""
-        with open(self.metadata_path, "w") as json_file:
-            json.dump(self.metadata, json_file, indent=4)
+        metadata = self.parse_xml()
+
+        self.file_handler.write_file_as_json(self.metadata_path, self.metadata)
+        logger.info(f"Metadata saved as JSON: {metadata}")
+        # with open(self.metadata_path, "w") as json_file:
+        #     json.dump(self.metadata, json_file, indent=4)
 
     def save_metadata_to_vector_db(self):
         """Save the extracted metadata to a vector database."""

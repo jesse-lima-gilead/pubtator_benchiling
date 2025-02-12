@@ -30,6 +30,8 @@ qdrant_storage/
 data/
 postgres_data/
 test_data/
+old_data/
+golden_data/
 notebooks/
 litqa_data/
 

@@ -16,15 +16,16 @@ class InlineMerger:
         # Start with the original text
         merged_text = text
 
-        # Create a set of unique annotations based on 'text', 'type', 'ncbi_label', and 'ncbi_id'
+        # Create a set of unique annotations based on 'text', 'type', 'identifier'
         unique_annotations = {
-            (ann["text"], ann["type"], ann["ncbi_label"], ann["ncbi_id"])
-            for ann in annotations
+            (ann["text"], ann["type"], ann["identifier"]) for ann in annotations
         }
 
         # Replace text using replace() to avoid offset disruption
-        for ann_text, ann_type, ncbi_label, ncbi_id in unique_annotations:
-            annotation_str = f"{ann_text} << Type-{ann_type}, NCBI Label-{ncbi_label}, NCBI Id-{ncbi_id} >>"
+        for ann_text, ann_type, identifier in unique_annotations:
+            annotation_str = (
+                f"{ann_text} << Type-{ann_type}, Identifier-{identifier} >>"
+            )
 
             # Simple replace
             # merged_text = merged_text.replace(ann_text, annotation_str)

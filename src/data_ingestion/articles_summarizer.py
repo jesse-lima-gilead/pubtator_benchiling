@@ -1,5 +1,6 @@
 import xml.etree.ElementTree as ET
 from src.Prompts.PromptBuilder import PromptBuilder
+from src.file_handler.base_handler import FileHandler
 from src.utils.logger import SingletonLogger
 from src.llm_handler.llm_factory import LLMFactory
 import os
@@ -14,9 +15,10 @@ logger = logger_instance.get_logger()
 class SummarizeArticle:
     """Class to load Pubmed Article's content and Summarize it."""
 
-    def __init__(self, input_file_path: str):
+    def __init__(self, input_file_path: str, file_handler: FileHandler):
         self.prompt_builder = PromptBuilder()
         self.input_file_path = input_file_path
+        self.file_handler = file_handler
         self.pmc_article_text = self._load_file_content()
         llm_factory = LLMFactory()
         llm_handler = llm_factory.create_llm(llm_type="BedrockClaude")
@@ -25,7 +27,8 @@ class SummarizeArticle:
     def _load_file_content(self) -> str:
         """Parses the XML file and extracts relevant text content."""
         try:
-            tree = ET.parse(self.input_file_path)
+            tree = self.file_handler.parse_xml_file(self.input_file_path)
+            # tree = ET.parse(self.input_file_path)
             root = tree.getroot()
 
             content = ""

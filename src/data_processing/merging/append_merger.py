@@ -20,10 +20,9 @@ class AppendMerger:
                 # Extract common fields
                 annotation_text = ann["text"]
                 annotation_type = ann["type"]
-                annotation_label = ann["ncbi_label"]
-                annotation_id = ann["ncbi_id"]
-                annotation_offset = ann["offset"]
-                annotation_length = ann["length"]
+                annotation_identifier = ann["identifier"]
+                # annotation_offset = ann["offset"]
+                # annotation_length = ann["length"]
 
                 # Format the annotation information to be appended
                 annotation_block = (
@@ -31,11 +30,11 @@ class AppendMerger:
                     f"\n"
                     f"Type - {annotation_type}"
                     f"\n"
-                    f"{annotation_label} - {annotation_id}"
-                    f"\n"
-                    f"Text Offset - {annotation_offset}"
-                    f"\n"
-                    f"Text Length - {annotation_length}"
+                    f"{annotation_identifier}"
+                    # f"\n"
+                    # f"Text Offset - {annotation_offset}"
+                    # f"\n"
+                    # f"Text Length - {annotation_length}"
                 )
                 merged_text += f"{annotation_block}\n\n"
 

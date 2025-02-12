@@ -1,6 +1,7 @@
 import os
 import json
 from src.data_processing.chunking.chunker_factory import ChunkerFactory
+from src.file_handler.base_handler import FileHandler
 
 
 def write_chunks_details_to_file(chunks_details, output_file: str):
@@ -11,6 +12,7 @@ def write_chunks_details_to_file(chunks_details, output_file: str):
 
 # Example usage of the factory method
 def chunk_annotated_articles(
+    file_handler: FileHandler,
     input_file_path: str,
     chunker_type: str,
     **kwargs: dict,
@@ -19,7 +21,11 @@ def chunk_annotated_articles(
     # article_id = os.path.splitext(os.path.basename(input_file_path))[0]
 
     # Get the appropriate chunker instance
-    chunker_factory = ChunkerFactory(input_file_path, max_tokens_per_chunk=512)
+    chunker_factory = ChunkerFactory(
+        xml_file_path=input_file_path,
+        max_tokens_per_chunk=512,
+        file_handler=file_handler,
+    )
     chunker = chunker_factory.get_chunker(chunker_type, **kwargs)
 
     # Perform chunking using the selected chunker
@@ -162,7 +168,7 @@ if __name__ == "__main__":
         for chunker in chunker_list:
             for merger in merger_list:
                 for file in os.listdir(
-                        f"../../../test_data/gnorm2_annotated/{model}_annotated"
+                    f"../../../test_data/gnorm2_annotated/{model}_annotated"
                 ):
                     if file.endswith(".xml"):
                         input_file_path = (

@@ -5,15 +5,17 @@ from datetime import date
 import bioc
 
 from src.utils.logger import SingletonLogger
+from src.file_handler.base_handler import FileHandler
 
 # Initialize the logger
 logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()
 
 
-def convert_pmc_to_bioc(pmc_file, bioc_output_dir):
+def convert_pmc_to_bioc(pmc_file: str, bioc_output_dir: str, file_handler: FileHandler):
     # Parse the input PMC XML
-    tree = ET.parse(pmc_file)
+    tree = file_handler.parse_xml_file(pmc_file)
+    # tree = ET.parse(pmc_file)
     root = tree.getroot()
 
     # Create a BioC collection
@@ -48,7 +50,7 @@ def convert_pmc_to_bioc(pmc_file, bioc_output_dir):
         bioc_collection.add_document(bioc_document)
 
     # Write BioC documents to individual XML files
-    write_bioc_to_local(bioc_collection, bioc_output_dir)
+    save_bioc_file(bioc_collection, bioc_output_dir, file_handler)
 
 
 def extract_front_data(article_meta, bioc_document):
@@ -193,11 +195,12 @@ def clean_text(text):
     cleaned_lines = [line.strip() for line in lines if line.strip() != ""]
 
     # Join cleaned lines back into a single text with single newline separation
-    cleaned_text = "\n ".join(cleaned_lines)
+    cleaned_text = " ".join(cleaned_lines)
 
     return cleaned_text
 
-def write_bioc_to_local(pubmed_collection, bioc_output_dir):
+
+def save_bioc_file(pubmed_collection, bioc_output_dir, file_handler):
     for document in pubmed_collection.documents:
         # Create a new BioC collection for each document
         single_doc_collection = bioc.BioCCollection()
@@ -216,11 +219,15 @@ def write_bioc_to_local(pubmed_collection, bioc_output_dir):
         bioc_xml = bioc.dumps(single_doc_collection)
 
         # Use pmc_id as the filename
-        file_path = os.path.join(bioc_output_dir, f"PMC_{document.id}.xml")
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        bioc_file_name = f"PMC_{document.id}.xml"
+        file_path = file_handler.get_file_path(bioc_output_dir, bioc_file_name)
+        # file_path = os.path.join(bioc_output_dir, f"PMC_{document.id}.xml")
 
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(bioc_xml)
+        file_handler.write_file(file_path, bioc_xml)
+        # os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        #
+        # with open(file_path, "w", encoding="utf-8") as f:
+        #     f.write(bioc_xml)
 
         logger.info(f"BioC XML file saved to {file_path}")
 

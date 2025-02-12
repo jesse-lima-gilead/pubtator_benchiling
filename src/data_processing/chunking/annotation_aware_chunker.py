@@ -5,13 +5,16 @@ import xml.etree.ElementTree as ET
 
 
 class AnnotationAwareChunker:
-    def __init__(self, xml_file_path: str, max_tokens_per_chunk: int = 512):
+    def __init__(
+        self, xml_file_path: str, file_handler, max_tokens_per_chunk: int = 512
+    ):
         self.xml_file_path = xml_file_path
         self.max_tokens_per_chunk = max_tokens_per_chunk
+        self.file_handler = file_handler
 
     def parse_bioc_xml(self) -> ET.Element:
         """Parse BioC XML file and return the root element."""
-        tree = ET.parse(self.xml_file_path)
+        tree = self.file_handler.parse_xml_file(self.xml_file_path)
         return tree.getroot()
 
     def extract_passages(self, root: ET.Element) -> List[ET.Element]:
@@ -35,22 +38,37 @@ class AnnotationAwareChunker:
             offset = annotation.find("location").get("offset")
             length = annotation.find("location").get("length")
             text = annotation.findtext("text")
-            if type.lower() == "species":
-                ncbi_label = "NCBI Taxonomy"
-                ncbi_id = annotation.findtext('infon[@key="NCBI Taxonomy"]')
-            elif type.lower() == "gene":
-                ncbi_label = "NCBI Gene"
-                ncbi_id = annotation.findtext('infon[@key="NCBI Gene"]')
+            if type and type.lower() == "gene":
+                identifier = annotation.findtext('infon[@key="NCBI Gene"]')
+            elif type and type.lower() in ["species", "strain", "genus"]:
+                identifier = annotation.findtext('infon[@key="NCBI Taxonomy"]')
+            elif type and type.lower() in ["chemical", "disease", "cellline"]:
+                identifier = annotation.findtext('infon[@key="identifier"]')
+            elif type and annotation.findtext('infon[@key="Identifier"]') is not None:
+                # Capture all other annotations with "Identifier" key (e.g., tmVar annotations)
+                identifier = annotation.findtext('infon[@key="Identifier"]')
             else:
-                ncbi_label = "NCBI ID"
-                ncbi_id = "N/A"
+                additional_identifiers = []
+                for infon in annotation.findall("infon"):
+                    key = infon.get("key")
+                    if key and key.lower() not in [
+                        "type",
+                        "identifier",
+                        "ncbi gene",
+                        "ncbi taxonomy",
+                    ]:
+                        additional_identifiers.append(infon.text)
+
+                if additional_identifiers:
+                    identifier = ", ".join(
+                        additional_identifiers
+                    )  # Join multiple identifiers if there are any
 
             ann_dict = {
                 "id": id,
                 "text": text,
                 "type": type,
-                "ncbi_label": ncbi_label,
-                "ncbi_id": ncbi_id,
+                "identifier": identifier,
                 "offset": int(offset),
                 "length": int(length),
             }

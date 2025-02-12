@@ -2,6 +2,9 @@ import re
 import xml.etree.ElementTree as ET
 from typing import Any, Dict, List
 
+from src.file_handler.base_handler import FileHandler
+
+
 # from src.data_processing.embedding.embeddings_handler import (
 #     get_embeddings,
 #     get_model_info,
@@ -21,18 +24,20 @@ from typing import Any, Dict, List
 class SlidingWindowChunker:
     def __init__(
         self,
-        xml_file_path,
-        max_tokens_per_chunk=512,
+        xml_file_path: str,
+        file_handler: FileHandler,
+        max_tokens_per_chunk: int = 512,
         **kwargs,
     ):
         self.xml_file_path = xml_file_path
         self.max_tokens_per_chunk = max_tokens_per_chunk
+        self.file_handler = file_handler
         self.window_size = kwargs.get("window_size", 512)
         self.stride = self.window_size // 2
 
     def parse_bioc_xml(self) -> ET.Element:
         """Parse BioC XML file and return the root element."""
-        tree = ET.parse(self.xml_file_path)
+        tree = self.file_handler.parse_xml_file(self.xml_file_path)
         return tree.getroot()
 
     import xml.etree.ElementTree as ET

@@ -9,6 +9,7 @@ config_loader = YAMLConfigLoader()
 
 # aws resource config
 aws_config = config_loader.get_config("aws")["aws"]
+paths_config = config_loader.get_config("paths")["storage"]["s3"]
 
 # Load environment variables
 load_dotenv()
@@ -28,8 +29,8 @@ ec2_client = session.client("ec2")
 # Environment variables
 VPC_ID = os.getenv("VPC_ID")
 BUCKET_NAME = aws_config["s3"]["bucket_name"]
-INPUT_DIRECTORY = os.getenv("AIONER_INPUT_DIRECTORY")
-OUTPUT_DIRECTORY = os.getenv("AIONER_OUTPUT_DIRECTORY")
+INPUT_DIRECTORY = paths_config["bioc_path"]
+OUTPUT_DIRECTORY = paths_config["aioner_path"]
 CLUSTER_NAME = aws_config["ecs"]["cluster_name"]
 TASK_DEFINITION = aws_config["ecs"]["tasks"]["aioner"]["task_definition"]
 CONTAINER_NAME = aws_config["ecs"]["tasks"]["aioner"]["container_name"]
