@@ -1,6 +1,4 @@
-import json
 import math
-import os
 import uuid
 from typing import Dict, List
 from collections import Counter
@@ -14,9 +12,7 @@ from src.utils.db import session  # Import the session
 
 from src.data_processing.chunking.chunks_handler import (
     chunk_annotated_articles,
-    write_chunks_details_to_file,
 )
-from src.utils.s3_io_util import S3IOUtil
 from src.vector_db_handler.qdrant_handler import QdrantHandler
 from src.data_processing.merging.merge_handler import merge_annotations
 from src.data_processing.embedding.embeddings_handler import (
@@ -428,10 +424,8 @@ class ArticleProcessor:
             # # Add the Embeddings and the Payload to a batch
             # batch.append((chunk_embeddings, chunk_payload))
 
-                # Insert into Qdrant
-                qdrant_manager.insert_vector(
-                    vector=chunk_embeddings, payload=chunk_payload
-                )
+            # Insert into Qdrant
+            qdrant_manager.insert_vector(vector=chunk_embeddings, payload=chunk_payload)
 
             #     # Insert in batches
             #     if len(batch) >= batch_size:
