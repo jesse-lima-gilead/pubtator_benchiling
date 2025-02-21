@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from src.routes import document_routes, query_routes
+from src.routes import ingestion_pipeline_routes, query_routes
 from src.utils.logger import SingletonLogger
 
 # Instantiate the singleton logger
@@ -21,8 +21,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # Include routers
-app.include_router(document_routes.router, prefix="")
-app.include_router(query_routes.router, prefix="")
+app.include_router(ingestion_pipeline_routes.router, prefix="")
+# app.include_router(query_routes.router, prefix="")
 
 # Example usage of the logger in main.py
 logger.debug("Debug message from main.py")

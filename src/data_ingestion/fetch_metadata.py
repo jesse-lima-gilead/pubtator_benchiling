@@ -33,12 +33,10 @@ class MetadataExtractor:
         file_path: str,
         metadata_path: str,
         file_handler: FileHandler,
-        embeddings_model: str,
     ):
         self.file_path = file_path
         self.metadata_path = metadata_path
         self.file_handler = file_handler
-        self.embeddings_model = embeddings_model
         self.metadata = {}
 
     def parse_xml(self):
@@ -220,21 +218,25 @@ class MetadataExtractor:
         tag = element.find(xpath)
         return tag.text.strip() if tag is not None and tag.text else None
 
+    def get_metadata(self):
+        metadata = self.parse_xml()
+        return metadata
+
     def save_metadata_as_json(self):
         """Save the extracted metadata as a JSON file."""
-        metadata = self.parse_xml()
+        metadata = self.get_metadata()
 
         self.file_handler.write_file_as_json(self.metadata_path, self.metadata)
         logger.info(f"Metadata saved as JSON: {metadata}")
         # with open(self.metadata_path, "w") as json_file:
         #     json.dump(self.metadata, json_file, indent=4)
 
-    def save_metadata_to_vector_db(self):
+    def save_metadata_to_vector_db(self, embeddings_model: str = "pubmedbert"):
         """Save the extracted metadata to a vector database."""
-        metadata = self.parse_xml()
+        metadata = self.get_metadata()
 
         # Initialize the QdrantHandler
-        model_info = get_model_info(self.embeddings_model)
+        model_info = get_model_info(embeddings_model)
         qdrant_handler = QdrantHandler(
             collection_type="metadata", params=vectordb_config
         )

@@ -46,10 +46,14 @@ if __name__ == "__main__":
     # Initialize the loader and load all configs
     config_loader = YAMLConfigLoader()
 
+    dataset_config = config_loader.get_config("curated_dataset")
+    article_ids = dataset_config["golden_dataset_article_ids"]
+    print(article_ids)
+
     # Get specific config by name
-    configs = config_loader.get_config('vectordb')['qdrant']
-    #configs = config_loader.get_config('app')['paths']['DATA_RAW_PATH']
-    print(configs['host'])
-    print(configs['port'])
-    print(configs['collections']['medembed']['collection_name'], configs['collections']['medembed']['vector_size'], configs['collections']['medembed']['distance_metric'])
-    print(configs['collections']['pubmedbert']['collection_name'],configs['collections']['pubmedbert']['vector_size'], configs['collections']['pubmedbert']['distance_metric'])
+    # configs = config_loader.get_config('vectordb')['qdrant']
+    # #configs = config_loader.get_config('app')['paths']['DATA_RAW_PATH']
+    # print(configs['host'])
+    # print(configs['port'])
+    # print(configs['collections']['medembed']['collection_name'], configs['collections']['medembed']['vector_size'], configs['collections']['medembed']['distance_metric'])
+    # print(configs['collections']['pubmedbert']['collection_name'],configs['collections']['pubmedbert']['vector_size'], configs['collections']['pubmedbert']['distance_metric'])

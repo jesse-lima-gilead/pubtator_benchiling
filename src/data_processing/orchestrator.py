@@ -285,32 +285,32 @@ class ArticleProcessor:
 
                     all_chunk_details.append(chunk_details)
 
-                    # Insert into PostgreSQL
-                    chunk_record = ChunkWithAnnotations(
-                        article_id=article_id,
-                        chunk_id=chunk_id,
-                        chunk_sequence=chunk_sequence,
-                        chunk_name=chunk_name,
-                        chunk_length=chunk_length,
-                        token_count=token_count,
-                        chunk_annotations_count=chunk_annotations_count,
-                        chunk_annotations_ids=chunk_annotations_ids,
-                        genes=annotations_per_bioconcept["Gene"],
-                        species=annotations_per_bioconcept["Species"],
-                        cell_lines=annotations_per_bioconcept["CellLine"],
-                        strains=annotations_per_bioconcept["Strain"],
-                        diseases=annotations_per_bioconcept["Disease"],
-                        chemicals=annotations_per_bioconcept["Chemical"],
-                        variants=annotations_per_bioconcept["Variant"],
-                        chunk_offset=chunk_offset,
-                        chunk_infons=chunk_infons,
-                        chunker_type=chunker_type,
-                        merger_type=merger_type,
-                        aioner_model=aioner_model,
-                        gnorm2_model=gnorm2_model,
-                    )
-                    session.add(chunk_record)
-                    session.commit()
+                    # # Insert into PostgreSQL
+                    # chunk_record = ChunkWithAnnotations(
+                    #     article_id=article_id,
+                    #     chunk_id=chunk_id,
+                    #     chunk_sequence=chunk_sequence,
+                    #     chunk_name=chunk_name,
+                    #     chunk_length=chunk_length,
+                    #     token_count=token_count,
+                    #     chunk_annotations_count=chunk_annotations_count,
+                    #     chunk_annotations_ids=chunk_annotations_ids,
+                    #     genes=annotations_per_bioconcept["Gene"],
+                    #     species=annotations_per_bioconcept["Species"],
+                    #     cell_lines=annotations_per_bioconcept["CellLine"],
+                    #     strains=annotations_per_bioconcept["Strain"],
+                    #     diseases=annotations_per_bioconcept["Disease"],
+                    #     chemicals=annotations_per_bioconcept["Chemical"],
+                    #     variants=annotations_per_bioconcept["Variant"],
+                    #     chunk_offset=chunk_offset,
+                    #     chunk_infons=chunk_infons,
+                    #     chunker_type=chunker_type,
+                    #     merger_type=merger_type,
+                    #     aioner_model=aioner_model,
+                    #     gnorm2_model=gnorm2_model,
+                    # )
+                    # session.add(chunk_record)
+                    # session.commit()
 
                 # Save chunks to file
                 self.file_handler.write_file_as_json(
@@ -493,20 +493,7 @@ class ArticleProcessor:
         logger.info("Embeddings stored successfully")
 
 
-if __name__ == "__main__":
-    # Processed Chunks Paths
-    # chunks_output_dir = f"../../data/indexing/chunks"
-    collection_type = "processed_pubmedbert"
-
-    # # Baseline Chunks Paths
-    # chunks_output_dir = f"../../data/poc_dataset/indexing/chunks"
-    # # chunks_output_dir = f"../../data/poc_dataset/indexing/baseline_chunks"
-    # collection_type = "baseline"
-
-    # Other Params
-    # articles_input_dir = f"../../data/ner_processed/all_in_one_annotated"
-    # articles_summary_dir = f"../../data/articles_metadata/summary"
-    # embeddings_output_dir = f"../../data/indexing/embeddings"
+def run(run_type: str = "all", collection_type: str = "processed_pubmedbert"):
     embeddings_model = "pubmedbert"
     chunker = "sliding_window"
     merger = "prepend"
@@ -531,11 +518,30 @@ if __name__ == "__main__":
         paths_config=paths,
     )
 
-    article_processor.process(
-        collection_type=collection_type,
-        store_embeddings_as_file=False,
-    )
+    if run_type == "all":
+        article_processor.process(
+            collection_type=collection_type,
+            store_embeddings_as_file=False,
+        )
+    elif run_type == "chunks":
+        article_processor.process_chunks()
+    elif run_type == "embeddings":
+        article_processor.process_embeddings(
+            collection_type=collection_type, store_embeddings_as_file=False
+        )
+    else:
+        logger.error(f"Invalid run type: {run_type}")
 
-    # article_processor.process_chunks()
 
-    # article_processor.process_embeddings(collection_type=collection_type, store_embeddings_as_file=False)
+if __name__ == "__main__":
+    # Processed Text Collection
+    collection_type = "processed_pubmedbert"
+
+    # Baseline Text Collection
+    # collection_type = "baseline"
+
+    # # Test Collection
+    # collection_type = "test"
+
+    run_type = "all"  # "all" or "chunks" or "embeddings"
+    run(run_type=run_type, collection_type=collection_type)

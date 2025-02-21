@@ -107,8 +107,13 @@ def extract_pmc_articles(
         else:
             missing_count += 1
 
-    logger.info(f"Total number of articles: {len(article_ids)}")
-    logger.info(f"Number of articles missing: {missing_count}")
+    logger.info(f"Total number of article ids fetched: {len(article_ids)}")
+    logger.info(f"Number of articles that couldn't be extracted: {missing_count}")
+
+    extracted_articles_count = len(article_ids) - missing_count
+    logger.info(f"Number of articles extracted: {extracted_articles_count}")
+
+    return extracted_articles_count
 
 
 # if __name__ == "__main__":
