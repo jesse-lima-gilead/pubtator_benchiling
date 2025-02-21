@@ -285,32 +285,32 @@ class ArticleProcessor:
 
                     all_chunk_details.append(chunk_details)
 
-                    # # Insert into PostgreSQL
-                    # chunk_record = ChunkWithAnnotations(
-                    #     article_id=article_id,
-                    #     chunk_id=chunk_id,
-                    #     chunk_sequence=chunk_sequence,
-                    #     chunk_name=chunk_name,
-                    #     chunk_length=chunk_length,
-                    #     token_count=token_count,
-                    #     chunk_annotations_count=chunk_annotations_count,
-                    #     chunk_annotations_ids=chunk_annotations_ids,
-                    #     genes=annotations_per_bioconcept["Gene"],
-                    #     species=annotations_per_bioconcept["Species"],
-                    #     cell_lines=annotations_per_bioconcept["CellLine"],
-                    #     strains=annotations_per_bioconcept["Strain"],
-                    #     diseases=annotations_per_bioconcept["Disease"],
-                    #     chemicals=annotations_per_bioconcept["Chemical"],
-                    #     variants=annotations_per_bioconcept["Variant"],
-                    #     chunk_offset=chunk_offset,
-                    #     chunk_infons=chunk_infons,
-                    #     chunker_type=chunker_type,
-                    #     merger_type=merger_type,
-                    #     aioner_model=aioner_model,
-                    #     gnorm2_model=gnorm2_model,
-                    # )
-                    # session.add(chunk_record)
-                    # session.commit()
+                    # Insert into PostgreSQL
+                    chunk_record = ChunkWithAnnotations(
+                        article_id=article_id,
+                        chunk_id=chunk_id,
+                        chunk_sequence=chunk_sequence,
+                        chunk_name=chunk_name,
+                        chunk_length=chunk_length,
+                        token_count=token_count,
+                        chunk_annotations_count=chunk_annotations_count,
+                        chunk_annotations_ids=chunk_annotations_ids,
+                        genes=annotations_per_bioconcept["Gene"],
+                        species=annotations_per_bioconcept["Species"],
+                        cell_lines=annotations_per_bioconcept["CellLine"],
+                        strains=annotations_per_bioconcept["Strain"],
+                        diseases=annotations_per_bioconcept["Disease"],
+                        chemicals=annotations_per_bioconcept["Chemical"],
+                        variants=annotations_per_bioconcept["Variant"],
+                        chunk_offset=chunk_offset,
+                        chunk_infons=chunk_infons,
+                        chunker_type=chunker_type,
+                        merger_type=merger_type,
+                        aioner_model=aioner_model,
+                        gnorm2_model=gnorm2_model,
+                    )
+                    session.add(chunk_record)
+                    session.commit()
 
                 # Save chunks to file
                 self.file_handler.write_file_as_json(
@@ -381,7 +381,7 @@ class ArticleProcessor:
         save_embeddings_details_to_json(
             embeddings_details_list=[embeddings_details],
             filename=embeddings_file_path,
-            file_handler=file_handler,
+            file_handler=self.file_handler,
         )
 
     def store_embeddings_details_at_vectordb(

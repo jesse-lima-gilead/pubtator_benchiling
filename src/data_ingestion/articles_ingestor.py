@@ -1,5 +1,3 @@
-import os
-
 from src.data_ingestion.pmc_articles_extractor import extract_pmc_articles
 from src.data_ingestion.pmc_to_bioc_converter import convert_pmc_to_bioc
 from src.data_ingestion.fetch_metadata import MetadataExtractor
@@ -7,12 +5,8 @@ from src.data_ingestion.articles_summarizer import SummarizeArticle
 from src.data_ingestion.prettify_xml import XMLFormatter
 from src.file_handler.base_handler import FileHandler
 from src.file_handler.file_handler_factory import FileHandlerFactory
-from src.file_handler.local_handler import LocalFileHandler
-from src.file_handler.s3_handler import S3FileHandler
 from src.utils.config_reader import YAMLConfigLoader
 from src.utils.logger import SingletonLogger
-
-# from src.utils.s3_io_util import S3IOUtil
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -91,7 +85,7 @@ class PMCIngestor:
     def prettify_bioc_xml(self):
         # Prettify the BioC XML files:
         logger.info("Prettifying the BioC XML files...")
-        formatter = XMLFormatter(folder_path=self.bioc_local_path)
+        formatter = XMLFormatter(folder_path=self.bioc_path, file_handler=file_handler)
         formatter.process_folder()
 
     def articles_summarizer(self):
@@ -113,37 +107,6 @@ class PMCIngestor:
                 self.file_handler.write_file(summary_file_path, summary)
                 logger.info(f"Summary generated for: {file}")
 
-    def save_files_to_s3(self):
-        # Save the PMC XML, BIOC XML, Metadata (Summary) to S3:
-        for pmc_file in os.listdir(self.pmc_local_path):
-            if pmc_file.endswith(".xml"):
-                self.s3_io_util.upload_file(
-                    file_path=os.path.join(self.pmc_local_path, pmc_file),
-                    object_name=f"archive/pmc_full_text_articles/{pmc_file}",
-                )
-                logger.info(
-                    f"PMC XML file saved to S3: archive/pmc_full_text_articles/{pmc_file}"
-                )
-
-        for bioc_file in os.listdir(self.bioc_local_path):
-            if bioc_file.endswith(".xml"):
-                self.s3_io_util.upload_file(
-                    file_path=os.path.join(self.bioc_local_path, bioc_file),
-                    object_name=f"bioc_full_text_articles/{bioc_file}",
-                )
-                logger.info(
-                    f"BioC XML file saved to S3: bioc_full_text_articles/{bioc_file}"
-                )
-
-        summary_file_path = f"{self.article_metadata_path}/summary"
-        for summary_file in os.listdir(summary_file_path):
-            if summary_file.endswith(".txt"):
-                self.s3_io_util.upload_file(
-                    file_path=os.path.join(summary_file_path, summary_file),
-                    object_name=f"summary/{summary_file}",
-                )
-                logger.info(f"Summary file saved to S3: summary/{summary_file}")
-
     # Runs the combined process
     def run(
         self,
@@ -163,9 +126,8 @@ class PMCIngestor:
         )
         self.articles_metadata_extractor(metadata_storage_type=metadata_storage_type)
         self.pmc_to_bioc_converter()
-        self.prettify_bioc_xml()
+        # self.prettify_bioc_xml()
         self.articles_summarizer()
-        # self.save_files_to_s3()
 
 
 # Example usage

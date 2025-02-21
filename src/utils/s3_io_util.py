@@ -30,29 +30,65 @@ class S3IOUtil:
         self.bucket = self.s3.Bucket(self.bucket_name)
         self.client = s3_client
 
-    def upload_file(self, file_path, object_name=None):
-        """Upload a file to the S3 bucket."""
+    def upload_file(self, file_path=None, object_name=None, content=None):
+        """Upload a file or content to the S3 bucket.
+
+        - If `content` is provided, it uploads the content directly to S3.
+        - If `file_path` is provided, it uploads the file from disk.
+        """
         try:
             if object_name is None:
-                object_name = os.path.basename(file_path)
-            self.bucket.upload_file(file_path, object_name)
-            logger.info(f"File {file_path} uploaded successfully.")
+                if file_path:
+                    object_name = os.path.basename(file_path)
+                else:
+                    raise ValueError(
+                        "Either file_path or object_name must be provided."
+                    )
+
+            if content is not None:
+                # Upload content directly
+                self.client.put_object(
+                    Bucket=self.bucket_name, Key=file_path, Body=content
+                )
+                logger.info(f"Content uploaded successfully to {file_path}")
+            elif file_path is not None:
+                # Upload file from disk
+                self.bucket.upload_file(file_path, object_name)
+                logger.info(f"File {file_path} uploaded successfully.")
+            else:
+                raise ValueError("Either file_path or content must be provided.")
+
         except ClientError as e:
-            logger.info(f"Failed to upload file: {e}")
+            logger.error(f"Failed to upload file/content: {e}")
             return False
         return True
 
     def download_file(self, object_name, file_name=None):
-        """Download a file from the S3 bucket."""
+        """Download a file from S3.
+
+        - If `file_name` is provided, save the file locally.
+        - Otherwise, return the file content as a string.
+        """
         try:
-            if file_name is None:
-                file_name = object_name
-            self.bucket.download_file(object_name, file_name)
-            logger.info(f"File {object_name} downloaded successfully.")
+            obj = self.bucket.Object(object_name)
+            response = obj.get()
+
+            if file_name:
+                # Save to local file
+                with open(file_name, "wb") as f:
+                    f.write(response["Body"].read())
+                logger.info(
+                    f"File {object_name} downloaded successfully to {file_name}."
+                )
+                return True
+            else:
+                # Return file content as a string
+                content = response["Body"].read().decode("utf-8")
+                logger.info(f"File {object_name} downloaded successfully as content.")
+                return content
         except ClientError as e:
-            logger.info(f"Failed to download file: {e}")
-            return False
-        return True
+            logger.error(f"Failed to download file: {e}")
+            return None
 
     def list_files(self, prefix=""):
         """List all files in the S3 bucket."""

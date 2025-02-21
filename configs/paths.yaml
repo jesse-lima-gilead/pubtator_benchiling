@@ -12,7 +12,7 @@ storage:
     tmvar_path: "../../data/ner_processed/tmvar_annotated"
     annotations_merged_path: "../../data/ner_processed/all_in_one_annotated"
     summary_path: "../../data/articles_metadata/summary"
-    chunks_path: "../../data/indexing/chunks_test"
+    chunks_path: "../../data/indexing/chunks"
     embeddings_path: "../../data/indexing/embeddings"
   s3:
     pmc_path: "data/staging/pmc_xml"

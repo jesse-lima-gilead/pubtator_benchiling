@@ -1,6 +1,10 @@
 import os
 import xml.etree.ElementTree as ET
 from xml.dom.minidom import parseString
+
+from dotenv import set_key
+
+from src.file_handler.base_handler import FileHandler
 from src.utils.logger import SingletonLogger
 
 # Initialize the logger
@@ -9,13 +13,13 @@ logger = logger_instance.get_logger()
 
 
 class XMLFormatter:
-    def __init__(self, folder_path):
+    def __init__(self, folder_path: str, file_handler: FileHandler):
+        self.file_handler = file_handler
         self.folder_path = folder_path
 
     def prettify_xml(self, file_path):
         # Read the content of the XML file
-        with open(file_path, "r", encoding="utf-8") as file:
-            xml_content = file.read()
+        xml_content = self.file_handler.read_file(file_path)
 
         # Parse the XML content and prettify it
         try:
@@ -26,13 +30,12 @@ class XMLFormatter:
             return
 
         # Write the prettified XML back to the original file
-        with open(file_path, "w", encoding="utf-8") as file:
-            file.write(pretty_xml)
+        self.file_handler.write_file(file_path, pretty_xml)
 
     def process_folder(self):
         # Loop through all files in the folder
-        for filename in os.listdir(self.folder_path):
-            file_path = os.path.join(self.folder_path, filename)
+        for filename in self.file_handler.list_files(self.folder_path):
+            file_path = self.file_handler.get_file_path(self.folder_path, filename)
 
             # Only process XML files
             if filename.endswith(".xml"):
