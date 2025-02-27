@@ -1,9 +1,9 @@
 import os
 import boto3
 from botocore.exceptions import ClientError
-from src.utils.aws_handler.aws_connect import AWSConnection
-from src.utils.config_handler.config_reader import YAMLConfigLoader
-from src.utils.logs_handler.logger import SingletonLogger
+from src.pubtator_utils.aws_handler.aws_connect import AWSConnection
+from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
+from src.pubtator_utils.logs_handler.logger import SingletonLogger
 
 # Initialize the logger
 logger_instance = SingletonLogger()

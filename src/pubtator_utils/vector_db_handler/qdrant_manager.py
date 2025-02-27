@@ -13,7 +13,7 @@ from qdrant_client.http.models import (
     PointStruct,
     VectorParams,
 )
-from src.utils.logs_handler.logger import SingletonLogger
+from src.pubtator_utils.logs_handler.logger import SingletonLogger
 
 # Get the logger instance
 logger_instance = SingletonLogger()

@@ -2,8 +2,8 @@ import xml.etree.ElementTree as ET
 
 import requests
 
-from src.utils.file_handler.base_handler import FileHandler
-from src.utils.logs_handler.logger import SingletonLogger
+from src.pubtator_utils.file_handler.base_handler import FileHandler
+from src.pubtator_utils.logs_handler.logger import SingletonLogger
 
 # Initialize the logger
 logger_instance = SingletonLogger()

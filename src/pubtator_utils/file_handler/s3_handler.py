@@ -3,8 +3,8 @@ from io import BytesIO
 from bioc import BioCCollection
 from botocore.exceptions import ClientError
 import xml.etree.ElementTree as ET
-from src.utils.file_handler.base_handler import FileHandler
-from src.utils.file_handler.s3_io_util import S3IOUtil
+from src.pubtator_utils.file_handler.base_handler import FileHandler
+from src.pubtator_utils.file_handler.s3_io_util import S3IOUtil
 
 
 class S3FileHandler(FileHandler):

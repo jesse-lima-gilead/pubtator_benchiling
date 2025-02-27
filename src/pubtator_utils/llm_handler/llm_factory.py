@@ -1,4 +1,4 @@
-from src.utils.llm_handler.bedrock_handler import BedrockHandler
+from src.pubtator_utils.llm_handler.bedrock_handler import BedrockHandler
 
 
 class LLMFactory:

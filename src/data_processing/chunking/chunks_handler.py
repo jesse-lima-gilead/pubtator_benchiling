@@ -1,7 +1,7 @@
 import os
 import json
 from src.data_processing.chunking.chunker_factory import ChunkerFactory
-from src.utils.file_handler.base_handler import FileHandler
+from src.pubtator_utils.file_handler.base_handler import FileHandler
 
 
 def write_chunks_details_to_file(chunks_details, output_file: str):

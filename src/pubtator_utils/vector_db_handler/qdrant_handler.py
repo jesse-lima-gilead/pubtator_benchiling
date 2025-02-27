@@ -1,8 +1,8 @@
 from typing import Any, Dict
 
-from src.utils.vector_db_handler.qdrant_manager import QdrantManager
-from src.utils.config_handler.config_reader import YAMLConfigLoader
-from src.utils.logs_handler.logger import SingletonLogger
+from src.pubtator_utils.vector_db_handler.qdrant_manager import QdrantManager
+from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
+from src.pubtator_utils.logs_handler.logger import SingletonLogger
 
 # Initialize the config loader
 config_loader = YAMLConfigLoader()

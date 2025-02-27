@@ -1,19 +1,19 @@
 # prompt_builder.py
 from typing import List
 
-from src.utils.prompts_handler.guidelines import (
+from src.pubtator_utils.prompts_handler.guidelines import (
     ARTICLE_SUMMARY_GUIDELINES,
     LLM_RESPONSE_GUIDELINES,
 )
-from src.utils.prompts_handler.instructions import (
+from src.pubtator_utils.prompts_handler.instructions import (
     ARTICLE_SUMMARY_INSTRUCTIONS,
     LLM_RESPONSE_INSTRUCTIONS,
 )
-from src.utils.prompts_handler.persona import (
+from src.pubtator_utils.prompts_handler.persona import (
     ARTICLE_SUMMARY_PERSONA,
     LLM_RESPONSE_PERSONA,
 )
-from src.utils.prompts_handler.output_format import LLM_RESPONSE_OUTPUT_FORMAT
+from src.pubtator_utils.prompts_handler.output_format import LLM_RESPONSE_OUTPUT_FORMAT
 
 
 class PromptBuilder:

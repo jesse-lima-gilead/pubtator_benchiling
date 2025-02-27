@@ -1,7 +1,7 @@
 from langchain_aws import ChatBedrock
 from langchain_aws.embeddings import BedrockEmbeddings
 
-from src.utils.aws_handler.aws_connect import AWSConnection
+from src.pubtator_utils.aws_handler.aws_connect import AWSConnection
 
 
 class BedrockHandler:

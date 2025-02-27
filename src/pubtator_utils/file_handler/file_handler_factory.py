@@ -1,6 +1,6 @@
-from src.utils.file_handler.base_handler import FileHandler
-from src.utils.file_handler.local_handler import LocalFileHandler
-from src.utils.file_handler.s3_handler import S3FileHandler
+from src.pubtator_utils.file_handler.base_handler import FileHandler
+from src.pubtator_utils.file_handler.local_handler import LocalFileHandler
+from src.pubtator_utils.file_handler.s3_handler import S3FileHandler
 
 
 class FileHandlerFactory:

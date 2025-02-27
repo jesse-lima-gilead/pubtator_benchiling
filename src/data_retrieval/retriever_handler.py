@@ -3,15 +3,15 @@ import re
 from collections import defaultdict
 from typing import List, Dict
 import json
-from src.utils.vector_db_handler.qdrant_handler import QdrantHandler
-from src.utils.prompts_handler.PromptBuilder import PromptBuilder
+from src.pubtator_utils.vector_db_handler.qdrant_handler import QdrantHandler
+from src.pubtator_utils.prompts_handler.PromptBuilder import PromptBuilder
 from src.data_processing.embedding.embeddings_handler import (
     get_embeddings,
     get_model_info,
 )
-from src.utils.config_handler.config_reader import YAMLConfigLoader
-from src.utils.logs_handler.logger import SingletonLogger
-from src.utils.llm_handler.llm_factory import LLMFactory
+from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
+from src.pubtator_utils.logs_handler.logger import SingletonLogger
+from src.pubtator_utils.llm_handler.llm_factory import LLMFactory
 
 # Initialize the config loader
 config_loader = YAMLConfigLoader()
