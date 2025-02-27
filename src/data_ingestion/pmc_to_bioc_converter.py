@@ -46,6 +46,11 @@ def convert_pmc_to_bioc(pmc_file: str, bioc_output_dir: str, file_handler: FileH
         if back is not None:
             extract_back_data(back, bioc_document)
 
+        # Extract data from <floats-group> (fig, table data)
+        floats_group = article.find("floats-group")
+        if floats_group is not None:
+            extract_floats_group_data(floats_group, bioc_document)
+
         # Add document to the BioC collection
         bioc_collection.add_document(bioc_document)
 
@@ -130,6 +135,56 @@ def extract_front_data(article_meta, bioc_document):
 
 
 def extract_body_data(body, bioc_document):
+    # Find all <boxed-text> elements in <body>
+    for boxed_text in body.findall("boxed-text"):
+        titles = []
+        for p in boxed_text.findall(".//title"):
+            title = "".join(p.itertext())
+            titles.append(title)
+        if titles:
+            section_title = ", ".join(titles)
+        else:
+            section_title = "boxed_text"
+        # Extract all <p> elements inside <boxed-text> (at any level)
+        paragraphs = []
+        for p in boxed_text.findall(".//p"):
+            section_text = "".join(p.itertext())
+            paragraphs.append(section_text)
+
+        if paragraphs:  # Only add if there's text
+            bioc_passage = bioc.BioCPassage()
+            bioc_passage.infons["type"] = section_title
+            bioc_passage.text = "\n".join(paragraphs)  # Join paragraphs with newline
+            bioc_document.add_passage(bioc_passage)
+
+    # Extract standalone <p> elements (outside <sec>)
+    for p in body.findall("p"):
+        section_title = "body_text"
+        section_text = "".join(p.itertext())
+
+        # Create a passage for each section of the body
+        bioc_passage = bioc.BioCPassage()
+        bioc_passage.infons["type"] = section_title
+        bioc_passage.text = section_text
+        bioc_document.add_passage(bioc_passage)
+
+    # Find all <fig> elements in <body>
+    for fig in body.findall("fig"):
+        section_title = (
+            fig.find("label").text if fig.find("label") is not None else "figure_text"
+        )
+        # Extract all <p> elements inside <fig> (at any level)
+        paragraphs = []
+        for p in fig.findall(".//p"):
+            section_text = "".join(p.itertext())
+            paragraphs.append(section_text)
+
+        if paragraphs:  # Only add if there's text
+            bioc_passage = bioc.BioCPassage()
+            bioc_passage.infons["type"] = section_title
+            bioc_passage.text = "\n".join(paragraphs)  # Join paragraphs with newline
+            bioc_document.add_passage(bioc_passage)
+
     # Extract the full text from <body> with multiple sections
     for sec in body.findall("sec"):
         section_title = (
@@ -144,6 +199,76 @@ def extract_body_data(body, bioc_document):
         bioc_passage.infons["type"] = section_title
         bioc_passage.text = section_text
         bioc_document.add_passage(bioc_passage)
+
+
+def extract_floats_group_data(floats_group, bioc_document):
+    # Find all <fig> elements in <floats-group>
+    for fig in floats_group.findall("fig"):
+        section_title = (
+            fig.find("label").text if fig.find("label") is not None else "figure_text"
+        )
+        # Extract all <p> elements inside <fig> (at any level)
+        paragraphs = []
+        for p in fig.findall(".//p"):
+            section_text = "".join(p.itertext())
+            paragraphs.append(section_text)
+
+        if paragraphs:  # Only add if there's text
+            bioc_passage = bioc.BioCPassage()
+            bioc_passage.infons["type"] = section_title
+            bioc_passage.text = "\n".join(paragraphs)  # Join paragraphs with newline
+            bioc_document.add_passage(bioc_passage)
+
+    # Find all <boxed-text> elements in <floats-group>
+    for boxed_text in floats_group.findall("boxed-text"):
+        titles = []
+        for p in boxed_text.findall(".//title"):
+            title = "".join(p.itertext())
+            titles.append(title)
+        if titles:
+            section_title = ", ".join(titles)
+        else:
+            section_title = "boxed_text"
+        # Extract all <p> elements inside <boxed-text> (at any level)
+        paragraphs = []
+        for p in boxed_text.findall(".//p"):
+            section_text = "".join(p.itertext())
+            paragraphs.append(section_text)
+
+        if paragraphs:  # Only add if there's text
+            bioc_passage = bioc.BioCPassage()
+            bioc_passage.infons["type"] = section_title
+            bioc_passage.text = "\n".join(paragraphs)  # Join paragraphs with newline
+            bioc_document.add_passage(bioc_passage)
+
+    # Find all <table-wrap> elements in <floats-group>
+    for table in floats_group.findall("table-wrap"):
+        section_title = (
+            table.find("label").text
+            if table.find("label") is not None
+            else "table_text"
+        )
+
+        # # Extract table rows and columns
+        # table_text = []
+        #
+        # # Find the <table> inside <table-wrap>
+        # table_data = table.find("table")
+        # if table_data is not None:
+        #     for row in table_data.findall(".//tr"):  # Find all table rows
+        #         columns = [col.text.strip() if col.text else "" for col in row.findall("th") + row.findall("td")]
+        #         table_text.append("\t".join(columns))  # Join columns with tab for readability
+
+        # Extract all <p> elements inside <table-wrap> (at any level)
+        paragraphs = []
+        for p in table.findall(".//p"):
+            section_text = "".join(p.itertext())
+            paragraphs.append(section_text)
+        if paragraphs:  # Only add if there's text
+            bioc_passage = bioc.BioCPassage()
+            bioc_passage.infons["type"] = section_title
+            bioc_passage.text = "\n".join(paragraphs)  # Join paragraphs with newline
+            bioc_document.add_passage(bioc_passage)
 
 
 def extract_back_data(back, bioc_document):
