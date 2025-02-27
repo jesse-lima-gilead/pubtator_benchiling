@@ -1,6 +1,6 @@
-from vector_db_handler.qdrant_manager import QdrantManager
-from utils.config_reader import YAMLConfigLoader
-from utils.logger import SingletonLogger
+from src.utils.vector_db_handler.qdrant_manager import QdrantManager
+from src.utils.config_handler.config_reader import YAMLConfigLoader
+from src.utils.logs_handler.logger import SingletonLogger
 
 # Initialize the logger
 logger_instance = SingletonLogger()

@@ -4,12 +4,10 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoTokenizer, AutoModel
 import json
-from typing import List, Union, Dict, Any
+from typing import List
 import numpy as np
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
-from src.utils.db import session  # Import the session
-from src.alembic_models.simillarity import ChunkSimilarity  # Import the Chunk model
 
 
 def get_model_info(model_name: str):

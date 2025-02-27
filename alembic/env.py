@@ -17,7 +17,9 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
-from src.alembic_models.chunks import Base  # Import your SQLAlchemy models here
+from src.utils.db_handler.alembic_models import (
+    Base,
+)  # Import your SQLAlchemy models here
 
 target_metadata = Base.metadata
 

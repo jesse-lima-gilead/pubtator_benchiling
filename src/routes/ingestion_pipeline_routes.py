@@ -5,7 +5,7 @@ from src.pydantic_models.ingestion_models import (
     Metadata_Extractor_Request,
 )
 from src.services import ingestion_pipeline_services
-from src.utils.logger import SingletonLogger
+from src.utils.logs_handler.logger import SingletonLogger
 
 logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()

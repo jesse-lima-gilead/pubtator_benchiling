@@ -1,7 +1,7 @@
 from src.data_ingestion.articles_ingestor import PMCIngestor
-from src.utils.config_reader import YAMLConfigLoader
-from src.utils.logger import SingletonLogger
-from src.file_handler.file_handler_factory import FileHandlerFactory
+from src.utils.config_handler.config_reader import YAMLConfigLoader
+from src.utils.logs_handler.logger import SingletonLogger
+from src.utils.file_handler import FileHandlerFactory
 from src.pydantic_models.ingestion_models import (
     PMC_Articles_Extractor_Request,
     Metadata_Extractor_Request,

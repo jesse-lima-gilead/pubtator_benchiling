@@ -1,8 +1,5 @@
-import json
 import os
-import uuid
 from typing import Dict, List, Any
-import numpy as np
 from dotenv import load_dotenv
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import (
@@ -12,18 +9,18 @@ from qdrant_client.http.models import (
     MatchExcept,
     MatchValue,
     MatchAny,
-    PayloadSelector,
     PointIdsList,
     PointStruct,
     VectorParams,
 )
-from src.utils.logger import SingletonLogger
+from src.utils.logs_handler.logger import SingletonLogger
 
 # Get the logger instance
 logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()
 
 load_dotenv()  # Load environment variables from .env file
+
 
 class QdrantManager:
     def __init__(
@@ -35,7 +32,9 @@ class QdrantManager:
     ):
         self.collection_name = collection_name
         if "https" in url:
-            self.client = QdrantClient(url=url, api_key=os.getenv("QDRANT_API_KEY"), timeout=60.0)
+            self.client = QdrantClient(
+                url=url, api_key=os.getenv("QDRANT_API_KEY"), timeout=60.0
+            )
         else:
             self.client = QdrantClient(url=url, timeout=60.0)
         self.vector_size = vector_size

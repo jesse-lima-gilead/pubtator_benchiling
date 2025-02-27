@@ -1,17 +1,14 @@
-import os
-import json
-
 from dotenv import load_dotenv
-from qdrant_client import QdrantClient
-import shutil
 
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import Filter, FieldCondition, MatchValue, FilterSelector
 
-from src.utils.config_reader import YAMLConfigLoader
+from src.utils.config_handler.config_reader import YAMLConfigLoader
 
 
-def count_points_by_article_id(client: QdrantClient, collection_name: str, article_id: str) -> int:
+def count_points_by_article_id(
+    client: QdrantClient, collection_name: str, article_id: str
+) -> int:
     """
     Count the number of points in a Qdrant collection for a specific article ID.
 
@@ -25,25 +22,22 @@ def count_points_by_article_id(client: QdrantClient, collection_name: str, artic
     """
     # Define the filter
     filter_criteria = Filter(
-        must=[
-            FieldCondition(
-                key="article_id",
-                match=MatchValue(value=article_id)
-            )
-        ]
+        must=[FieldCondition(key="article_id", match=MatchValue(value=article_id))]
     )
 
     # Count the points
     response = client.count(
         collection_name=collection_name,
         count_filter=filter_criteria,
-        exact=True  # Exact count
+        exact=True,  # Exact count
     )
 
     return response.count
 
 
-def delete_points_by_article_id(client: QdrantClient, collection_name: str, article_id: str) -> None:
+def delete_points_by_article_id(
+    client: QdrantClient, collection_name: str, article_id: str
+) -> None:
     """
     Delete points in a Qdrant collection for a specific article ID.
 
@@ -68,6 +62,7 @@ def delete_points_by_article_id(client: QdrantClient, collection_name: str, arti
         ),
     )
     print(f"Deleted points with article_id: {article_id}")
+
 
 def get_article_points(client: QdrantClient, collection_name: str) -> dict:
     """
@@ -96,7 +91,9 @@ def get_article_points(client: QdrantClient, collection_name: str) -> dict:
         for point in points:
             article_id = point.payload.get("article_id")
             if article_id:
-                article_points_dic[article_id] = article_points_dic.get(article_id, 0) + 1
+                article_points_dic[article_id] = (
+                    article_points_dic.get(article_id, 0) + 1
+                )
 
         if not next_page_token:
             break
@@ -104,7 +101,10 @@ def get_article_points(client: QdrantClient, collection_name: str) -> dict:
     print(total_points, "total_points")
     return article_points_dic
 
-def get_article_points_by_chunk_name(client: QdrantClient, collection_name: str) -> dict:
+
+def get_article_points_by_chunk_name(
+    client: QdrantClient, collection_name: str
+) -> dict:
     """
     Get a dictionary of article IDs and the number of points for each from the Qdrant collection.
 
@@ -137,11 +137,15 @@ def get_article_points_by_chunk_name(client: QdrantClient, collection_name: str)
 
     return chunk_name_dic
 
+
 import shutil
 import os
 import json
 
-def validate_article_points_and_move(article_points_dic: dict, source_dir: str, destination_dir: str) -> dict:
+
+def validate_article_points_and_move(
+    article_points_dic: dict, source_dir: str, destination_dir: str
+) -> dict:
     """
     Validate if the number of points for each article matches the length of the list in its JSON file.
     If validation passes, move the JSON file from source_dir to destination_dir.
@@ -168,11 +172,11 @@ def validate_article_points_and_move(article_points_dic: dict, source_dir: str, 
             validation_results[article_id] = False
             continue
 
-        with open(file_path, 'r') as file:
+        with open(file_path, "r") as file:
             try:
                 article_data = json.load(file)
                 list_length = len(article_data)
-                is_valid = (list_length == point_count)
+                is_valid = list_length == point_count
                 validation_results[article_id] = is_valid
 
                 # If valid, move the file to the destination directory
@@ -180,13 +184,14 @@ def validate_article_points_and_move(article_points_dic: dict, source_dir: str, 
                     shutil.move(file_path, destination_path)
                     print(f"Moved valid file: {file_path} -> {destination_path}")
                 else:
-                    print("File found but mismatch records length",file_path)
+                    print("File found but mismatch records length", file_path)
 
             except json.JSONDecodeError:
                 print(f"Error decoding JSON for file: {file_path}")
                 validation_results[article_id] = False
 
     return validation_results
+
 
 # Initialize the config loader
 config_loader = YAMLConfigLoader()
@@ -201,22 +206,30 @@ load_dotenv()
 
 if __name__ == "__main__":
     # Qdrant setup
-    client = QdrantClient(url=vectordb_config['url'], api_key=os.environ.get('QDRANT_API_KEY'))  # Adjust host and port if needed
-    collection_name = vectordb_config['collections']['baseline']['collection_name']
+    client = QdrantClient(
+        url=vectordb_config["url"], api_key=os.environ.get("QDRANT_API_KEY")
+    )  # Adjust host and port if needed
+    collection_name = vectordb_config["collections"]["baseline"]["collection_name"]
 
     # Directories
-    source_dir = "../../data/litqa_dataset/indexing/chunks"  # Directory containing JSON files
+    source_dir = (
+        "../../data/litqa_dataset/indexing/chunks"  # Directory containing JSON files
+    )
     destination_dir = "../../data/litqa_dataset/indexing/processed_chunks"  # Directory to move valid files
 
     # Step 1: Get article points
     article_points_dic = get_article_points(client, collection_name)
 
     # Step 2: Validate points and move valid files
-    validation_results = validate_article_points_and_move(article_points_dic, source_dir, destination_dir)
+    validation_results = validate_article_points_and_move(
+        article_points_dic, source_dir, destination_dir
+    )
 
     # Print results
     for article_id, is_valid in validation_results.items():
-        print(f"Article ID: {article_id}, Validation: {'Passed' if is_valid else 'Failed'}")
+        print(
+            f"Article ID: {article_id}, Validation: {'Passed' if is_valid else 'Failed'}"
+        )
 
     # chunk_dic = get_article_points_by_chunk_name(client, collection_name)
     # for chunk_name, count in chunk_dic.items():

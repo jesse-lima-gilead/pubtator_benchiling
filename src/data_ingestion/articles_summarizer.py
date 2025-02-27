@@ -1,9 +1,8 @@
 import xml.etree.ElementTree as ET
-from src.Prompts.PromptBuilder import PromptBuilder
-from src.file_handler.base_handler import FileHandler
-from src.utils.logger import SingletonLogger
-from src.llm_handler.llm_factory import LLMFactory
-import os
+from src.utils.prompts_handler.PromptBuilder import PromptBuilder
+from src.utils.file_handler.base_handler import FileHandler
+from src.utils.logs_handler.logger import SingletonLogger
+from src.utils.llm_handler.llm_factory import LLMFactory
 import re
 import json
 

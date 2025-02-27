@@ -2,8 +2,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from src.routes import ingestion_pipeline_routes, query_routes
-from src.utils.logger import SingletonLogger
+from src.routes import ingestion_pipeline_routes
+from src.utils.logs_handler.logger import SingletonLogger
 
 # Instantiate the singleton logger
 logger_instance = SingletonLogger()

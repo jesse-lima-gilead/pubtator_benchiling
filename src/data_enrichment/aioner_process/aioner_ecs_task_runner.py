@@ -2,7 +2,7 @@ import boto3
 import os
 import json
 from dotenv import load_dotenv
-from src.utils.config_reader import YAMLConfigLoader
+from src.utils.config_handler.config_reader import YAMLConfigLoader
 
 # Initialize the config loader
 config_loader = YAMLConfigLoader()

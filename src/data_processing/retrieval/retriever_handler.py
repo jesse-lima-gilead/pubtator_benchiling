@@ -1,18 +1,17 @@
 import csv
 import re
-import os.path
 from collections import defaultdict
 from typing import List, Dict
 import json
-from src.vector_db_handler.qdrant_handler import QdrantHandler
-from src.Prompts.PromptBuilder import PromptBuilder
+from src.utils.vector_db_handler.qdrant_handler import QdrantHandler
+from src.utils.prompts_handler.PromptBuilder import PromptBuilder
 from src.data_processing.embedding.embeddings_handler import (
     get_embeddings,
     get_model_info,
 )
-from src.utils.config_reader import YAMLConfigLoader
-from src.utils.logger import SingletonLogger
-from src.llm_handler.llm_factory import LLMFactory
+from src.utils.config_handler.config_reader import YAMLConfigLoader
+from src.utils.logs_handler.logger import SingletonLogger
+from src.utils.llm_handler.llm_factory import LLMFactory
 
 # Initialize the config loader
 config_loader = YAMLConfigLoader()

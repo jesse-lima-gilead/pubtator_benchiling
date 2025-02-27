@@ -2,7 +2,7 @@ import re
 import xml.etree.ElementTree as ET
 from typing import Any, Dict, List
 
-from src.file_handler.base_handler import FileHandler
+from src.utils.file_handler.base_handler import FileHandler
 
 
 # from src.data_processing.embedding.embeddings_handler import (

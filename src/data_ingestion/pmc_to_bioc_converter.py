@@ -1,11 +1,7 @@
-import os
-import xml.etree.ElementTree as ET
 from datetime import date
-
 import bioc
-
-from src.utils.logger import SingletonLogger
-from src.file_handler.base_handler import FileHandler
+from src.utils.logs_handler.logger import SingletonLogger
+from src.utils.file_handler.base_handler import FileHandler
 
 # Initialize the logger
 logger_instance = SingletonLogger()

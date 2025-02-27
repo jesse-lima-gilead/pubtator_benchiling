@@ -1,11 +1,9 @@
-import os
 import xml.etree.ElementTree as ET
-from pathlib import Path
 
-from src.file_handler.base_handler import FileHandler
-from src.file_handler.file_handler_factory import FileHandlerFactory
-from src.utils.config_reader import YAMLConfigLoader
-from src.utils.logger import SingletonLogger
+from src.utils.file_handler.base_handler import FileHandler
+from src.utils.file_handler.file_handler_factory import FileHandlerFactory
+from src.utils.config_handler.config_reader import YAMLConfigLoader
+from src.utils.logs_handler.logger import SingletonLogger
 
 # Initialize the logger
 logger_instance = SingletonLogger()

@@ -1,12 +1,11 @@
 import os
 
 import boto3
-import yaml
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from dotenv import load_dotenv
 
-from src.utils.config_reader import YAMLConfigLoader
-from src.utils.logger import SingletonLogger
+from src.utils.config_handler.config_reader import YAMLConfigLoader
+from src.utils.logs_handler.logger import SingletonLogger
 
 # Initialize the logger
 logger_instance = SingletonLogger()

@@ -2,7 +2,7 @@ import json
 import os
 from typing import Union, Any
 from xml.etree import ElementTree as ET
-from src.file_handler.base_handler import FileHandler
+from src.utils.file_handler.base_handler import FileHandler
 
 
 class LocalFileHandler(FileHandler):

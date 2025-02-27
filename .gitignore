@@ -25,6 +25,9 @@ __pycache__/
 # Run Commands
 run_commands.txt
 
+# Misc Code
+src/misc/
+
 #Extra Folders
 qdrant_storage/
 data/
@@ -189,3 +192,4 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+/src/misc/

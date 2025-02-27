@@ -2,8 +2,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from src.alembic_models.chunks import Base, Chunk
-
 # Create a SQLAlchemy engine
 engine = create_engine("postgresql://postgres:postgres@localhost:5432/gilead_pubtator")
 

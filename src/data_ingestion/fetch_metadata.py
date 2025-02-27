@@ -1,17 +1,14 @@
-import json
 import os
 import uuid
-from xml.etree import ElementTree as ET
 
-from src.file_handler.base_handler import FileHandler
-from src.vector_db_handler.qdrant_handler import QdrantHandler
+from src.utils.file_handler.base_handler import FileHandler
+from src.utils.vector_db_handler.qdrant_handler import QdrantHandler
 from src.data_processing.embedding.embeddings_handler import (
     get_embeddings,
     get_model_info,
-    save_embeddings_details_to_json,
 )
-from src.utils.config_reader import YAMLConfigLoader
-from src.utils.logger import SingletonLogger
+from src.utils.config_handler.config_reader import YAMLConfigLoader
+from src.utils.logs_handler.logger import SingletonLogger
 
 # Initialize the config loader
 config_loader = YAMLConfigLoader()

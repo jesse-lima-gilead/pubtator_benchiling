@@ -1,8 +1,7 @@
-import boto3
 import os
 
-from src.utils.aws_connect import AWSConnection
-from src.utils.config_reader import YAMLConfigLoader
+from src.utils.aws_handler.aws_connect import AWSConnection
+from src.utils.config_handler.config_reader import YAMLConfigLoader
 
 # Initialize the config loader
 config_loader = YAMLConfigLoader()
