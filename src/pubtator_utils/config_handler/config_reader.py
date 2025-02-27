@@ -18,7 +18,7 @@ class YAMLConfigLoader:
             return
         if config_dir is None:
             # Set config_dir to the 'configs' directory relative to the script's location
-            script_dir = Path(__file__).resolve().parent
+            script_dir = Path(__file__).resolve().parent.parent
             project_root = script_dir.parent.parent
             self.config_dir = project_root / "configs"
         else:
