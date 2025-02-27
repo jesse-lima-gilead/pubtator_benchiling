@@ -28,6 +28,11 @@ run_commands.txt
 # Misc Code
 src/misc/
 
+# FastAPI Endpoint Code
+src/pydantic_models/
+src/routes/
+src/services/
+
 #Extra Folders
 qdrant_storage/
 data/
@@ -192,4 +197,3 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
-/src/misc/

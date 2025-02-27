@@ -344,8 +344,8 @@ def flatten_list(nested_list):
 def run(run_type: str = "processed"):
     print("Runtype:", run_type)
     if run_type == "processed":
-        output_path = "../../../data/results/processed/"
-        results_file_path = "../../../data/results/queries_processed_results.csv"
+        output_path = "../../data/results/processed/"
+        results_file_path = "../../data/results/queries_processed_results.csv"
         retriever = Retriever(
             embeddings_model="pubmedbert",
             embeddings_collection_type="processed_pubmedbert",
@@ -354,8 +354,8 @@ def run(run_type: str = "processed"):
             top_n=3,
         )
     elif run_type == "baseline":
-        output_path = "../../../data/results/baseline/"
-        results_file_path = "../../../data/results/queries_baseline_results.csv"
+        output_path = "../../data/results/baseline/"
+        results_file_path = "../../data/results/queries_baseline_results.csv"
         retriever = Retriever(
             embeddings_model="pubmedbert",
             embeddings_collection_type="baseline",
