@@ -15,9 +15,6 @@ config_loader = YAMLConfigLoader()
 # Retrieve a specific config
 aws_s3_config = config_loader.get_config("aws")["aws"]["s3"]
 
-# Get the S3 client
-s3_client = AWSConnection().get_client("s3")
-
 
 class S3IOUtil:
     def __init__(self):
@@ -26,7 +23,7 @@ class S3IOUtil:
         self.bucket_region = aws_s3_config["bucket_region"]
         self.s3 = boto3.resource("s3", region_name=self.bucket_region)
         self.bucket = self.s3.Bucket(self.bucket_name)
-        self.client = s3_client
+        self.client = AWSConnection().get_client("s3")
 
     def upload_file(self, file_path=None, object_name=None, content=None):
         """Upload a file or content to the S3 bucket.

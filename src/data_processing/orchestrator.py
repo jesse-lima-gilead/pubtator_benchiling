@@ -319,28 +319,6 @@ class ArticleProcessor:
                 # write_chunks_details_to_file(all_chunk_details, chunks_output_path)
                 logger.info(f"Chunks file saved to {chunks_output_path}")
 
-                # # Write chunks to S3 bucket
-                # self.s3_io_util.upload_file(
-                #             file_path=chunks_output_path,
-                #             object_name=f"chunks/{article_id}.json",
-                #         )
-                # logger.info(f"Chunk file saved to S3")
-                #
-                # # Move Summary files to archive
-                # self.s3_io_util.move_file(
-                #     source_key=f"summary/{article_id}.txt",
-                #     dest_key=f"archive/summary/{article_id}.txt",
-                # )
-                # logger.info(f"Summary file moved to archive")
-                #
-                # # Move Gnorm2 files to archive
-                # self.s3_io_util.move_file(
-                #     source_key=f"gnorm2_annotated/bioformer_annotated/{article_id}.xml",
-                #     dest_key=f"archive/gnorm2_annotated/bioformer_annotated/{article_id}.xml",
-                # )
-                #
-                # logger.info(f"Gnorm2 Annotated file saved to S3")
-
     def get_chunks_embeddings_details(self, chunks: List[Dict], chunk_file_path: str):
         try:
             logger.info("Generating embeddings for the chunks")
@@ -407,10 +385,6 @@ class ArticleProcessor:
             chunk_embeddings = get_embeddings(
                 model_name=model_info[0],
                 token_limit=model_info[1],
-                # For Baseline Chunks Processing
-                # texts=[chunk["payload"]["chunk_text"]],
-                # For Processed Chunks Processing
-                # texts=[chunk["merged_text"]],
                 texts=[
                     chunk["merged_text"]
                     if collection_type == "processed_pubmedbert"
@@ -467,12 +441,6 @@ class ArticleProcessor:
                         chunk_file_path=chunk_file_path,
                     )
 
-                # # Move Chunk files to archive
-                # self.s3_io_util.move_file(
-                #     source_key=f"chunks/{chunks_file}",
-                #     dest_key=f"archive/chunks/{chunks_file}",
-                # )
-
     def process(
         self,
         collection_type: str,
@@ -521,13 +489,13 @@ def run(run_type: str = "all", collection_type: str = "processed_pubmedbert"):
     if run_type == "all":
         article_processor.process(
             collection_type=collection_type,
-            store_embeddings_as_file=False,
+            store_embeddings_as_file=True,
         )
     elif run_type == "chunks":
         article_processor.process_chunks()
     elif run_type == "embeddings":
         article_processor.process_embeddings(
-            collection_type=collection_type, store_embeddings_as_file=False
+            collection_type=collection_type, store_embeddings_as_file=True
         )
     else:
         logger.error(f"Invalid run type: {run_type}")

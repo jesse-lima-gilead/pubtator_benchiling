@@ -127,7 +127,7 @@ class PMCIngestor:
         self.articles_metadata_extractor(metadata_storage_type=metadata_storage_type)
         self.pmc_to_bioc_converter()
         # # self.prettify_bioc_xml()
-        self.articles_summarizer()
+        # self.articles_summarizer()
 
 
 # Example usage
