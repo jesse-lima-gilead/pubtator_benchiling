@@ -8,6 +8,16 @@ from typing import List
 import numpy as np
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
+from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
+from src.pubtator_utils.logs_handler.logger import SingletonLogger
+
+# Initialize the config loader
+config_loader = YAMLConfigLoader()
+model_path_config = config_loader.get_config("paths")["model"]
+
+# Initialize the logger
+logger_instance = SingletonLogger()
+logger = logger_instance.get_logger()
 
 
 def get_model_info(model_name: str):
@@ -23,7 +33,16 @@ def get_model_info(model_name: str):
     elif model_name == "sci_bert":
         return "allenai/scibert_scivocab_uncased", 512
     elif model_name == "pubmedbert":
-        return "NeuML/pubmedbert-base-embeddings", 512
+        if model_path_config["embeddings_model"]["type"] == "jfrog_artifactory":
+            model_path = model_path_config["embeddings_model"]["jfrog_artifactory"][
+                "model_path"
+            ]
+        else:
+            model_path = model_path_config["embeddings_model"]["hugging_face"][
+                "model_path"
+            ]
+        logger.info(f"Model Loaded from {model_path}")
+        return model_path, 512
     elif model_name == "medembed":
         return "abhinand/MedEmbed-base-v0.1", 512
     else:
@@ -269,7 +288,7 @@ def save_to_csv(results, output_file):
 
 
 if __name__ == "__main__":
-    model_name = "bio_bert"
+    model_name = "pubmedbert"
     chunk_caps = """
     Summary:
     Air pollution promotes lung cancer by inducing inflammation and expanding pre-existing oncogenic mutations. Particulate matter (PM2.5) exposure correlates with increased EGFR-driven lung cancer incidence across countries. PM2.5 triggers macrophage-derived interleukin-1β release, promoting a progenitor-like state in EGFR-mutant lung cells and accelerating tumor formation. Oncogenic EGFR and KRAS mutations were found in 18% and 53% of healthy lung samples, respectively, suggesting air pollutants may promote expansion of existing mutant clones rather than directly causing mutations.
@@ -326,40 +345,40 @@ if __name__ == "__main__":
     #     token_limit=model_info[1],
     #     texts=[chunk_caps]
     # )
-    #
-    # print(embeddings_details_list)
-    #
+
+    print(embeddings_details_list)
+
     # save_embeddings_details_to_json(embeddings_details_list, filename="embeddings3.json")
 
-    user_queries = [
-        "lung cancer risk from air pollution",
-    ]
-
-    embedding_models = [
-        "bio_bert",
-        "bio_gpt",
-        # "longformer",
-        # "big_berd",
-        # "sci_bert"
-    ]
-
-    all_embedding_detials = load_embeddings_details_from_json(
-        filename="../../data/PMC_7614604_chunks/PMC_7614604_embeddings_backup.json"
-    )
-
-    for user_query in user_queries:
-        for embedding_model in embedding_models:
-            print(f"Processing for model - {embedding_model}")
-            model_info = get_model_info(embedding_model)
-            query_embeddings = get_embeddings(
-                model_name=model_info[0], token_limit=model_info[1], texts=[user_query]
-            )
-
-            # Find the most similar chunk:
-            results = find_most_similar(
-                query_embedding=query_embeddings,
-                embeddings_list=all_embedding_detials,
-                model=embedding_model,
-                top_k=3,
-            )
-            print(results)
+    # user_queries = [
+    #     "lung cancer risk from air pollution",
+    # ]
+    #
+    # embedding_models = [
+    #     "bio_bert",
+    #     "bio_gpt",
+    #     # "longformer",
+    #     # "big_berd",
+    #     # "sci_bert"
+    # ]
+    #
+    # all_embedding_detials = load_embeddings_details_from_json(
+    #     filename="../../data/PMC_7614604_chunks/PMC_7614604_embeddings_backup.json"
+    # )
+    #
+    # for user_query in user_queries:
+    #     for embedding_model in embedding_models:
+    #         print(f"Processing for model - {embedding_model}")
+    #         model_info = get_model_info(embedding_model)
+    #         query_embeddings = get_embeddings(
+    #             model_name=model_info[0], token_limit=model_info[1], texts=[user_query]
+    #         )
+    #
+    #         # Find the most similar chunk:
+    #         results = find_most_similar(
+    #             query_embedding=query_embeddings,
+    #             embeddings_list=all_embedding_detials,
+    #             model=embedding_model,
+    #             top_k=3,
+    #         )
+    #         print(results)

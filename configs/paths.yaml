@@ -28,3 +28,10 @@ storage:
     summary_path: "data/articles_metadata/summary"
     chunks_path: "data/indexing/chunks"
     embeddings_path: "data/indexing/embeddings"
+model:
+  embeddings_model:
+    type: "jfrog_artifactory" # Change to "hugging_face" for Hugging Face
+    jfrog_artifactory:
+      model_path: "../../../models/pubmedbert-base-embeddings/ba210f40b1b6d555d675c2d1ed6372e44570fc3c"
+    hugging_face:
+      model_path: "NeuML/pubmedbert-base-embeddings"
