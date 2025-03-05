@@ -30,8 +30,34 @@ storage:
     embeddings_path: "data/indexing/embeddings"
 model:
   embeddings_model:
-    type: "jfrog_artifactory" # Change to "hugging_face" for Hugging Face
-    jfrog_artifactory:
-      model_path: "../../../models/pubmedbert-base-embeddings/ba210f40b1b6d555d675c2d1ed6372e44570fc3c"
-    hugging_face:
-      model_path: "NeuML/pubmedbert-base-embeddings"
+    base_location: "jfrog_artifactory" # Change to "hugging_face" for Hugging Face
+    pubmedbert:
+      jfrog_artifactory:
+        model_path: "../../../models/pubmedbert-base-embeddings/ba210f40b1b6d555d675c2d1ed6372e44570fc3c"
+      hugging_face:
+        model_path: "NeuML/pubmedbert-base-embeddings"
+      token_limit: 512
+    biobert:
+      jfrog_artifactory:
+        model_path: "../../../models/biobert-base-embeddings/1e1b4b3b1b6d555d675c2d1ed6372e44570fc3c"
+      hugging_face:
+        model_path: "dmis-lab/biobert-v1.1"
+      token_limit: 512
+    longformer:
+      jfrog_artifactory:
+        model_path: "../../../models/biobert-base-embeddings/1e1b4b3b1b6d555d675c2d1ed6372e44570fc3c"
+      hugging_face:
+        model_path: "allenai/longformer-base-4096"
+      token_limit: 4096
+    medembed:
+      jfrog_artifactory:
+        model_path: "../../../models/biobert-base-embeddings/1e1b4b3b1b6d555d675c2d1ed6372e44570fc3c"
+      hugging_face:
+        model_path: "abhinand/MedEmbed-base-v0.1"
+      token_limit: 512
+    microsoft_biomednlp_biomedbert:
+      jfrog_artifactory:
+        model_path: "../../../models/biobert-base-embeddings/1e1b4b3b1b6d555d675c2d1ed6372e44570fc3c"
+      hugging_face:
+        model_path: "microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext"
+      token_limit: 512

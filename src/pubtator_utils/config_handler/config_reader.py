@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Any, Dict
-
+import os
 import yaml
 
 
@@ -46,9 +46,20 @@ if __name__ == "__main__":
     # Initialize the loader and load all configs
     config_loader = YAMLConfigLoader()
 
-    dataset_config = config_loader.get_config("curated_dataset")
-    article_ids = dataset_config["golden_dataset_article_ids"]
-    print(article_ids)
+    # dataset_config = config_loader.get_config("curated_dataset")
+    # article_ids = dataset_config["golden_dataset_article_ids"]
+    # print(article_ids)
+
+    # Convert relative path to absolute path
+    model = "pubmedbert"
+    embeddings_model_path_config = config_loader.get_config("paths")["model"][
+        "embeddings_model"
+    ]
+    model_base_location = embeddings_model_path_config["base_location"]
+    model_path = embeddings_model_path_config[model][model_base_location]["model_path"]
+
+    model_abs_path = os.path.abspath(model_path)
+    print(model_abs_path)
 
     # Get specific config by name
     # configs = config_loader.get_config('vectordb')['qdrant']

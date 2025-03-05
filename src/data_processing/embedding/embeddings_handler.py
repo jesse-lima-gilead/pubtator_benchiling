@@ -13,7 +13,10 @@ from src.pubtator_utils.logs_handler.logger import SingletonLogger
 
 # Initialize the config loader
 config_loader = YAMLConfigLoader()
-model_path_config = config_loader.get_config("paths")["model"]
+model_path_config = config_loader.get_config("paths")["model"]["embeddings_model"]
+
+# Getting the current dir path
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -21,32 +24,16 @@ logger = logger_instance.get_logger()
 
 
 def get_model_info(model_name: str):
-    """Factory method to return the appropriate model info based on the model_name."""
-    if model_name == "bio_bert":
-        return "dmis-lab/biobert-v1.1", 512
-    elif model_name == "bio_gpt":
-        return "microsoft/biogpt", 1024
-    elif model_name == "longformer":
-        return "allenai/longformer-base-4096", 4096
-    elif model_name == "big_berd":
-        return "google/bigbird-roberta-base", 4096
-    elif model_name == "sci_bert":
-        return "allenai/scibert_scivocab_uncased", 512
-    elif model_name == "pubmedbert":
-        if model_path_config["embeddings_model"]["type"] == "jfrog_artifactory":
-            model_path = model_path_config["embeddings_model"]["jfrog_artifactory"][
-                "model_path"
-            ]
-        else:
-            model_path = model_path_config["embeddings_model"]["hugging_face"][
-                "model_path"
-            ]
+    model_base_location = model_path_config["base_location"]
+    try:
+        model_path = model_path_config[model_name][model_base_location]["model_path"]
+        token_limit = model_path_config[model_name]["token_limit"]
+        if model_base_location == "jfrog_artifactory":
+            model_path = os.path.abspath(os.path.join(current_dir, model_path))
         logger.info(f"Model Loaded from {model_path}")
-        return model_path, 512
-    elif model_name == "medembed":
-        return "abhinand/MedEmbed-base-v0.1", 512
-    else:
-        raise ValueError(f"Unknown model_name: {model_name}")
+        return model_path, token_limit
+    except Exception as e:
+        raise ValueError(f"Error loading model {model_name}: {e}")
 
 
 def masked_mean_pooling(token_embeddings, attention_mask):
@@ -59,9 +46,11 @@ def masked_mean_pooling(token_embeddings, attention_mask):
     return mean_embeddings
 
 
-def get_embeddings(model_name, texts: List[str], token_limit=512, stride=None):
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModel.from_pretrained(model_name)
+def get_embeddings(model_name, texts: List[str], stride=None):
+    model_path, token_limit = get_model_info(model_name)
+    logger.info(f"Model Path: {model_path} Model Token Limit: {token_limit}")
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    model = AutoModel.from_pretrained(model_path)
 
     max_length = token_limit
     stride = stride or max_length // 2
@@ -289,96 +278,77 @@ def save_to_csv(results, output_file):
 
 if __name__ == "__main__":
     model_name = "pubmedbert"
-    chunk_caps = """
-    Summary:
-    Air pollution promotes lung cancer by inducing inflammation and expanding pre-existing oncogenic mutations. Particulate matter (PM2.5) exposure correlates with increased EGFR-driven lung cancer incidence across countries. PM2.5 triggers macrophage-derived interleukin-1β release, promoting a progenitor-like state in EGFR-mutant lung cells and accelerating tumor formation. Oncogenic EGFR and KRAS mutations were found in 18% and 53% of healthy lung samples, respectively, suggesting air pollutants may promote expansion of existing mutant clones rather than directly causing mutations.
+    # model_info = get_model_info(model_name)
 
-    Annotations:
-    Text - GFR
-    Type - Gene
-    NCBI Gene - 13649
-    Text - RAS
-    Type - Gene
-    NCBI Gene - 16653
-    Text - mouse
-    Type - Species
-    NCBI Taxonomy - 10090
-    Text - EGFR
-    Type - Gene
-    NCBI Gene - 13649
-    Text - KRAS
-    Type - Gene
-    NCBI Gene - 16653
+    ### Checking for Creating Chunks Embeddings:
 
-    Text:
-    A complete understanding of how exposure to environmental substances promotes cancer formation is lacking. More than 70 years ago, tumorigenesis was proposed to occur in a two-step process: an initiating step that induces mutations in healthy cells, followed by a promoter step that triggers cancer development1. Here we propose that environmental particulate matter measuring ≤2.5 μm (PM2.5), known to be associated with lung cancer risk, promotes lung cancer by acting on cells that harbour pre-existing oncogenic mutations in healthy lung tissue. Focusing on EGFR-driven lung cancer, which is more common in never-smokers or light smokers, we found a significant association between PM2.5 levels and the incidence of lung cancer for 32,957 EGFR driven lung cancer cases in four within-country cohorts. Functional mouse models revealed that air pollutants cause an influx of macrophages into the lung and release of interleukin-1β. This process results in a progenitor-like cell state within EGFR mutant lung alveolar type II epithelial cells that fuels tumorigenesis. Ultradeep mutational profiling of histologically normal lung tissue from 295 individuals across 3 clinical cohorts revealed oncogenic EGFR and KRAS driver mutations in 18% and 53% of healthy tissue samples, respectively. These findings collectively support a tumour promoting role for PM2.5 air pollutants and provide impetus for public health policy initiatives to address air pollution to reduce disease burden.
-    """
-    model_info = get_model_info(model_name)
-    # Example usage:
-    embeddings_details_list = [
-        {
-            "file": "document1.txt",
-            "chunks_count": 5,
-            "annotation_model": "GPT-3",
-            "embeddings_model": "BERT",
-            "embeddings_model_token_limit": 512,
-            "contains_summary": False,
-            "embeddings": get_embeddings(
-                model_name=model_info[0], token_limit=model_info[1], texts=[chunk_caps]
-            ),
-        },
-        {
-            "file": "document2.txt",
-            "chunks_count": 3,
-            "annotation_model": "GPT-3",
-            "embeddings_model": "BERT",
-            "embeddings_model_token_limit": 512,
-            "contains_summary": False,
-            "embeddings": get_embeddings(
-                model_name=model_info[0], token_limit=model_info[1], texts=[chunk_caps]
-            ),
-        },
-    ]
-
-    # embeddings = get_embeddings(
-    #     model_name=model_info[0],
-    #     token_limit=model_info[1],
-    #     texts=[chunk_caps]
-    # )
-
-    print(embeddings_details_list)
+    # chunk_caps = """
+    # Summary:
+    # Air pollution promotes lung cancer by inducing inflammation and expanding pre-existing oncogenic mutations. Particulate matter (PM2.5) exposure correlates with increased EGFR-driven lung cancer incidence across countries. PM2.5 triggers macrophage-derived interleukin-1β release, promoting a progenitor-like state in EGFR-mutant lung cells and accelerating tumor formation. Oncogenic EGFR and KRAS mutations were found in 18% and 53% of healthy lung samples, respectively, suggesting air pollutants may promote expansion of existing mutant clones rather than directly causing mutations.
+    #
+    # Annotations:
+    # Text - GFR
+    # Type - Gene
+    # NCBI Gene - 13649
+    # Text - RAS
+    # Type - Gene
+    # NCBI Gene - 16653
+    # Text - mouse
+    # Type - Species
+    # NCBI Taxonomy - 10090
+    # Text - EGFR
+    # Type - Gene
+    # NCBI Gene - 13649
+    # Text - KRAS
+    # Type - Gene
+    # NCBI Gene - 16653
+    #
+    # Text:
+    # A complete understanding of how exposure to environmental substances promotes cancer formation is lacking. More than 70 years ago, tumorigenesis was proposed to occur in a two-step process: an initiating step that induces mutations in healthy cells, followed by a promoter step that triggers cancer development1. Here we propose that environmental particulate matter measuring ≤2.5 μm (PM2.5), known to be associated with lung cancer risk, promotes lung cancer by acting on cells that harbour pre-existing oncogenic mutations in healthy lung tissue. Focusing on EGFR-driven lung cancer, which is more common in never-smokers or light smokers, we found a significant association between PM2.5 levels and the incidence of lung cancer for 32,957 EGFR driven lung cancer cases in four within-country cohorts. Functional mouse models revealed that air pollutants cause an influx of macrophages into the lung and release of interleukin-1β. This process results in a progenitor-like cell state within EGFR mutant lung alveolar type II epithelial cells that fuels tumorigenesis. Ultradeep mutational profiling of histologically normal lung tissue from 295 individuals across 3 clinical cohorts revealed oncogenic EGFR and KRAS driver mutations in 18% and 53% of healthy tissue samples, respectively. These findings collectively support a tumour promoting role for PM2.5 air pollutants and provide impetus for public health policy initiatives to address air pollution to reduce disease burden.
+    # """
+    #
+    # # Example usage:
+    # embeddings_details_list = [
+    #     {
+    #         "file": "document1.txt",
+    #         "chunks_count": 5,
+    #         "annotation_model": "GPT-3",
+    #         "embeddings_model": "BERT",
+    #         "embeddings_model_token_limit": 512,
+    #         "contains_summary": False,
+    #         "embeddings": get_embeddings(
+    #             model_name=model_info[0], token_limit=model_info[1], texts=[chunk_caps]
+    #         ),
+    #     },
+    #     {
+    #         "file": "document2.txt",
+    #         "chunks_count": 3,
+    #         "annotation_model": "GPT-3",
+    #         "embeddings_model": "BERT",
+    #         "embeddings_model_token_limit": 512,
+    #         "contains_summary": False,
+    #         "embeddings": get_embeddings(
+    #             model_name=model_info[0], token_limit=model_info[1], texts=[chunk_caps]
+    #         ),
+    #     },
+    # ]
+    #
+    # # embeddings = get_embeddings(
+    # #     model_name=model_info[0],
+    # #     token_limit=model_info[1],
+    # #     texts=[chunk_caps]
+    # # )
+    #
+    # print(embeddings_details_list)
 
     # save_embeddings_details_to_json(embeddings_details_list, filename="embeddings3.json")
 
-    # user_queries = [
-    #     "lung cancer risk from air pollution",
-    # ]
+    # #### Checking For User Query:
     #
-    # embedding_models = [
-    #     "bio_bert",
-    #     "bio_gpt",
-    #     # "longformer",
-    #     # "big_berd",
-    #     # "sci_bert"
-    # ]
-    #
-    # all_embedding_detials = load_embeddings_details_from_json(
-    #     filename="../../data/PMC_7614604_chunks/PMC_7614604_embeddings_backup.json"
+    # user_query = "lung cancer risk from air pollution"
+    # query_embeddings = get_embeddings(
+    #     model_name=model_name, texts=[user_query]
     # )
-    #
-    # for user_query in user_queries:
-    #     for embedding_model in embedding_models:
-    #         print(f"Processing for model - {embedding_model}")
-    #         model_info = get_model_info(embedding_model)
-    #         query_embeddings = get_embeddings(
-    #             model_name=model_info[0], token_limit=model_info[1], texts=[user_query]
-    #         )
-    #
-    #         # Find the most similar chunk:
-    #         results = find_most_similar(
-    #             query_embedding=query_embeddings,
-    #             embeddings_list=all_embedding_detials,
-    #             model=embedding_model,
-    #             top_k=3,
-    #         )
-    #         print(results)
+    # print(query_embeddings)
+
+    ##### Doing a Simillarity Search
