@@ -25,13 +25,6 @@ class DataIngestionPipeline(PythonPackage):
     depends_on("py-langchain-aws", type=("build", "run"))
     depends_on("py-pydantic", type=("build", "run"))
 
-    # Internal project dependencies (these should be available inside the repo)
-    depends_on("py-filehandler", type=("build", "run"))
-    depends_on("py-utils", type=("build", "run"))
-    depends_on("py-llmhandler", type=("build", "run"))
-    depends_on("py-prompts", type=("build", "run"))
-    depends_on("py-vectordbhandler", type=("build", "run"))
-
     def install(self, spec, prefix):
         """Custom installation steps for the pipeline."""
         # Install Python package using setup.py
