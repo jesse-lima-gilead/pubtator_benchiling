@@ -32,6 +32,7 @@ src/misc/
 src/pydantic_models/
 src/routes/
 src/services/
+main.py
 
 #Extra Folders
 qdrant_storage/

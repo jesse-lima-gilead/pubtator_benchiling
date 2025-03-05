@@ -22,10 +22,11 @@ logger = logger_instance.get_logger()
 class PubtatorRetriever:
     def __init__(
         self,
-        embeddings_collection_type: str,
-        metadata_collection_type: str,
-        top_k: int,
-        top_n: int,
+        embeddings_model: str = "pubmedbert",
+        embeddings_collection_type: str = "processed_pubmedbert",
+        metadata_collection_type: str = "metadata",
+        top_k: int = 5,
+        top_n: int = 3,
     ):
         self.article_qdrant_manager = initialize_qdrant_manager(
             collection_type=embeddings_collection_type
@@ -36,6 +37,7 @@ class PubtatorRetriever:
         self.embeddings_model = embeddings_model
         self.top_k = top_k
         self.top_n = top_n
+        logger.info(f"Initialized the retriever!")
 
     def retrieve_matching_chunks(self, query_vector):
         # Search across chunks, retrieve a larger set to ensure diversity
@@ -100,19 +102,26 @@ class PubtatorRetriever:
         return final_chunks_by_article
 
 
+def search(
+    user_query: str, metadata_filters: dict, embeddings_model: str = "pubmedbert"
+):
+    pubtator_retriever = PubtatorRetriever()
+    user_query_embeddings = get_user_query_embeddings(embeddings_model, user_query)
+
+    # Get the relevant chunks from Vector store filtered by Metadata Filters
+    final_chunks_by_article = pubtator_retriever.retrieve_filtered_chunks(
+        user_query_embeddings, metadata_filters
+    )
+
+    return final_chunks_by_article
+
+
 if __name__ == "__main__":
     embeddings_model = "pubmedbert"
     embeddings_collection_type = "processed_pubmedbert"
     metadata_collection_type = "metadata"
     top_k = 5
     top_n = 3
-
-    retriever = PubtatorRetriever(
-        embeddings_collection_type=embeddings_collection_type,
-        metadata_collection_type=metadata_collection_type,
-        top_k=top_k,
-        top_n=top_n,
-    )
 
     user_queries = [
         "Effect of PM2.5 in EGFR mutation in lung cancer",
@@ -121,18 +130,15 @@ if __name__ == "__main__":
         "ScRNA seq with immune cell signatures and lung cancer",
     ]
 
-    user_query = user_queries[0]
-
-    user_query_embeddings = get_user_query_embeddings(embeddings_model, user_query)
+    user_query = user_queries[1]
 
     metadata_filters = {
-        "journal": "Nature",
-        # "year": "2021",
+        # "journal": "Nature",
     }
 
     # Get the relevant chunks from Vector store filtered by Metadata Filters
-    final_chunks_by_article = retriever.retrieve_filtered_chunks(
-        user_query_embeddings, metadata_filters
+    final_chunks_by_article = search(
+        user_query=user_query, metadata_filters=metadata_filters
     )
 
     print(f"Final Chunks by Article: \n{final_chunks_by_article}")
