@@ -2,7 +2,9 @@ import os
 import uuid
 
 from src.pubtator_utils.file_handler.base_handler import FileHandler
-from src.pubtator_utils.vector_db_handler.qdrant_handler import QdrantHandler
+from src.pubtator_utils.vector_db_handler.vector_db_handler_factory import (
+    VectorDBHandler,
+)
 from src.data_processing.embedding.embeddings_handler import (
     get_embeddings,
     get_model_info,

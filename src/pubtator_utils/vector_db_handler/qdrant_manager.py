@@ -14,6 +14,9 @@ from qdrant_client.http.models import (
     VectorParams,
 )
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
+from src.pubtator_utils.vector_db_handler.vector_db_base_handler import (
+    BaseVectorDBHandler,
+)
 
 # Get the logger instance
 logger_instance = SingletonLogger()
@@ -22,25 +25,21 @@ logger = logger_instance.get_logger()
 load_dotenv()  # Load environment variables from .env file
 
 
-class QdrantManager:
-    def __init__(
-        self,
-        url: str,
-        collection_name: str,
-        vector_size: int = 768,
-        distance_metric: str = "COSINE",
-    ):
-        self.collection_name = collection_name
+class QdrantManager(BaseVectorDBHandler):
+    def __init__(self, vector_db_params: dict, index_params: dict):
+        super().__init__(vector_db_params, index_params)
+        self.collection_name = index_params["collection_name"]
+        url = vector_db_params["url"]
         if "https" in url:
             self.client = QdrantClient(
                 url=url, api_key=os.getenv("QDRANT_API_KEY"), timeout=60.0
             )
         else:
             self.client = QdrantClient(url=url, timeout=60.0)
-        self.vector_size = vector_size
-        self.distance_metric = distance_metric
+        self.vector_size = index_params["vector_size"]
+        self.distance_metric = index_params["distance_metric"]
 
-    def check_if_collection_exists(self) -> bool:
+    def check_if_index_exists(self) -> bool:
         result = False
         try:
             # Check if collection exists
@@ -52,7 +51,7 @@ class QdrantManager:
             )
         return result
 
-    def create_collection(self):
+    def create_index(self):
         # Create a new collection
         self.client.create_collection(
             collection_name=self.collection_name,
@@ -81,10 +80,29 @@ class QdrantManager:
         ]
         self.client.upsert(collection_name=self.collection_name, points=points)
 
-    def search_vectors(self, query_vector: List[float], limit: int = 1):
-        return self.client.search(
+    def search_vectors(
+        self, query_vector: List[float], limit: int = 1, body: Dict[str, Any] = None
+    ):
+        # Convert tensor to list if necessary
+        if hasattr(query_vector, "tolist"):
+            query_vector = query_vector.tolist()
+
+        # Type-check: Must be a list.
+        if not isinstance(query_vector, list):
+            raise ValueError("query_vector must be a one-dimensional list of floats.")
+
+        results = self.client.search(
             collection_name=self.collection_name, query_vector=query_vector, limit=limit
         )
+        search_results = []
+        for cur_point in results:
+            op_dic = {}
+            op_dic["id"] = cur_point.id
+            op_dic["score"] = cur_point.score
+            op_dic["payload"] = cur_point.payload
+            search_results.append(op_dic)
+
+        return search_results
 
     def fetch_points_by_payload(
         self, payload_filter: Dict[str, Any], limit: int = 10
@@ -145,7 +163,7 @@ class QdrantManager:
 
         return all_points
 
-    def delete_collection(self):
+    def delete_index(self):
         self.client.delete_collection(collection_name=self.collection_name)
 
     def delete_points_by_key(self, key: str, value: str):

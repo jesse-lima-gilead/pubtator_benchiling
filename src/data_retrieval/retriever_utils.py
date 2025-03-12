@@ -3,7 +3,9 @@ import re
 from collections import defaultdict
 from typing import List, Dict
 import json
-from src.pubtator_utils.vector_db_handler.qdrant_handler import QdrantHandler
+from src.pubtator_utils.vector_db_handler.vector_db_handler_factory import (
+    VectorDBHandler,
+)
 from src.pubtator_utils.prompts_handler.PromptBuilder import PromptBuilder
 from src.data_processing.embedding.embeddings_handler import get_embeddings
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
@@ -13,8 +15,8 @@ from src.pubtator_utils.llm_handler.llm_factory import LLMFactory
 # Initialize the config loader
 config_loader = YAMLConfigLoader()
 
-# Retrieve a specific config
-vectordb_config = config_loader.get_config("vectordb")["qdrant"]
+# # Retrieve a specific config
+# vectordb_config = config_loader.get_config("vectordb")["qdrant"]
 
 # Initialize the logger
 logger_instance = SingletonLogger()

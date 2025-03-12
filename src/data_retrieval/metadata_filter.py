@@ -1,6 +1,8 @@
 from typing import List, Dict
 import json
-from src.pubtator_utils.vector_db_handler.qdrant_handler import QdrantHandler
+from src.pubtator_utils.vector_db_handler.vector_db_handler_factory import (
+    VectorDBHandler,
+)
 from src.pubtator_utils.prompts_handler.PromptBuilder import PromptBuilder
 from src.data_processing.embedding.embeddings_handler import (
     get_embeddings,

@@ -13,7 +13,9 @@ from src.pubtator_utils.db_handler.db import session  # Import the session
 from src.data_processing.chunking.chunks_handler import (
     chunk_annotated_articles,
 )
-from src.pubtator_utils.vector_db_handler.qdrant_handler import QdrantHandler
+from src.pubtator_utils.vector_db_handler.vector_db_handler_factory import (
+    VectorDBHandler,
+)
 from src.data_processing.merging.merge_handler import merge_annotations
 from src.data_processing.embedding.embeddings_handler import (
     get_embeddings,
@@ -27,8 +29,8 @@ from src.pubtator_utils.logs_handler.logger import SingletonLogger
 config_loader = YAMLConfigLoader()
 
 # Retrieve a specific config
-# Docker Qdrant
-vectordb_config = config_loader.get_config("vectordb")["qdrant"]
+# # Docker Qdrant
+# vectordb_config = config_loader.get_config("vectordb")["qdrant"]
 # # Cloud Qdrant
 # vectordb_config = config_loader.get_config("vectordb")["qdrant_cloud"]
 
@@ -325,8 +327,7 @@ class ArticleProcessor:
             model_info = get_model_info(self.embeddings_model)
             merged_texts_with_sum = [f"{chunk['merged_text']}" for chunk in chunks]
             embeddings = get_embeddings(
-                model_name=model_info[0],
-                token_limit=model_info[1],
+                model_name=self.embeddings_model,
                 texts=merged_texts_with_sum,
             )
             embeddings_details = {
@@ -363,28 +364,32 @@ class ArticleProcessor:
         )
 
     def store_embeddings_details_at_vectordb(
-        self, collection_type: str, chunk_file_path: str
+        self,
+        collection_type: str,
+        chunk_file_path: str,
+        vector_db_type: str = None,
+        vector_db_params: dict = None,
+        index_params: dict = None,
     ):
-        # Get the Qdrant Handler with for specific vector db config
-        qdrant_handler = QdrantHandler(
-            collection_type=collection_type, params=vectordb_config
+        # Get the Vector DB Handler with for specific vector db config
+        vector_db_handler = VectorDBHandler(
+            vector_db_params=vector_db_params, index_params=index_params
         )
-        qdrant_manager = qdrant_handler.get_qdrant_manager()
+        vector_db_manager = vector_db_handler.get_vector_db_manager(
+            vector_db_type=vector_db_type
+        )
 
         # batch_size = 10  # Adjust batch size based on performance
         # batch = []
-
-        # ToDo: Implement logic to load the chunks from S3
 
         logger.info("Putting the embeddings in QdrantDB")
         # Load the chunks file from local:
         chunks = self.file_handler.read_json_file(chunk_file_path)
         for chunk in chunks:
-            model_info = get_model_info(self.embeddings_model)
+            # model_info = get_model_info(self.embeddings_model)
             # logger.info("Generating embeddings for the chunk")
             chunk_embeddings = get_embeddings(
-                model_name=model_info[0],
-                token_limit=model_info[1],
+                model_name=self.embeddings_model,
                 texts=[
                     chunk["merged_text"]
                     if collection_type == "processed_pubmedbert"
@@ -398,8 +403,10 @@ class ArticleProcessor:
             # # Add the Embeddings and the Payload to a batch
             # batch.append((chunk_embeddings, chunk_payload))
 
-            # Insert into Qdrant
-            qdrant_manager.insert_vector(vector=chunk_embeddings, payload=chunk_payload)
+            # Insert into Vector DB
+            vector_db_manager.insert_vector(
+                vector=chunk_embeddings, payload=chunk_payload
+            )
 
             #     # Insert in batches
             #     if len(batch) >= batch_size:
@@ -414,9 +421,11 @@ class ArticleProcessor:
         self,
         # embeddings_output_dir: str,
         collection_type: str,
-        store_embeddings_as_file: bool = True,
+        store_embeddings_as_file,
+        vector_db_type: str = None,
+        vector_db_params: dict = None,
+        index_params: dict = None,
     ):
-        # ToDo: Implement logic to load the chunks from S3
         # Load the chunks file from local:
         for chunks_file in self.file_handler.list_files(self.chunks_output_dir):
             if chunks_file.endswith(".json"):
@@ -439,6 +448,9 @@ class ArticleProcessor:
                     self.store_embeddings_details_at_vectordb(
                         collection_type=collection_type,
                         chunk_file_path=chunk_file_path,
+                        vector_db_type=vector_db_type,
+                        vector_db_params=vector_db_params,
+                        index_params=index_params,
                     )
 
     def process(
@@ -461,7 +473,11 @@ class ArticleProcessor:
         logger.info("Embeddings stored successfully")
 
 
-def run(run_type: str = "all", collection_type: str = "processed_pubmedbert"):
+def run(
+    run_type: str = "all",
+    collection_type: str = "processed_pubmedbert",
+    store_embeddings_as_file: bool = True,
+):
     embeddings_model = "pubmedbert"
     chunker = "sliding_window"
     merger = "prepend"
@@ -494,22 +510,45 @@ def run(run_type: str = "all", collection_type: str = "processed_pubmedbert"):
     elif run_type == "chunks":
         article_processor.process_chunks()
     elif run_type == "embeddings":
-        article_processor.process_embeddings(
-            collection_type=collection_type, store_embeddings_as_file=True
-        )
+        if store_embeddings_as_file:
+            article_processor.process_embeddings(
+                collection_type=collection_type,
+                store_embeddings_as_file=store_embeddings_as_file,
+            )
+        else:
+            # Retrieve vector db specific config
+            vectordb_config = config_loader.get_config("vectordb")["vector_db"]
+            vector_db_type = vectordb_config["type"]
+            vector_db_params = vectordb_config[vector_db_type]["vector_db_params"]
+            index_params = vectordb_config[vector_db_type]["index_params"][
+                collection_type
+            ]
+
+            article_processor.process_embeddings(
+                collection_type=collection_type,
+                store_embeddings_as_file=store_embeddings_as_file,
+                vector_db_type=vector_db_type,
+                vector_db_params=vector_db_params,
+                index_params=index_params,
+            )
     else:
         logger.error(f"Invalid run type: {run_type}")
 
 
 if __name__ == "__main__":
     # Processed Text Collection
-    collection_type = "processed_pubmedbert"
+    # collection_type = "processed_pubmedbert"
 
     # Baseline Text Collection
     # collection_type = "baseline"
 
-    # # Test Collection
-    # collection_type = "test"
+    # Test Collection
+    collection_type = "test"
 
+    store_embeddings_as_file = False
     run_type = "all"  # "all" or "chunks" or "embeddings"
-    run(run_type=run_type, collection_type=collection_type)
+    run(
+        run_type=run_type,
+        collection_type=collection_type,
+        store_embeddings_as_file=store_embeddings_as_file,
+    )

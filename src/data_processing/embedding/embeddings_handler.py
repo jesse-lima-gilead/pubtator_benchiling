@@ -30,7 +30,7 @@ def get_model_info(model_name: str):
         token_limit = model_path_config[model_name]["token_limit"]
         if model_base_location == "jfrog_artifactory":
             model_path = os.path.abspath(os.path.join(current_dir, model_path))
-        logger.info(f"Model Loaded from {model_path}")
+        # logger.info(f"Model Loaded from {model_path}")
         return model_path, token_limit
     except Exception as e:
         raise ValueError(f"Error loading model {model_name}: {e}")
