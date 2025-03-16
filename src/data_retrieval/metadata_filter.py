@@ -1,27 +1,18 @@
 from typing import List, Dict
-import json
-from src.pubtator_utils.vector_db_handler.vector_db_handler_factory import (
-    VectorDBHandler,
-)
-from src.pubtator_utils.prompts_handler.PromptBuilder import PromptBuilder
-from src.data_processing.embedding.embeddings_handler import (
-    get_embeddings,
-    get_model_info,
-)
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
-from src.pubtator_utils.llm_handler.llm_factory import LLMFactory
 from src.data_retrieval.retriever_utils import (
-    initialize_qdrant_manager,
-    get_user_query_embeddings,
+    initialize_vectordb_manager,
 )
 
 
 # Initialize the config loader
 config_loader = YAMLConfigLoader()
 
-# Retrieve a specific config
-vectordb_config = config_loader.get_config("vectordb")["qdrant"]
+# Retrieve vector db specific config
+vectordb_config = config_loader.get_config("vectordb")["vector_db"]
+vector_db_type = vectordb_config["type"]
+vector_db_params = vectordb_config[vector_db_type]["vector_db_params"]
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -33,7 +24,7 @@ class MetadataFilter:
         self,
         metadata_collection_type: str,
     ):
-        self.metadata_qdrant_manager = initialize_qdrant_manager(
+        self.metadata_vectordb_manager = initialize_vectordb_manager(
             collection_type=metadata_collection_type
         )
 
@@ -41,7 +32,8 @@ class MetadataFilter:
         self, payload_filter: Dict[str, str]
     ) -> List[str]:
         # Fetch points matching the payload filter from the metadata collection
-        matching_points = self.metadata_qdrant_manager.fetch_points_by_payload(
+
+        matching_points = self.metadata_vectordb_manager.fetch_points_by_payload(
             payload_filter, limit=5000
         )
 

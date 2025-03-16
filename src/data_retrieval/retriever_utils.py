@@ -1,39 +1,39 @@
-import csv
-import re
-from collections import defaultdict
-from typing import List, Dict
-import json
+from src.data_processing.embedding.embeddings_handler import get_embeddings
 from src.pubtator_utils.vector_db_handler.vector_db_handler_factory import (
     VectorDBHandler,
 )
-from src.pubtator_utils.prompts_handler.PromptBuilder import PromptBuilder
-from src.data_processing.embedding.embeddings_handler import get_embeddings
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
-from src.pubtator_utils.llm_handler.llm_factory import LLMFactory
 
 # Initialize the config loader
 config_loader = YAMLConfigLoader()
 
-# # Retrieve a specific config
-# vectordb_config = config_loader.get_config("vectordb")["qdrant"]
+# Retrieve vector db specific config
+vectordb_config = config_loader.get_config("vectordb")["vector_db"]
+vector_db_type = vectordb_config["type"]
+vector_db_params = vectordb_config[vector_db_type]["vector_db_params"]
 
 # Initialize the logger
 logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()
 
 
-def initialize_qdrant_manager(collection_type: str):
+def initialize_vectordb_manager(collection_type: str):
     # Initialize the QdrantHandler
-    logger.info(f"Initializing Qdrant manager for collection type: {collection_type}")
-    qdrant_handler = QdrantHandler(
-        collection_type=collection_type, params=vectordb_config
+    logger.info(f"Initializing VectorDB manager for collection type: {collection_type}")
+    index_params = vectordb_config[vector_db_type]["index_params"][collection_type]
+
+    # Get the Vector DB Handler with for specific vector db config
+    vector_db_handler = VectorDBHandler(
+        vector_db_params=vector_db_params, index_params=index_params
     )
-    qdrant_manager = qdrant_handler.get_qdrant_manager()
-    return qdrant_manager
+    vector_db_manager = vector_db_handler.get_vector_db_manager(
+        vector_db_type=vector_db_type
+    )
+    return vector_db_manager
 
 
-def get_user_query_embeddings(embeddings_model, user_query: str):
+def get_user_query_embeddings(embeddings_model: str, user_query: str):
     # Get embeddings for the user query
     query_vector = get_embeddings(model_name=embeddings_model, texts=[user_query])
     return query_vector.squeeze(0).tolist()

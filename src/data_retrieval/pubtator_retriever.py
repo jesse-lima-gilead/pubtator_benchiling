@@ -3,7 +3,7 @@ from src.pubtator_utils.prompts_handler.PromptBuilder import PromptBuilder
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
 from src.data_retrieval.retriever_utils import (
-    initialize_qdrant_manager,
+    initialize_vectordb_manager,
     get_user_query_embeddings,
 )
 from src.data_retrieval.metadata_filter import MetadataFilter
@@ -28,7 +28,7 @@ class PubtatorRetriever:
         top_k: int = 5,
         top_n: int = 3,
     ):
-        self.article_qdrant_manager = initialize_qdrant_manager(
+        self.article_vectordb_manager = initialize_vectordb_manager(
             collection_type=embeddings_collection_type
         )
         self.metadata_filter = MetadataFilter(
