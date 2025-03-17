@@ -75,8 +75,12 @@ class QdrantManager(BaseVectorDBHandler):
 
     def insert_vectors(self, vectors_payloads: List[Dict[str, Any]]):
         points = [
-            PointStruct(id=payload["chunk_id"], vector=vector, payload=payload)
-            for vector, payload in vectors_payloads
+            PointStruct(
+                id=vector_payload["payload"]["chunk_id"],
+                vector=vector_payload["embeddings"],
+                payload=vector_payload["payload"],
+            )
+            for vector_payload in vectors_payloads
         ]
         self.client.upsert(collection_name=self.collection_name, points=points)
 

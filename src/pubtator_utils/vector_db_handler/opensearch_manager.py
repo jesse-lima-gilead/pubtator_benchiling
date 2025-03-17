@@ -131,8 +131,10 @@ class OpenSearchManager(BaseVectorDBHandler):
         """
         try:
             actions = []
-            for vector, payload in vectors_payloads:
-                point_id = payload.get("chunk_id") or payload.get("point_id")
+            for vector_payload in vectors_payloads:
+                vector = vector_payload["embeddings"]
+                payload = vector_payload["payload"]
+                point_id = vector_payload["payload"]["chunk_id"]
                 if not point_id:
                     raise ValueError(
                         "Payload must include 'chunk_id' or 'point_id' as a unique identifier."

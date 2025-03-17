@@ -59,6 +59,7 @@ class ArticleProcessor:
         self.articles_summary_dir = paths_config["summary_path"]
         self.chunks_output_dir = paths_config["chunks_path"]
         self.embeddings_output_dir = paths_config["embeddings_path"]
+        self.articles_metadata_dir = paths_config["metadata_path"]
         self.file_handler = file_handler
         # self.s3_io_util = S3IOUtil()
 
@@ -211,16 +212,18 @@ class ArticleProcessor:
                 input_file_path = self.file_handler.get_file_path(
                     self.articles_input_dir, article_file
                 )
-                # input_file_path = f"{self.articles_input_dir}/{article_file}"
                 chunk_output_file_name = f"{article_file.split('.')[0]}.json"
                 chunks_output_path = self.file_handler.get_file_path(
                     self.chunks_output_dir, chunk_output_file_name
                 )
-                # chunks_output_path = (
-                #     f"{self.chunks_output_dir}/{article_file.split('.')[0]}.json"
-                # )
                 article_id = article_file.split(".")[0]
-
+                article_metadata_file_name = f"{article_id}_metadata.json"
+                article_metadata_file_path = self.file_handler.get_file_path(
+                    self.articles_metadata_dir, article_metadata_file_name
+                )
+                article_metadata_json = self.file_handler.read_json_file(
+                    article_metadata_file_path
+                )
                 # For Actual Processing
                 chunks = self.get_chunks_with_summary(
                     input_file_path=input_file_path, article_file=article_file
@@ -285,6 +288,9 @@ class ArticleProcessor:
                         },
                     }
 
+                    for key, value in article_metadata_json.items():
+                        chunk_details["payload"][key] = value
+
                     all_chunk_details.append(chunk_details)
 
                     # Insert into PostgreSQL
@@ -318,32 +324,51 @@ class ArticleProcessor:
                 self.file_handler.write_file_as_json(
                     chunks_output_path, all_chunk_details
                 )
-                # write_chunks_details_to_file(all_chunk_details, chunks_output_path)
                 logger.info(f"Chunks file saved to {chunks_output_path}")
 
     def get_chunks_embeddings_details(self, chunks: List[Dict], chunk_file_path: str):
         try:
             logger.info("Generating embeddings for the chunks")
-            model_info = get_model_info(self.embeddings_model)
-            merged_texts_with_sum = [f"{chunk['merged_text']}" for chunk in chunks]
+            # model_info = get_model_info(self.embeddings_model)
+            # merged_texts_with_sum = [f"{chunk['merged_text']}" for chunk in chunks]
+            chunk_texts = []
+            for chunk in chunks:
+                chunk_texts.append(
+                    chunk["merged_text"]
+                    if collection_type == "processed_pubmedbert"
+                    else chunk["payload"]["chunk_text"]
+                )
+
             embeddings = get_embeddings(
                 model_name=self.embeddings_model,
-                texts=merged_texts_with_sum,
+                texts=chunk_texts,
             )
-            embeddings_details = {
-                "file": chunk_file_path,
-                "chunks_count": len(merged_texts_with_sum),
-                "chunker_type": self.chunker,
-                "merger_type": self.merger,
-                "aioner_model": self.aioner_model,
-                "gnorm2_model": self.gnorm2_model,
-                "embeddings_model": self.embeddings_model,
-                "embeddings_model_token_limit": model_info[1],
-                "contains_summary": True,
-                "embeddings": embeddings,
-            }
-            # print(f"Embedding details in get_embeddings(): {embeddings_details}")
-            return embeddings_details
+
+            chunk_embedding_payload = []
+            for idx, chunk in enumerate(chunks):
+                cur_chunk_dic = {}
+                chunk_payload = chunk["payload"]
+                chunk_payload["merged_text"] = chunk["merged_text"]
+                cur_chunk_dic["payload"] = chunk_payload
+                cur_chunk_dic["embeddings"] = embeddings[idx].tolist()
+                chunk_embedding_payload.append(cur_chunk_dic)
+
+            return chunk_embedding_payload
+
+            # embeddings_details = {
+            #     "file": chunk_file_path,
+            #     "chunks_count": len(merged_texts_with_sum),
+            #     "chunker_type": self.chunker,
+            #     "merger_type": self.merger,
+            #     "aioner_model": self.aioner_model,
+            #     "gnorm2_model": self.gnorm2_model,
+            #     "embeddings_model": self.embeddings_model,
+            #     "embeddings_model_token_limit": model_info[1],
+            #     "contains_summary": True,
+            #     "embeddings": embeddings,
+            # }
+            # # print(f"Embedding details in get_embeddings(): {embeddings_details}")
+            # return embeddings_details
         except Exception as e:
             logger.error(f"Error while processing chunk: {e}")
             raise e
@@ -358,7 +383,7 @@ class ArticleProcessor:
         logger.info(f"Saving embeddings to file: {embeddings_file_path}")
         # embeddings_file_path = f"{self.embeddings_output_dir}/{embeddings_filename}"
         save_embeddings_details_to_json(
-            embeddings_details_list=[embeddings_details],
+            embeddings_details_list=embeddings_details,
             filename=embeddings_file_path,
             file_handler=self.file_handler,
         )
@@ -426,7 +451,7 @@ class ArticleProcessor:
         vector_db_params: dict = None,
         index_params: dict = None,
     ):
-        # Load the chunks file from local:
+        # Load the chunks file:
         for chunks_file in self.file_handler.list_files(self.chunks_output_dir):
             if chunks_file.endswith(".json"):
                 logger.info(f"Processing chunks file {chunks_file}...")
@@ -458,7 +483,6 @@ class ArticleProcessor:
         collection_type: str,
         store_embeddings_as_file: bool = True,
     ):
-        # Create Chunks of the Gnorm2 Annotated Articles and store them while storing logs in PostgreSQL DB
         logger.info("Creating Chunks...")
         self.process_chunks()
         logger.info("Chunks created successfully!")
@@ -545,7 +569,7 @@ if __name__ == "__main__":
     # Test Collection
     collection_type = "test"
 
-    store_embeddings_as_file = False
+    store_embeddings_as_file = True
     run_type = "all"  # "all" or "chunks" or "embeddings"
     run(
         run_type=run_type,

@@ -66,11 +66,11 @@ class PMCIngestor:
                 if metadata_storage_type == "file":
                     metadata_extractor.save_metadata_as_json()
                     logger.info(f"Metadata for {file} saved to file")
-                elif metadata_storage_type == "vector_db":
-                    metadata_extractor.save_metadata_to_vector_db(
-                        embeddings_model="pubmedbert"
-                    )
-                    logger.info(f"Metadata for {file} saved to Vector DB")
+                # elif metadata_storage_type == "vector_db":
+                #     metadata_extractor.save_metadata_to_vector_db(
+                #         embeddings_model="pubmedbert"
+                #     )
+                #     logger.info(f"Metadata for {file} saved to Vector DB")
                 else:
                     logger.error("Invalid metadata storage type provided")
 
@@ -169,7 +169,7 @@ if __name__ == "__main__":
         query=query,
         start_date=start_date,
         end_date=end_date,
-        article_ids=article_ids,
+        article_ids=sample_articles_id,
         retmax=retmax,
         metadata_storage_type="file",
     )

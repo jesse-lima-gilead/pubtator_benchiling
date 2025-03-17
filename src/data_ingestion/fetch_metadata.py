@@ -18,8 +18,8 @@ config_loader = YAMLConfigLoader()
 # Retrieve a specific config
 # # Docker Qdrant
 # vectordb_config = config_loader.get_config("vectordb")["qdrant"]
-# Cloud Qdrant
-vectordb_config = config_loader.get_config("vectordb")["qdrant_cloud"]
+# # Cloud Qdrant
+# vectordb_config = config_loader.get_config("vectordb")["qdrant_cloud"]
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -225,35 +225,8 @@ class MetadataExtractor:
         """Save the extracted metadata as a JSON file."""
         metadata = self.get_metadata()
 
-        self.file_handler.write_file_as_json(self.metadata_path, self.metadata)
-        logger.info(f"Metadata saved as JSON: {metadata}")
-        # with open(self.metadata_path, "w") as json_file:
-        #     json.dump(self.metadata, json_file, indent=4)
-
-    def save_metadata_to_vector_db(self, embeddings_model: str = "pubmedbert"):
-        """Save the extracted metadata to a vector database."""
-        metadata = self.get_metadata()
-
-        # Initialize the QdrantHandler
-        model_info = get_model_info(embeddings_model)
-        qdrant_handler = QdrantHandler(
-            collection_type="metadata", params=vectordb_config
-        )
-        qdrant_manager = qdrant_handler.get_qdrant_manager()
-
-        # Extract Fields from Metadata
-        title = metadata["article_meta"].get("title", "")
-        keywords = " ".join(metadata["article_meta"].get("keywords", []))
-        combined_text = f"{title} {keywords}"
-        combined_text_embeddings = get_embeddings(
-            model_name=model_info[0],
-            token_limit=model_info[1],
-            texts=[combined_text],
-        )[0]
-
         # Prepare the payload with other metadata fields
         payload = {
-            "point_id": str(uuid.uuid4()),
             "pmid": metadata.get("article_meta", {}).get("pmid", ""),
             "pmcid": metadata.get("article_meta", {}).get("pmcid", ""),
             "doi": metadata.get("article_meta", {}).get("doi", ""),
@@ -310,10 +283,93 @@ class MetadataExtractor:
             ),
         }
 
-        # print(payload)
+        self.file_handler.write_file_as_json(self.metadata_path, payload)
+        logger.info(f"Metadata saved as JSON: {payload}")
 
-        # Insert into Qdrant
-        qdrant_manager.insert_vector(vector=combined_text_embeddings, payload=payload)
+    # def save_metadata_to_vector_db(self, embeddings_model: str = "pubmedbert"):
+    #     """Save the extracted metadata to a vector database."""
+    #     metadata = self.get_metadata()
+    #
+    #     # Initialize the QdrantHandler
+    #     model_info = get_model_info(embeddings_model)
+    #     qdrant_handler = QdrantHandler(
+    #         collection_type="metadata", params=vectordb_config
+    #     )
+    #     qdrant_manager = qdrant_handler.get_qdrant_manager()
+    #
+    #     # Extract Fields from Metadata
+    #     title = metadata["article_meta"].get("title", "")
+    #     keywords = " ".join(metadata["article_meta"].get("keywords", []))
+    #     combined_text = f"{title} {keywords}"
+    #     combined_text_embeddings = get_embeddings(
+    #         model_name=model_info[0],
+    #         token_limit=model_info[1],
+    #         texts=[combined_text],
+    #     )[0]
+    #
+    #     # Prepare the payload with other metadata fields
+    #     payload = {
+    #         "point_id": str(uuid.uuid4()),
+    #         "pmid": metadata.get("article_meta", {}).get("pmid", ""),
+    #         "pmcid": metadata.get("article_meta", {}).get("pmcid", ""),
+    #         "doi": metadata.get("article_meta", {}).get("doi", ""),
+    #         "publisher-id": metadata.get("article_meta", {}).get("publisher-id", ""),
+    #         "title": metadata.get("article_meta", {}).get("title", ""),
+    #         "keywords": metadata.get("article_meta", {}).get("keywords", ""),
+    #         "authors": [
+    #             f"{author.get('given-names', '')} {author.get('surname', '')}"
+    #             for author in metadata.get("front", {}).get("authors", [])
+    #         ],
+    #         "journal": metadata.get("front", {})
+    #         .get("journal_metadata", {})
+    #         .get("journal-title", ""),
+    #         "publication_date": {
+    #             "day": metadata.get("front", {})
+    #             .get("publication_date", {})
+    #             .get("day", ""),
+    #             "month": metadata.get("front", {})
+    #             .get("publication_date", {})
+    #             .get("month", ""),
+    #             "year": metadata.get("front", {})
+    #             .get("publication_date", {})
+    #             .get("year", ""),
+    #         },
+    #         "license": metadata.get("front", {}).get("license", ""),
+    #         "references": [
+    #             {
+    #                 "id": ref.get("id", ""),
+    #                 "label": ref.get("label", ""),
+    #                 "publication_type": ref.get("publication-type", ""),
+    #                 "article_title": ref.get("article-title", ""),
+    #                 "source": ref.get("source", ""),
+    #                 "year": ref.get("year", ""),
+    #                 "volume": ref.get("volume", ""),
+    #                 "fpage": ref.get("fpage", ""),
+    #                 "lpage": ref.get("lpage", ""),
+    #                 "pub_id": {
+    #                     "doi": ref.get("pub-id", {}).get("doi", ""),
+    #                     "pmid": ref.get("pub-id", {}).get("pmid", ""),
+    #                 },
+    #                 "authors": [
+    #                     {
+    #                         "surname": author.get("surname", ""),
+    #                         "given_names": author.get("given-names", ""),
+    #                         "etal": author.get("etal", False),
+    #                     }
+    #                     for author in ref.get("authors", [])
+    #                 ],
+    #             }
+    #             for ref in metadata.get("back", {}).get("references", [])
+    #         ],
+    #         "competing_interests": metadata.get("back", {}).get(
+    #             "competing_interests", ""
+    #         ),
+    #     }
+    #
+    #     # print(payload)
+    #
+    #     # Insert into Qdrant
+    #     qdrant_manager.insert_vector(vector=combined_text_embeddings, payload=payload)
 
 
 if __name__ == "__main__":
