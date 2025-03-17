@@ -33,7 +33,7 @@ class MetadataFilter:
     ) -> List[str]:
         # Fetch points matching the payload filter from the metadata collection
 
-        matching_points = self.metadata_vectordb_manager.fetch_points_by_payload(
+        matching_points = self.metadata_vectordb_manager.search_vectors(
             payload_filter, limit=5000
         )
 

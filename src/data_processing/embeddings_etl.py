@@ -116,12 +116,12 @@ def run(collection_type: str = "processed_pubmedbert"):
 
 if __name__ == "__main__":
     # Processed Text Collection
-    # collection_type = "processed_pubmedbert"
+    collection_type = "processed_pubmedbert"
 
     # Baseline Text Collection
     # collection_type = "baseline"
 
     # Test Collection
-    collection_type = "test"
+    # collection_type = "test"
 
     run(collection_type=collection_type)

@@ -11,8 +11,12 @@ from src.data_retrieval.metadata_filter import MetadataFilter
 # Initialize the config loader
 config_loader = YAMLConfigLoader()
 
-# Retrieve a specific config
-vectordb_config = config_loader.get_config("vectordb")["qdrant"]
+# # Retrieve a specific config
+# # Retrieve vector db specific config
+# vectordb_config = config_loader.get_config("vectordb")["vector_db"]
+# vector_db_type = vectordb_config["type"]
+# vector_db_params = vectordb_config[vector_db_type]["vector_db_params"]
+#
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -23,33 +27,30 @@ class PubtatorRetriever:
     def __init__(
         self,
         embeddings_model: str = "pubmedbert",
-        embeddings_collection_type: str = "processed_pubmedbert",
-        metadata_collection_type: str = "metadata",
+        collection_type: str = "processed_pubmedbert",
         top_k: int = 5,
         top_n: int = 3,
     ):
-        self.article_vectordb_manager = initialize_vectordb_manager(
-            collection_type=embeddings_collection_type
-        )
-        self.metadata_filter = MetadataFilter(
-            metadata_collection_type=metadata_collection_type
+        self.vectordb_manager = initialize_vectordb_manager(
+            collection_type=collection_type
         )
         self.embeddings_model = embeddings_model
         self.top_k = top_k
         self.top_n = top_n
         logger.info(f"Initialized the retriever!")
 
-    def retrieve_matching_chunks(self, query_vector):
+    def retrieve_matching_chunks(self, query_vector, metadata_filters):
         # Search across chunks, retrieve a larger set to ensure diversity
-        retrieved_chunks = self.article_qdrant_manager.search_vectors(
+        retrieved_chunks = self.vectordb_manager.search_with_filters(
             query_vector=query_vector,
-            limit=50,  # Fetch a higher number to ensure we meet distinct article criteria
+            filters=metadata_filters,
+            top_k=50,  # Fetch a higher number to ensure we meet distinct article criteria
         )
 
         # Collect chunks by article_id and ensure we have chunks from at least N distinct articles
         chunks_by_article = {}
         for chunk in retrieved_chunks:
-            article_id = chunk.payload["article_id"]
+            article_id = chunk["metadata"].get("article_id", [])
             if article_id not in chunks_by_article:
                 chunks_by_article[article_id] = []
             if len(chunks_by_article[article_id]) < self.top_k:
@@ -59,47 +60,8 @@ class PubtatorRetriever:
             if len(chunks_by_article) >= self.top_n:
                 break
 
-        # print(chunks_by_article)
+        logger.info(f"Fetched article_ids: {list(chunks_by_article.keys())}")
         return chunks_by_article
-
-    def retrieve_filtered_chunks(self, query_vector, metadata_filters):
-        # Step 1: Retrieve chunks ensuring at least N distinct articles
-        matching_chunks = self.retrieve_matching_chunks(query_vector)
-
-        # Get article IDs of retrieved chunks
-        article_ids_from_match = [
-            aid.split("_")[1] for aid in list(matching_chunks.keys())
-        ]
-        print(f"Article IDs from similarity: {article_ids_from_match}")
-
-        if len(metadata_filters) > 0:
-            # Step 2: Filter articles by metadata criteria
-            article_ids_from_metadata_filter = (
-                self.metadata_filter.get_article_ids_filtered_by_metadata(
-                    metadata_filters
-                )
-            )
-            print(f"Article IDs from metadata: {article_ids_from_metadata_filter}")
-
-            # Step 3: Take intersection of filtered article IDs
-            final_article_ids = [
-                "PMC_" + aid
-                for aid in list(
-                    set(article_ids_from_match) & set(article_ids_from_metadata_filter)
-                )
-            ]
-            print(f"Matching Articles Ids: {final_article_ids}")
-        else:
-            final_article_ids = ["PMC_" + aid for aid in article_ids_from_match]
-            print(f"Matching Articles Ids: {final_article_ids}")
-
-        # Filter the chunks to keep only those from articles passing metadata criteria
-        # final_chunks_by_article = {aid: chunks_by_article[aid] for aid in final_article_ids}
-
-        final_chunks_by_article = {
-            aid: matching_chunks[aid] for aid in final_article_ids
-        }
-        return final_chunks_by_article
 
 
 def search(
@@ -109,7 +71,7 @@ def search(
     user_query_embeddings = get_user_query_embeddings(embeddings_model, user_query)
 
     # Get the relevant chunks from Vector store filtered by Metadata Filters
-    final_chunks_by_article = pubtator_retriever.retrieve_filtered_chunks(
+    final_chunks_by_article = pubtator_retriever.retrieve_matching_chunks(
         user_query_embeddings, metadata_filters
     )
 
@@ -118,8 +80,7 @@ def search(
 
 if __name__ == "__main__":
     embeddings_model = "pubmedbert"
-    embeddings_collection_type = "processed_pubmedbert"
-    metadata_collection_type = "metadata"
+    collection_type = "processed_pubmedbert"
     top_k = 5
     top_n = 3
 
@@ -134,7 +95,20 @@ if __name__ == "__main__":
 
     metadata_filters = {
         # "journal": "Nature",
+        "years_after": 2005,
+        # "title": "Lung cancer promotion by air pollution",
+        # "authors": "Wiliam Hil",
     }
+
+    # metadata_filters = {
+    #     "journal": "Nature",  # Pre-filter (Low Cardinality)
+    #     "year": 2022,  # Exact match
+    #     "years_after": 2015,  # Range filter: year > 2015
+    #     "years_before": 2020,  # Range filter: year < 2020
+    #     "authors": "John Doe",  # Post-filter (High Cardinality)
+    #     "keywords": "gene therapy",  # Post-filter (High Cardinality)
+    #     "title": "Cancer Treatment"  # Post-filter (High Cardinality)
+    # }
 
     # Get the relevant chunks from Vector store filtered by Metadata Filters
     final_chunks_by_article = search(

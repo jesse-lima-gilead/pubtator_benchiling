@@ -108,6 +108,11 @@ class QdrantManager(BaseVectorDBHandler):
 
         return search_results
 
+    def search_with_filters(
+        self, query_vector: List[float], top_k: int, filters: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        pass
+
     def fetch_points_by_payload(
         self, payload_filter: Dict[str, Any], limit: int = 10
     ) -> List[Dict[str, Any]]:

@@ -35,6 +35,25 @@ class BaseVectorDBHandler(ABC):
         pass
 
     @abstractmethod
+    def search_with_filters(
+        self, query_vector: List[float], top_k: int, filters: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """
+        Search vectors with additional filters.
+
+        :param query_vector: The vector to search for.
+        :param top_k: Number of top results to return.
+        :param filters: Dictionary of field-based filters (e.g., {"year": 2024, "journal": "Nature"}).
+        :return: List of matching results.
+        """
+        pass
+
+    @abstractmethod
     def delete_index(self):
         """Delete the collection or index."""
+        pass
+
+    @abstractmethod
+    def fuzzy_match(self, query: str, match_list: List[str], threshold: int):
+        """Fuzzy match the query."""
         pass

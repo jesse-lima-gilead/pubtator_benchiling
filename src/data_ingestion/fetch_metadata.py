@@ -144,8 +144,10 @@ class MetadataExtractor:
                 if pub_id.text
             }
 
-            # Extract author information from <person-group>
+            # Extract authors
             authors = []
+
+            # Case 1: Structured author names
             person_group = citation.find(".//person-group[@person-group-type='author']")
             if person_group is not None:
                 for name in person_group.findall(".//name"):
@@ -156,6 +158,25 @@ class MetadataExtractor:
                     authors.append(author_data)
                 if person_group.find(".//etal") is not None:
                     authors.append({"etal": True})
+
+            # Case 2: Authors embedded in citation text
+            elif citation.text:
+                # Extract text before the first "(" which likely contains author names
+                author_text = (
+                    citation.text.split("(")[0].strip()
+                    if "(" in citation.text
+                    else citation.text.strip()
+                )
+                authors_list = [a.strip() for a in author_text.split(";") if a.strip()]
+                for author in authors_list:
+                    parts = author.split()
+                    if len(parts) > 1:
+                        authors.append(
+                            {"surname": parts[-1], "given-names": " ".join(parts[:-1])}
+                        )
+                    else:
+                        authors.append({"surname": author, "given-names": ""})
+
             ref_data["authors"] = authors
 
             # Append the reference data if not empty
@@ -224,6 +245,33 @@ class MetadataExtractor:
     def save_metadata_as_json(self):
         """Save the extracted metadata as a JSON file."""
         metadata = self.get_metadata()
+        references = [
+            {
+                "id": ref.get("id", ""),
+                "label": ref.get("label", ""),
+                "publication_type": ref.get("publication-type", ""),
+                "article_title": ref.get("article-title", ""),
+                "source": ref.get("source", ""),
+                "year": ref.get("year", ""),
+                "volume": ref.get("volume", ""),
+                "fpage": ref.get("fpage", ""),
+                "lpage": ref.get("lpage", ""),
+                "pub_id": {
+                    "doi": ref.get("pub-id", {}).get("doi", ""),
+                    "pmid": ref.get("pub-id", {}).get("pmid", ""),
+                },
+                # "authors": [
+                #     {
+                #         "surname": author.get("surname", ""),
+                #         "given_names": author.get("given-names", ""),
+                #         "etal": author.get("etal", False),
+                #     }
+                #     for author in ref.get("authors", [])
+                # ],
+                "authors": ref.get("authors", []),
+            }
+            for ref in metadata.get("back", {}).get("references", [])
+        ]
 
         # Prepare the payload with other metadata fields
         payload = {
@@ -252,39 +300,15 @@ class MetadataExtractor:
                 .get("year", ""),
             },
             "license": metadata.get("front", {}).get("license", ""),
-            "references": [
-                {
-                    "id": ref.get("id", ""),
-                    "label": ref.get("label", ""),
-                    "publication_type": ref.get("publication-type", ""),
-                    "article_title": ref.get("article-title", ""),
-                    "source": ref.get("source", ""),
-                    "year": ref.get("year", ""),
-                    "volume": ref.get("volume", ""),
-                    "fpage": ref.get("fpage", ""),
-                    "lpage": ref.get("lpage", ""),
-                    "pub_id": {
-                        "doi": ref.get("pub-id", {}).get("doi", ""),
-                        "pmid": ref.get("pub-id", {}).get("pmid", ""),
-                    },
-                    "authors": [
-                        {
-                            "surname": author.get("surname", ""),
-                            "given_names": author.get("given-names", ""),
-                            "etal": author.get("etal", False),
-                        }
-                        for author in ref.get("authors", [])
-                    ],
-                }
-                for ref in metadata.get("back", {}).get("references", [])
-            ],
+            "references_count": len(references),
+            "references": references,
             "competing_interests": metadata.get("back", {}).get(
                 "competing_interests", ""
             ),
         }
 
         self.file_handler.write_file_as_json(self.metadata_path, payload)
-        logger.info(f"Metadata saved as JSON: {payload}")
+        logger.info(f"Metadata saved as JSON")
 
     # def save_metadata_to_vector_db(self, embeddings_model: str = "pubmedbert"):
     #     """Save the extracted metadata to a vector database."""

@@ -263,11 +263,11 @@ class ArticleProcessor:
                             "chunk_id": chunk_id,
                             "chunk_name": chunk_name,
                             "chunk_text": chunk_text,
-                            "chunk_annotations": chunk_annotations,
+                            # "chunk_annotations": chunk_annotations,
                             "chunk_length": chunk_length,
                             "token_count": token_count,
                             "chunk_annotations_count": chunk_annotations_count,
-                            "chunk_annotations_ids": chunk_annotations_ids,
+                            # "chunk_annotations_ids": chunk_annotations_ids,
                             "genes": annotations_per_bioconcept["Gene"],
                             "species": annotations_per_bioconcept["Species"],
                             "strains": annotations_per_bioconcept["Strain"],
@@ -276,49 +276,50 @@ class ArticleProcessor:
                             "diseases": annotations_per_bioconcept["Disease"],
                             "chemicals": annotations_per_bioconcept["Chemical"],
                             "variants": annotations_per_bioconcept["Variant"],
-                            "chunk_offset": chunk_offset,
-                            "chunk_infons": chunk_infons,
-                            "chunker_type": chunker_type,
-                            "merger_type": merger_type,
-                            "embeddings_model": embeddings_model,
-                            "aioner_model": aioner_model,
-                            "gnorm2_model": gnorm2_model,
+                            # "chunk_offset": chunk_offset,
+                            # "chunk_infons": chunk_infons,
+                            # "chunker_type": chunker_type,
+                            # "merger_type": merger_type,
+                            # "embeddings_model": embeddings_model,
+                            # "aioner_model": aioner_model,
+                            # "gnorm2_model": gnorm2_model,
                             "article_id": article_id,
                             "article_summary": article_summary,
                         },
                     }
 
+                    # Add metadata to the payload
                     for key, value in article_metadata_json.items():
                         chunk_details["payload"][key] = value
 
                     all_chunk_details.append(chunk_details)
 
-                    # Insert into PostgreSQL
-                    chunk_record = ChunkWithAnnotations(
-                        article_id=article_id,
-                        chunk_id=chunk_id,
-                        chunk_sequence=chunk_sequence,
-                        chunk_name=chunk_name,
-                        chunk_length=chunk_length,
-                        token_count=token_count,
-                        chunk_annotations_count=chunk_annotations_count,
-                        chunk_annotations_ids=chunk_annotations_ids,
-                        genes=annotations_per_bioconcept["Gene"],
-                        species=annotations_per_bioconcept["Species"],
-                        cell_lines=annotations_per_bioconcept["CellLine"],
-                        strains=annotations_per_bioconcept["Strain"],
-                        diseases=annotations_per_bioconcept["Disease"],
-                        chemicals=annotations_per_bioconcept["Chemical"],
-                        variants=annotations_per_bioconcept["Variant"],
-                        chunk_offset=chunk_offset,
-                        chunk_infons=chunk_infons,
-                        chunker_type=chunker_type,
-                        merger_type=merger_type,
-                        aioner_model=aioner_model,
-                        gnorm2_model=gnorm2_model,
-                    )
-                    session.add(chunk_record)
-                    session.commit()
+                    # # Insert into PostgreSQL
+                    # chunk_record = ChunkWithAnnotations(
+                    #     article_id=article_id,
+                    #     chunk_id=chunk_id,
+                    #     chunk_sequence=chunk_sequence,
+                    #     chunk_name=chunk_name,
+                    #     chunk_length=chunk_length,
+                    #     token_count=token_count,
+                    #     chunk_annotations_count=chunk_annotations_count,
+                    #     chunk_annotations_ids=chunk_annotations_ids,
+                    #     genes=annotations_per_bioconcept["Gene"],
+                    #     species=annotations_per_bioconcept["Species"],
+                    #     cell_lines=annotations_per_bioconcept["CellLine"],
+                    #     strains=annotations_per_bioconcept["Strain"],
+                    #     diseases=annotations_per_bioconcept["Disease"],
+                    #     chemicals=annotations_per_bioconcept["Chemical"],
+                    #     variants=annotations_per_bioconcept["Variant"],
+                    #     chunk_offset=chunk_offset,
+                    #     chunk_infons=chunk_infons,
+                    #     chunker_type=chunker_type,
+                    #     merger_type=merger_type,
+                    #     aioner_model=aioner_model,
+                    #     gnorm2_model=gnorm2_model,
+                    # )
+                    # session.add(chunk_record)
+                    # session.commit()
 
                 # Save chunks to file
                 self.file_handler.write_file_as_json(
@@ -329,8 +330,6 @@ class ArticleProcessor:
     def get_chunks_embeddings_details(self, chunks: List[Dict], chunk_file_path: str):
         try:
             logger.info("Generating embeddings for the chunks")
-            # model_info = get_model_info(self.embeddings_model)
-            # merged_texts_with_sum = [f"{chunk['merged_text']}" for chunk in chunks]
             chunk_texts = []
             for chunk in chunks:
                 chunk_texts.append(
@@ -355,20 +354,6 @@ class ArticleProcessor:
 
             return chunk_embedding_payload
 
-            # embeddings_details = {
-            #     "file": chunk_file_path,
-            #     "chunks_count": len(merged_texts_with_sum),
-            #     "chunker_type": self.chunker,
-            #     "merger_type": self.merger,
-            #     "aioner_model": self.aioner_model,
-            #     "gnorm2_model": self.gnorm2_model,
-            #     "embeddings_model": self.embeddings_model,
-            #     "embeddings_model_token_limit": model_info[1],
-            #     "contains_summary": True,
-            #     "embeddings": embeddings,
-            # }
-            # # print(f"Embedding details in get_embeddings(): {embeddings_details}")
-            # return embeddings_details
         except Exception as e:
             logger.error(f"Error while processing chunk: {e}")
             raise e
@@ -425,22 +410,10 @@ class ArticleProcessor:
             chunk_payload = chunk["payload"]
             chunk_payload["merged_text"] = chunk["merged_text"]
 
-            # # Add the Embeddings and the Payload to a batch
-            # batch.append((chunk_embeddings, chunk_payload))
-
             # Insert into Vector DB
             vector_db_manager.insert_vector(
                 vector=chunk_embeddings, payload=chunk_payload
             )
-
-            #     # Insert in batches
-            #     if len(batch) >= batch_size:
-            #         qdrant_manager.insert_vectors(batch)
-            #         batch = []
-            #
-            # # Insert the remaining batch
-            # if batch:
-            #     qdrant_manager.insert_vectors(batch)
 
     def process_embeddings(
         self,
@@ -561,13 +534,13 @@ def run(
 
 if __name__ == "__main__":
     # Processed Text Collection
-    # collection_type = "processed_pubmedbert"
+    collection_type = "processed_pubmedbert"
 
     # Baseline Text Collection
     # collection_type = "baseline"
 
     # Test Collection
-    collection_type = "test"
+    # collection_type = "test"
 
     store_embeddings_as_file = True
     run_type = "all"  # "all" or "chunks" or "embeddings"

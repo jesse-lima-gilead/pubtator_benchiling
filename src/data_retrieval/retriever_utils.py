@@ -19,7 +19,7 @@ logger = logger_instance.get_logger()
 
 
 def initialize_vectordb_manager(collection_type: str):
-    # Initialize the QdrantHandler
+    # Initialize the VectorDBHandler
     logger.info(f"Initializing VectorDB manager for collection type: {collection_type}")
     index_params = vectordb_config[vector_db_type]["index_params"][collection_type]
 
@@ -64,4 +64,4 @@ if __name__ == "__main__":
     embeddings_model = "pubmedbert"
     user_query = "lung cancer risk from air pollution"
     query_embeddings = get_embeddings(model_name=embeddings_model, texts=[user_query])
-    print(query_embeddings)
+    print(query_embeddings[0])

@@ -1,6 +1,6 @@
 import os
 from typing import Dict, List, Any
-
+from rapidfuzz import fuzz
 from dotenv import load_dotenv
 from opensearchpy import OpenSearch, exceptions, helpers, RequestsHttpConnection
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
@@ -201,6 +201,95 @@ class OpenSearchManager(BaseVectorDBHandler):
             search_results.append(op_dic)
 
         return search_results
+
+    def fuzzy_match(self, query: str, match_list: List[str], threshold: int = 70):
+        """
+        Performs fuzzy matching for the given author against a list of authors.
+        Returns True if a match is found with a similarity above the threshold.
+        """
+        for entry in match_list:
+            if fuzz.ratio(query.lower(), entry.lower()) >= threshold:
+                return True
+        return False
+
+    def search_with_filters(
+        self, query_vector: List[float], top_k: int, filters: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """Search with pre-filtering and post-filtering in OpenSearch"""
+
+        # Pre-Filtering (Low Cardinality Fields)
+        filter_conditions = []
+
+        if journal := filters.get("journal"):
+            filter_conditions.append({"term": {"journal.keyword": journal}})
+
+        if year := filters.get("year"):
+            filter_conditions.append({"term": {"publication_date.year": year}})
+
+        if years_after := filters.get("years_after"):
+            filter_conditions.append(
+                {"range": {"publication_date.year": {"gte": years_after}}}
+            )
+
+        if years_before := filters.get("years_before"):
+            filter_conditions.append(
+                {"range": {"publication_date.year": {"lte": years_before}}}
+            )
+
+        # Construct Query
+        base_query = {
+            "size": top_k * 2,
+            "query": {
+                "bool": {
+                    "must": [
+                        {"knn": {"vector": {"vector": query_vector, "k": top_k * 2}}}
+                    ],
+                    "filter": filter_conditions,
+                }
+            },
+            "_source": [
+                "article_id",
+                "title",
+                "journal",
+                "publication_date",
+                "authors",
+                "chunk_text",
+                "vector",
+            ],
+        }
+
+        # Fuzzy match for title in OpenSearch
+        if title := filters.get("title"):
+            base_query["query"]["bool"].setdefault("must", []).append(
+                {"match": {"title": {"query": title, "fuzziness": "AUTO"}}}
+            )
+
+        # Execute OpenSearch Query
+        response = self.client.search(index=self.index_name, body=base_query)
+
+        # Convert response to list of results
+        results = [
+            {
+                "id": hit["_id"],
+                "score": hit["_score"],
+                "metadata": {k: v for k, v in hit["_source"].items() if k != "vector"},
+            }
+            for hit in response["hits"]["hits"]
+        ]
+
+        # Post-Filtering (High Cardinality: Authors)
+        if authors := filters.get("authors"):
+            logger.info("Inside post-filtering")
+            results = [
+                res
+                for res in results
+                if self.fuzzy_match(
+                    query=authors, match_list=res["metadata"].get("authors", [])
+                )
+            ]
+
+        # Return top_k results after post-filtering
+        return results[:top_k]
 
     def delete_index(self):
         """
