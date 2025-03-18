@@ -6,17 +6,9 @@ from src.data_retrieval.retriever_utils import (
     initialize_vectordb_manager,
     get_user_query_embeddings,
 )
-from src.data_retrieval.metadata_filter import MetadataFilter
 
 # Initialize the config loader
 config_loader = YAMLConfigLoader()
-
-# # Retrieve a specific config
-# # Retrieve vector db specific config
-# vectordb_config = config_loader.get_config("vectordb")["vector_db"]
-# vector_db_type = vectordb_config["type"]
-# vector_db_params = vectordb_config[vector_db_type]["vector_db_params"]
-#
 
 # Initialize the logger
 logger_instance = SingletonLogger()
