@@ -291,6 +291,59 @@ class OpenSearchManager(BaseVectorDBHandler):
         # Return top_k results after post-filtering
         return results[:top_k]
 
+    def get_distinct_values(self, field_name: str) -> List[Dict[str, Any]]:
+        """Retrieve unique values for a given filter, sorted by count."""
+        field_path = (
+            f"{field_name}.keyword"
+            if field_name not in ["year", "publication_date.year"]
+            else "publication_date.year.keyword"
+        )
+
+        # query = {
+        #     "size": 0,
+        #     "aggs": {
+        #         "distinct_values": {
+        #             "terms": {"field": field_path, "size": 1000, "order": {"article_count": "desc"}},
+        #             "aggs": {
+        #                 "article_count": {"cardinality": {"field": "article_id.keyword"}}
+        #             }
+        #         }
+        #     }
+        # }
+
+        query = {
+            "size": 0,
+            "aggs": {
+                "distinct_values": {
+                    "terms": {"field": field_path, "size": 1000},
+                    "aggs": {
+                        "article_count": {
+                            "cardinality": {"field": "article_id.keyword"}
+                        }
+                    },
+                }
+            },
+        }
+
+        response = self.client.search(index=self.index_name, body=query)
+
+        # return [
+        #     {"value": bucket["key"], "count": bucket["doc_count"]}
+        #     for bucket in response["aggregations"]["distinct_values"]["buckets"]
+        # ]
+
+        return sorted(
+            [
+                {
+                    f"{field_name}": bucket["key"],
+                    "articles_count": bucket["article_count"]["value"],
+                }
+                for bucket in response["aggregations"]["distinct_values"]["buckets"]
+            ],
+            key=lambda x: x["articles_count"],
+            reverse=True,
+        )
+
     def delete_index(self):
         """
         Deletes the OpenSearch index.

@@ -63,6 +63,12 @@ class PubtatorRetriever:
         logger.info(f"Fetched article_ids: {list(chunks_by_article.keys())}")
         return chunks_by_article
 
+    def get_distinct_field_values(self, field_name: str):
+        distinct_values = self.vectordb_manager.get_distinct_values(
+            field_name=field_name
+        )
+        return distinct_values
+
 
 def search(
     user_query: str, metadata_filters: dict, embeddings_model: str = "pubmedbert"
@@ -76,6 +82,12 @@ def search(
     )
 
     return final_chunks_by_article
+
+
+def get_distinct_values(field_name: str):
+    pubtator_retriever = PubtatorRetriever()
+    distinct_values = pubtator_retriever.get_distinct_field_values(field_name)
+    return distinct_values
 
 
 if __name__ == "__main__":

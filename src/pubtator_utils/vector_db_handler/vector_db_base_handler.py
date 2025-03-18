@@ -57,3 +57,8 @@ class BaseVectorDBHandler(ABC):
     def fuzzy_match(self, query: str, match_list: List[str], threshold: int):
         """Fuzzy match the query."""
         pass
+
+    @abstractmethod
+    def get_distinct_values(self, field_name: str) -> List[Dict[str, Any]]:
+        """Get distinct values for a field."""
+        pass

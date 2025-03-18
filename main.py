@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # Include routers
-app.include_router(ingestion_pipeline_routes.router, prefix="")
+# app.include_router(ingestion_pipeline_routes.router, prefix="")
 app.include_router(query_routes.router, prefix="")
 
 # Example usage of the logger in main.py

@@ -39,27 +39,6 @@ def get_user_query_embeddings(embeddings_model: str, user_query: str):
     return query_vector.squeeze(0).tolist()
 
 
-def parse_results(user_query, result):
-    parsed_output = []
-    for article_id, points in result.items():
-        # parsed_output[article_id] = []
-
-        for point in points:
-            payload = point.payload  # Access as attribute instead of dict key
-
-            # Extract the desired fields from the payload
-            entry = {
-                "user_query": user_query,
-                "article_id": article_id,
-                "chunk_id": payload["chunk_id"],
-                "chunk_text": payload["chunk_text"],
-                "merged_text": payload["merged_text"],
-                "chunk_score": point.score,  # Access score as attribute
-            }
-            parsed_output.append(entry)
-    return parsed_output
-
-
 if __name__ == "__main__":
     embeddings_model = "pubmedbert"
     user_query = "lung cancer risk from air pollution"

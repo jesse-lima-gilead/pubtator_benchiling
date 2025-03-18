@@ -29,10 +29,10 @@ run_commands.txt
 src/misc/
 
 # FastAPI Endpoint Code
-src/pydantic_models/
-src/routes/
-src/services/
-main.py
+#src/pydantic_models/
+#src/routes/
+#src/services/
+#main.py
 
 #Extra Folders
 qdrant_storage/
