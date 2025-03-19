@@ -157,6 +157,7 @@ if __name__ == "__main__":
         + dataset_config["enhanced_golden_dataset_article_ids"]
         + dataset_config["litqa_dataset_article_ids"]
         + dataset_config["poc_dataset_article_ids"]
+        + dataset_config["thalidomide_articles_ids"]
     )
 
     sample_articles_id = ["2361529", "2480972"]
@@ -169,7 +170,7 @@ if __name__ == "__main__":
         query=query,
         start_date=start_date,
         end_date=end_date,
-        article_ids=sample_articles_id,
+        article_ids=article_ids,
         retmax=retmax,
         metadata_storage_type="file",
     )

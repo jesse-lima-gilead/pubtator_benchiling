@@ -73,6 +73,8 @@ class SummarizeArticle:
             response_content = llm_summary_response.content
             print(response_content)
 
+            # return response_content
+
             try:
                 # Extract the JSON block using regex
                 match = re.search(

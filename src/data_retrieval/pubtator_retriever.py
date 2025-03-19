@@ -21,7 +21,7 @@ class PubtatorRetriever:
         embeddings_model: str = "pubmedbert",
         collection_type: str = "processed_pubmedbert",
         top_k: int = 5,
-        top_n: int = 3,
+        top_n: int = 5,
     ):
         self.vectordb_manager = initialize_vectordb_manager(
             collection_type=collection_type
@@ -36,7 +36,7 @@ class PubtatorRetriever:
         retrieved_chunks = self.vectordb_manager.search_with_filters(
             query_vector=query_vector,
             filters=metadata_filters,
-            top_k=50,  # Fetch a higher number to ensure we meet distinct article criteria
+            top_k=100,  # Fetch a higher number to ensure we meet distinct article criteria
         )
 
         # Collect chunks by article_id and ensure we have chunks from at least N distinct articles
@@ -98,10 +98,10 @@ if __name__ == "__main__":
     user_query = user_queries[1]
 
     metadata_filters = {
-        # "journal": "Nature",
+        "journal": "Nature",
         "years_after": 2005,
-        # "title": "Lung cancer promotion by air pollution",
-        # "authors": "Wiliam Hil",
+        "title": "Lung cancer promotion by air pollution",
+        "authors": "Wiliam Hil",
     }
 
     # metadata_filters = {
