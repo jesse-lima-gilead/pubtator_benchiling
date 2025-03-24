@@ -66,11 +66,6 @@ class PMCIngestor:
                 if metadata_storage_type == "file":
                     metadata_extractor.save_metadata_as_json()
                     logger.info(f"Metadata for {file} saved to file")
-                # elif metadata_storage_type == "vector_db":
-                #     metadata_extractor.save_metadata_to_vector_db(
-                #         embeddings_model="pubmedbert"
-                #     )
-                #     logger.info(f"Metadata for {file} saved to Vector DB")
                 else:
                     logger.error("Invalid metadata storage type provided")
 
@@ -117,15 +112,15 @@ class PMCIngestor:
         retmax: int = 50,
         metadata_storage_type: str = "file",
     ):
-        self.pmc_articles_extractor(
-            query=query,
-            article_ids=article_ids,
-            start_date=start_date,
-            end_date=end_date,
-            retmax=retmax,
-        )
+        # self.pmc_articles_extractor(
+        #     query=query,
+        #     article_ids=article_ids,
+        #     start_date=start_date,
+        #     end_date=end_date,
+        #     retmax=retmax,
+        # )
         self.articles_metadata_extractor(metadata_storage_type=metadata_storage_type)
-        self.pmc_to_bioc_converter()
+        # self.pmc_to_bioc_converter()
         # self.prettify_bioc_xml()
         # self.articles_summarizer()
 
@@ -154,9 +149,6 @@ if __name__ == "__main__":
     dataset_config = config_loader.get_config("curated_dataset")
     article_ids = (
         dataset_config["golden_dataset_article_ids"]
-        + dataset_config["enhanced_golden_dataset_article_ids"]
-        + dataset_config["litqa_dataset_article_ids"]
-        + dataset_config["poc_dataset_article_ids"]
         + dataset_config["thalidomide_articles_ids"]
     )
 

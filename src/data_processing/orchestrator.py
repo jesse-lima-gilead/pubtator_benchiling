@@ -543,7 +543,7 @@ if __name__ == "__main__":
     # collection_type = "test"
 
     store_embeddings_as_file = True
-    run_type = "all"  # "all" or "chunks" or "embeddings"
+    run_type = "embeddings"  # "all" or "chunks" or "embeddings"
     run(
         run_type=run_type,
         collection_type=collection_type,

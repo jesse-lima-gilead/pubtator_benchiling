@@ -223,6 +223,9 @@ class OpenSearchManager(BaseVectorDBHandler):
         if journal := filters.get("journal"):
             filter_conditions.append({"term": {"journal.keyword": journal}})
 
+        if article_type := filters.get("article_type"):
+            filter_conditions.append({"term": {"article_type.keyword": article_type}})
+
         if year := filters.get("year"):
             filter_conditions.append({"term": {"publication_date.year": year}})
 
