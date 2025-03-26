@@ -1,5 +1,3 @@
-from src.pubtator_utils.prompts_handler.PromptBuilder import PromptBuilder
-
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
 from src.data_retrieval.retriever_utils import (

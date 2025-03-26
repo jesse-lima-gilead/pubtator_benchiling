@@ -1,9 +1,9 @@
 storage:
   type: "local"  # Change to "s3" for S3
   local:
-    pmc_path: "../../data/staging/pmc_xml"
-    bioc_path: "../../data/staging/bioc_xml"
-    metadata_path: "../../data/articles_metadata/metadata"
+    pmc_path: "../../data/staging/thalidomide_full_pmc_xml"
+    bioc_path: "../../data/staging/thalidomide_full_bioc_xml"
+    metadata_path: "../../data/articles_metadata/thalidomide_metadata"
     aioner_path: "../../data/ner_processed/aioner_annotated"
     gnorm2_path: "../../data/ner_processed/gnorm2_annotated"
     nlmchem_path: "../../data/ner_processed/nlmchem_annotated"
