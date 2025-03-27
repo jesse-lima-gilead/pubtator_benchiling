@@ -39,26 +39,27 @@ class EmbeddingsLoader:
 
     def load_embeddings(self):
         for file in self.file_handler.list_files(self.embeddings_dir):
-            logger.info(f"Loading {file} into {self.vector_db_type}")
-            embeddings_file_path = self.file_handler.get_file_path(
-                self.embeddings_dir, file
-            )
-
-            try:
-                embeddings_file_data = self.file_handler.read_json_file(
-                    embeddings_file_path
+            if file.endswith(".json"):
+                logger.info(f"Loading {file} into {self.vector_db_type}")
+                embeddings_file_path = self.file_handler.get_file_path(
+                    self.embeddings_dir, file
                 )
-                if not isinstance(embeddings_file_data, list):
-                    logger.warning(
-                        f"Unexpected data format in {file}. Expected list of vectors."
-                    )
-                    continue
 
-                self.vector_db_manager.insert_vectors(embeddings_file_data)
-            except json.JSONDecodeError:
-                logger.error(f"Failed to parse JSON in file: {file}")
-            except Exception as e:
-                logger.error(f"Error processing file {file}: {e}")
+                try:
+                    embeddings_file_data = self.file_handler.read_json_file(
+                        embeddings_file_path
+                    )
+                    if not isinstance(embeddings_file_data, list):
+                        logger.warning(
+                            f"Unexpected data format in {file}. Expected list of vectors."
+                        )
+                        continue
+
+                    self.vector_db_manager.bulk_insert(embeddings_file_data)
+                except json.JSONDecodeError:
+                    logger.error(f"Failed to parse JSON in file: {file}")
+                except Exception as e:
+                    logger.error(f"Error processing file {file}: {e}")
 
 
 def run(collection_type: str = "processed_pubmedbert"):

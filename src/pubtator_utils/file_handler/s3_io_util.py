@@ -13,7 +13,8 @@ logger = logger_instance.get_logger()
 config_loader = YAMLConfigLoader()
 
 # Retrieve a specific config
-aws_s3_config = config_loader.get_config("aws")["aws"]["s3"]
+aws_platform_type = config_loader.get_config("aws")["aws"]["platform_type"]
+aws_s3_config = config_loader.get_config("aws")["aws"][aws_platform_type]["s3"]
 
 
 class S3IOUtil:
@@ -143,25 +144,3 @@ class S3IOUtil:
             logger.info(f"Failed to move file: {e}")
             return False
         return True
-
-
-# if __name__ == "__main__":
-#     s3_util = S3IOUtil()
-#
-#     # Upload a file
-#     s3_util.upload_file("../../data/bioc_xml/PMC-31023335.xml", "bioc_xml/PMC-31023335.xml")
-#
-#     # Download a file
-#     s3_util.download_file("s3-key-name.txt", "path/to/local/file.txt")
-#
-#     # List files
-#     s3_util.list_files()
-#
-#     # Check if a file exists
-#     s3_util.file_exists("s3-key-name.txt")
-#
-#     # Delete a file
-#     s3_util.delete_file("s3-key-name.txt")
-#
-#     # Copy a file from another bucket
-#     s3_util.copy_file("source-bucket", "source-key.txt", "destination-key.txt")

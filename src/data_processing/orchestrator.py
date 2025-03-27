@@ -28,12 +28,6 @@ from src.pubtator_utils.logs_handler.logger import SingletonLogger
 # Initialize the config loader
 config_loader = YAMLConfigLoader()
 
-# Retrieve a specific config
-# # Docker Qdrant
-# vectordb_config = config_loader.get_config("vectordb")["qdrant"]
-# # Cloud Qdrant
-# vectordb_config = config_loader.get_config("vectordb")["qdrant_cloud"]
-
 # Initialize the logger
 logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()

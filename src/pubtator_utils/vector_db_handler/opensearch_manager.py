@@ -1,5 +1,7 @@
 import os
 from typing import Dict, List, Any
+import boto3
+from requests_aws4auth import AWS4Auth
 from rapidfuzz import fuzz
 from dotenv import load_dotenv
 from opensearchpy import OpenSearch, exceptions, helpers, RequestsHttpConnection
@@ -26,17 +28,34 @@ class OpenSearchManager(BaseVectorDBHandler):
             self.method = index_params.get("method", "hnsw")
 
             host = vector_db_params["host"]
-            port = vector_db_params.get("port", 9200)
-            username = os.getenv("OPENSEARCH_USER")
-            password = os.getenv("OPENSEARCH_PASS")
-            auth = (username, password) if username and password else None
+            if "https" in host:
+                # AWS credentials and region
+                region = vector_db_params.get("region")
+                service = vector_db_params.get("service")
+                credentials = boto3.Session().get_credentials()
+                auth = AWS4Auth(
+                    credentials.access_key,
+                    credentials.secret_key,
+                    region,
+                    service,
+                    session_token=credentials.token,
+                )
+                host_details = [host]
+            else:
+                port = vector_db_params.get("port", 9200)
+                username = os.getenv("OPENSEARCH_USER")
+                password = os.getenv("OPENSEARCH_PASS")
+                auth = (username, password) if username and password else None
+                host_details = [{"host": host, "port": port}]
+
             use_ssl = vector_db_params.get("use_ssl", True)
+            verify_certs = eval(vector_db_params.get("verify_certs", "False"))
 
             self.client = OpenSearch(
-                hosts=[{"host": host, "port": port}],
+                hosts=host_details,
                 http_auth=auth,
                 use_ssl=use_ssl,
-                verify_certs=False,
+                verify_certs=verify_certs,
                 ssl_assert_hostname=False,
                 ssl_show_warn=False,
                 connection_class=RequestsHttpConnection,
@@ -123,14 +142,13 @@ class OpenSearchManager(BaseVectorDBHandler):
             logger.error(f"Error inserting vector: {e}")
             raise
 
-    # needs testing
-    def insert_vectors(self, vectors_payloads: List[Dict[str, Any]]):
+    def bulk_insert(self, vectors_payloads: List[Dict[str, Any]]):
         """
         Bulk indexes multiple vector documents.
         Each element in vectors_payloads is a tuple (vector, payload).
         """
+        actions = []
         try:
-            actions = []
             for vector_payload in vectors_payloads:
                 vector = vector_payload["embeddings"]
                 payload = vector_payload["payload"]
@@ -160,11 +178,22 @@ class OpenSearchManager(BaseVectorDBHandler):
             helpers.bulk(self.client, actions, refresh=True)
             logger.info(f"Inserted {len(actions)} vectors.")
         except Exception as e:
-            logger.error(f"Error inserting multiple vectors: {e}")
-            raise
+            logger.error(f"Bulk insert failed: {e}")
+            logger.info("Falling back to inserting documents one by one...")
+            for action in actions:
+                doc_id = action.get("_id")
+                doc = action.get("_source")
+                try:
+                    self.client.index(index=self.index_name, id=doc_id, body=doc)
+                except Exception as inner_e:
+                    logger.error(
+                        f"Failed to insert single document {doc_id}: {inner_e}"
+                    )
+                    raise
+            logger.info(f"Inserted {len(actions)} vectors.")
 
     def search_vectors(
-        self, query_vector: List[float], limit: int = 1, body: Dict[str, Any] = None
+        self, query_vector: List[float], limit: int = 10, body: Dict[str, Any] = None
     ):
         """
         Executes a KNN search query to find the nearest vectors.
@@ -294,7 +323,9 @@ class OpenSearchManager(BaseVectorDBHandler):
         # Return top_k results after post-filtering
         return results[:top_k]
 
-    def get_distinct_values(self, field_name: str) -> List[Dict[str, Any]]:
+    def get_distinct_values(
+        self, field_name: str, field_value: str = None
+    ) -> List[Dict[str, Any]]:
         """Retrieve unique values for a given filter, sorted by count."""
         field_path = (
             f"{field_name}.keyword"
@@ -313,39 +344,58 @@ class OpenSearchManager(BaseVectorDBHandler):
         #         }
         #     }
         # }
+        if field_value is not None:
+            # If a field_value is provided, use a filter aggregation to count only that value.
+            query = {
+                "size": 0,
+                "aggs": {
+                    "filtered_docs": {
+                        "filter": {"term": {field_path: field_value}},
+                        "aggs": {
+                            "article_count": {
+                                "cardinality": {"field": "article_id.keyword"}
+                            }
+                        },
+                    }
+                },
+            }
+            response = self.client.search(index=self.index_name, body=query)
+            count = response["aggregations"]["filtered_docs"]["article_count"]["value"]
+            return [{field_name: field_value, "articles_count": count}]
+        else:
+            # No field_value provided: aggregate over all distinct values.
+            query = {
+                "size": 0,
+                "aggs": {
+                    "distinct_values": {
+                        "terms": {"field": field_path, "size": 1000},
+                        "aggs": {
+                            "article_count": {
+                                "cardinality": {"field": "article_id.keyword"}
+                            }
+                        },
+                    }
+                },
+            }
 
-        query = {
-            "size": 0,
-            "aggs": {
-                "distinct_values": {
-                    "terms": {"field": field_path, "size": 1000},
-                    "aggs": {
-                        "article_count": {
-                            "cardinality": {"field": "article_id.keyword"}
-                        }
-                    },
-                }
-            },
-        }
+            response = self.client.search(index=self.index_name, body=query)
 
-        response = self.client.search(index=self.index_name, body=query)
+            # return [
+            #     {"value": bucket["key"], "count": bucket["doc_count"]}
+            #     for bucket in response["aggregations"]["distinct_values"]["buckets"]
+            # ]
 
-        # return [
-        #     {"value": bucket["key"], "count": bucket["doc_count"]}
-        #     for bucket in response["aggregations"]["distinct_values"]["buckets"]
-        # ]
-
-        return sorted(
-            [
-                {
-                    f"{field_name}": bucket["key"],
-                    "articles_count": bucket["article_count"]["value"],
-                }
-                for bucket in response["aggregations"]["distinct_values"]["buckets"]
-            ],
-            key=lambda x: x["articles_count"],
-            reverse=True,
-        )
+            return sorted(
+                [
+                    {
+                        f"{field_name}": bucket["key"],
+                        "articles_count": bucket["article_count"]["value"],
+                    }
+                    for bucket in response["aggregations"]["distinct_values"]["buckets"]
+                ],
+                key=lambda x: x["articles_count"],
+                reverse=True,
+            )
 
     def delete_index(self):
         """
@@ -357,3 +407,49 @@ class OpenSearchManager(BaseVectorDBHandler):
         except Exception as e:
             logger.error(f"Error deleting index {self.index_name}: {e}")
             raise
+
+    def delete_document_by_id(self, doc_id):
+        """
+        Deletes a single document by its ID.
+        """
+        try:
+            self.client.delete(index=self.index_name, id=doc_id)
+            logger.info(f"Document {doc_id} deleted successfully.")
+        except Exception as e:
+            logger.error(f"Error deleting document {doc_id}: {e}")
+            raise
+
+    def delete_documents_by_query(self, query):
+        """
+        Deletes all documents that match the given query.
+        """
+        try:
+            self.client.delete_by_query(index=self.index_name, body={"query": query})
+            logger.info(f"Documents deleted successfully.")
+        except Exception as e:
+            logger.error(f"Error deleting documents: {e}")
+            raise
+
+    def get_index_fields(self):
+        """
+        Fetch and print all fields of the index.
+        """
+        try:
+            mapping = self.client.indices.get_mapping(index=self.index_name)
+            properties = mapping[self.index_name]["mappings"]["properties"]
+            print("Fields in Index:", self.index_name)
+            for field, details in properties.items():
+                print(f"- {field} (Type: {details.get('type', 'unknown')})")
+        except Exception as e:
+            print(f"Error retrieving index fields: {e}")
+
+    def count_vectors(self) -> int:
+        """
+        Returns the total number of vector points stored in the OpenSearch index.
+        """
+        try:
+            response = self.client.count(index=self.index_name)
+            return response["count"]
+        except Exception as e:
+            logger.error(f"Error counting vectors in index {self.index_name}: {e}")
+            return 0

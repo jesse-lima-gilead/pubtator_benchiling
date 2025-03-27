@@ -43,10 +43,27 @@ class VectorDBHandler:
                 self.vector_db_params, self.index_params
             )
 
-            # Creating Qdrant Collection if not already exists:
+            # Creating Opensearch Index if not already exists:
             if not opensearch_manager.check_if_index_exists():
                 logger.info(f"Creating New Index {opensearch_manager.index_name}")
                 opensearch_manager.create_index()
+            else:
+                logger.info(
+                    f"Collection {opensearch_manager.index_name} already exists"
+                )
+
+            return opensearch_manager
+        elif vector_db_type == "opensearch_cloud":
+            opensearch_manager = OpenSearchManager(
+                self.vector_db_params, self.index_params
+            )
+
+            # Creating Opensearch Index if not already exists:
+            if not opensearch_manager.check_if_index_exists():
+                logger.error(f"Index {opensearch_manager.index_name} doesn't exist")
+                raise Exception(
+                    f"Index {opensearch_manager.index_name} is not present in the cluster"
+                )
             else:
                 logger.info(
                     f"Collection {opensearch_manager.index_name} already exists"

@@ -73,7 +73,7 @@ class QdrantManager(BaseVectorDBHandler):
         point = PointStruct(id=point_id, vector=vector, payload=payload)
         self.client.upsert(collection_name=self.collection_name, points=[point])
 
-    def insert_vectors(self, vectors_payloads: List[Dict[str, Any]]):
+    def bulk_insert(self, vectors_payloads: List[Dict[str, Any]]):
         points = [
             PointStruct(
                 id=vector_payload["payload"]["chunk_id"],
@@ -266,55 +266,18 @@ class QdrantManager(BaseVectorDBHandler):
         # Optional: Clean up resources if needed
         pass
 
+    def delete_document_by_id(self, doc_id):
+        """Deletes a single document by its ID."""
+        pass
 
-def main():
-    # Initialize the QdrantManager with test parameters
-    url = "http://localhost:6333"
-    collection_name = "articles_metadata"
-    vector_size = 768  # Set this according to your model's vector size
+    def delete_documents_by_query(self, query):
+        """Deletes all documents that match the given query."""
+        pass
 
-    # Create QdrantManager instance
-    qdrant_manager = QdrantManager(
-        url=url,
-        collection_name=collection_name,
-        vector_size=vector_size,
-        distance_metric="COSINE",
-    )
+    def get_index_fields(self):
+        """Fetch and print all fields of the index."""
+        pass
 
-    # Step 1: Create Collection
-    # if not qdrant_manager.check_if_collection_exists():
-    #     qdrant_manager.create_collection()
-    # print(f"Collection '{collection_name}' is ready.")
-    #
-    # # Step 2: Generate and Insert a Test Vector with Payload
-    # test_vector = np.random.rand(vector_size).tolist()  # Random vector for testing
-    # test_payload = {
-    #     "chunk_id": str(uuid.uuid4()),
-    #     "text": "This is a sample text for testing.",
-    #     "metadata": {"source": "test", "type": "test_chunk"},
-    # }
-    #
-    # qdrant_manager.insert_vector(vector=test_vector, payload=test_payload)
-    # print("Test vector inserted successfully.")
-    #
-    # # Step 3: Perform a Search
-    # search_results = qdrant_manager.search_vectors(query_vector=test_vector, limit=3)
-    # print("Search results:")
-    # for result in search_results:
-    #     print(f"ID: {result.id}, Score: {result.score}, Payload: {result.payload}")
-    #
-    # # Step 4: Delete Collection
-    # # qdrant_manager.delete_collection()
-    # print(f"Collection '{collection_name}' deleted.")
-
-    # # Step 5: Fetch Points using Payload Filter
-    payload_filter = {
-        "journal": "Nature",
-        # "year": "2023"
-    }
-    points = qdrant_manager.fetch_points_by_payload(payload_filter, limit=5000)
-    print(points)
-
-
-if __name__ == "__main__":
-    main()
+    def count_vectors(self) -> int:
+        """Returns the total number of vector points stored in the OpenSearch index."""
+        pass

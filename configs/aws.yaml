@@ -1,15 +1,25 @@
 aws:
-  infra:
-    sso_region: "us-west-2"
-  s3:
-    bucket_name: "pubtator-poc"
-    bucket_region: "us-west-2"
-  ecs:
-    cluster_name: "pubtator-fargate-cluster"
-    tasks:
-      aioner:
-        task_definition: "aioner-ncbi-task"
-        container_name: "aioner-ncbi"
-      gnorm2:
-        task_definition: "gnorm2-ncbi-task"
-        container_name: "gnorm2-ncbi"
+  platform_type: "TW" #change to HPC or Sandbox or TW
+  GDNA:
+    s3:
+      bucket_name: "gilead-edp-research-dev-us-west-2-pubmed"
+      bucket_region: "us-west-2"
+  TW:
+    s3:
+      bucket_name: "gilead-edp-research-dev-us-west-2-pubmed-tw"
+      bucket_region: "us-west-2"
+  Sandbox:
+    infra:
+      sso_region: "us-west-2"
+    s3:
+      bucket_name: "pubtator-poc"
+      bucket_region: "us-west-2"
+    ecs:
+      cluster_name: "pubtator-fargate-cluster"
+      tasks:
+        aioner:
+          task_definition: "aioner-ncbi-task"
+          container_name: "aioner-ncbi"
+        gnorm2:
+          task_definition: "gnorm2-ncbi-task"
+          container_name: "gnorm2-ncbi"

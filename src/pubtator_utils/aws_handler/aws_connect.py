@@ -15,28 +15,30 @@ logger = logger_instance.get_logger()
 config_loader = YAMLConfigLoader()
 
 # Retrieve a specific config
-aws_config = config_loader.get_config("aws")["aws"]["infra"]
+aws_platform_type = config_loader.get_config("aws")["aws"]["platform_type"]
 
 
 class AWSConnection:
     def __init__(self):
-        self.config = aws_config
+        self.platform = aws_platform_type
         self.session = None
         self.client = None
         load_dotenv()  # Load environment variables from .env file
 
     def setup_session(self):
         """Sets up and maintains the AWS session and client."""
-        aws_sso_region = self.config.get("aws", {}).get(
-            "region", os.getenv("SSO_REGION")
-        )
         try:
-            self.session = boto3.Session(
-                aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-                aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-                aws_session_token=os.getenv("AWS_SESSION_TOKEN"),
-                region_name=aws_sso_region,
-            )
+            if self.platform == "Sandbox":
+                aws_sso_region = os.getenv("SSO_REGION")
+                self.session = boto3.Session(
+                    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+                    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+                    aws_session_token=os.getenv("AWS_SESSION_TOKEN"),
+                    region_name=aws_sso_region,
+                )
+            else:  # GDNA
+                self.session = boto3.Session()
+
             # Test the connection by creating an STS client and calling 'get_caller_identity'
             self.client = self.session.client("sts")
             if self.test_connection():

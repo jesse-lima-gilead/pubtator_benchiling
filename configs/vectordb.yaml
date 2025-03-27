@@ -61,3 +61,16 @@ vector_db:
           space_type: "cosinesimil"
           engine: "lucene"
           method: "hnsw"
+  opensearch_cloud:
+    vector_db_params:
+      host: "https://vpc-research-dev-domain-a7dj35akdal35go3cv5eitd5ba.us-west-2.es.amazonaws.com"
+      verify_certs: "True"
+      region: "us-west-2"
+      service: "es"
+    index_params:
+      processed_pubmedbert:
+        index_name: "pubmed__grai_opensearch"
+        vector_size: 768
+        space_type: "cosinesimil"
+        engine: "lucene"
+        method: "hnsw"

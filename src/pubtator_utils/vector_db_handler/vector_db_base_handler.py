@@ -23,7 +23,7 @@ class BaseVectorDBHandler(ABC):
         pass
 
     @abstractmethod
-    def insert_vectors(self, vectors_payloads: List[Any]):
+    def bulk_insert(self, vectors_payloads: List[Any]):
         """Bulk insert vector documents."""
         pass
 
@@ -61,4 +61,24 @@ class BaseVectorDBHandler(ABC):
     @abstractmethod
     def get_distinct_values(self, field_name: str) -> List[Dict[str, Any]]:
         """Get distinct values for a field."""
+        pass
+
+    @abstractmethod
+    def delete_document_by_id(self, doc_id):
+        """Deletes a single document by its ID."""
+        pass
+
+    @abstractmethod
+    def delete_documents_by_query(self, query):
+        """Deletes all documents that match the given query."""
+        pass
+
+    @abstractmethod
+    def get_index_fields(self):
+        """Fetch and print all fields of the index."""
+        pass
+
+    @abstractmethod
+    def count_vectors(self) -> int:
+        """Returns the total number of vector points stored in the OpenSearch index."""
         pass
