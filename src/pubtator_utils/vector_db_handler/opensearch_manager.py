@@ -268,6 +268,30 @@ class OpenSearchManager(BaseVectorDBHandler):
                 {"range": {"publication_date.year": {"lte": years_before}}}
             )
 
+        # New Date Filters
+        if date := filters.get("date"):  # Format: YYYY-MM-DD
+            year, month, day = date.split("-")
+            filter_conditions.extend(
+                [
+                    {"term": {"publication_date.year": year}},
+                    {
+                        "term": {"publication_date.month": month.lstrip("0")}
+                    },  # Remove leading zero
+                    {"term": {"publication_date.day": day}},  # Remove leading zero
+                ]
+            )
+
+        if month_year := filters.get("month_year"):  # Format: YYYY-MM
+            year, month = month_year.split("-")
+            filter_conditions.extend(
+                [
+                    {"term": {"publication_date.year": year}},
+                    {
+                        "term": {"publication_date.month": month.lstrip("0")}
+                    },  # Remove leading zero
+                ]
+            )
+
         # Construct Query
         base_query = {
             "size": top_k * 2,
@@ -281,11 +305,14 @@ class OpenSearchManager(BaseVectorDBHandler):
             },
             "_source": [
                 "article_id",
+                "doi",
+                "pmid",
                 "title",
                 "journal",
+                "article_type",
                 "publication_date",
                 "authors",
-                "chunk_text",
+                "merged_text",
                 "vector",
             ],
         }
@@ -327,23 +354,16 @@ class OpenSearchManager(BaseVectorDBHandler):
         self, field_name: str, field_value: str = None
     ) -> List[Dict[str, Any]]:
         """Retrieve unique values for a given filter, sorted by count."""
-        field_path = (
-            f"{field_name}.keyword"
-            if field_name not in ["year", "publication_date.year"]
-            else "publication_date.year.keyword"
-        )
 
-        # query = {
-        #     "size": 0,
-        #     "aggs": {
-        #         "distinct_values": {
-        #             "terms": {"field": field_path, "size": 1000, "order": {"article_count": "desc"}},
-        #             "aggs": {
-        #                 "article_count": {"cardinality": {"field": "article_id.keyword"}}
-        #             }
-        #         }
-        #     }
-        # }
+        if field_name in ["year", "publication_date.year"]:
+            field_path = "publication_date.year.keyword"
+        elif field_name in ["month", "publication_date.month"]:
+            field_path = "publication_date.month.keyword"
+        elif field_name in ["day", "publication_date.day"]:
+            field_path = "publication_date.day.keyword"
+        else:
+            field_path = f"{field_name}.keyword"
+
         if field_value is not None:
             # If a field_value is provided, use a filter aggregation to count only that value.
             query = {
@@ -379,11 +399,6 @@ class OpenSearchManager(BaseVectorDBHandler):
             }
 
             response = self.client.search(index=self.index_name, body=query)
-
-            # return [
-            #     {"value": bucket["key"], "count": bucket["doc_count"]}
-            #     for bucket in response["aggregations"]["distinct_values"]["buckets"]
-            # ]
 
             return sorted(
                 [
@@ -453,3 +468,12 @@ class OpenSearchManager(BaseVectorDBHandler):
         except Exception as e:
             logger.error(f"Error counting vectors in index {self.index_name}: {e}")
             return 0
+
+    def get_index_mapping(self):
+        try:
+            mapping = self.client.indices.get_mapping(index=self.index_name)
+            properties = mapping[self.index_name]["mappings"]["properties"]
+            return properties
+        except Exception as e:
+            print(f"Error getting mapping: {e}")
+            raise
