@@ -5,6 +5,7 @@ from src.pubtator_utils.logs_handler.logger import SingletonLogger
 from src.data_retrieval.retriever_utils import (
     initialize_vectordb_manager,
     get_user_query_embeddings,
+    get_citations_count,
 )
 
 # Initialize the config loader
@@ -23,20 +24,25 @@ class PubtatorRetriever:
         top_k: int = 5,
         top_n: int = 5,
     ):
-        self.vectordb_manager = initialize_vectordb_manager(
-            collection_type=collection_type
-        )
+        self.vectordb_manager = opensearch_manager
         self.embeddings_model = embeddings_model
         self.top_k = top_k
         self.top_n = top_n
-        logger.info(f"Initialized the retriever!")
+        print(f"Initialized the retriever!")
 
-    def retrieve_matching_chunks(self, query_vector, metadata_filters):
+    def retrieve_matching_chunks(
+        self,
+        query_vector: list,
+        metadata_filters: dict,
+        top_k: int = 5,
+        SCORE_THRESHOLD: float = 0.7,
+    ):
         # Search across chunks, retrieve a larger set to ensure diversity
         retrieved_chunks = self.vectordb_manager.search_with_filters(
             query_vector=query_vector,
             filters=metadata_filters,
-            top_k=100,  # Fetch a higher number to ensure we meet distinct article criteria
+            top_k=top_k,  # Fetch a higher number to ensure we meet distinct article criteria
+            SCORE_THRESHOLD=SCORE_THRESHOLD,
         )
 
         # Collect chunks by article_id and ensure we have chunks from at least N distinct articles
@@ -52,7 +58,20 @@ class PubtatorRetriever:
             if len(chunks_by_article) >= self.top_n:
                 break
 
-        logger.info(f"Fetched article_ids: {list(chunks_by_article.keys())}")
+        # Add the citation count to metadata
+        for article_id, chunks in chunks_by_article.items():
+            pmid = chunks[0]["metadata"]["pmid"]
+            doi = chunks[0]["metadata"]["doi"]
+            citations = get_citations_count(pmid, doi)
+            for chunk in chunks:
+                chunk["metadata"]["citations_count_pubmed"] = citations[
+                    "pubmed_citations_count"
+                ]
+                chunk["metadata"]["citations_count_crossref"] = citations[
+                    "crossref_citations_count"
+                ]
+
+        print(f"Fetched article_ids: {list(chunks_by_article.keys())}")
         return chunks_by_article
 
     def get_distinct_field_values(self, field_name: str, field_value: str = None):
@@ -80,6 +99,12 @@ def convert_to_table(user_query: str, search_results: str) -> pd.DataFrame:
                     "Article ID": metadata.get("article_id", ""),
                     "Chunk ID": result["id"],
                     "Score": result["score"],
+                    "Citations Count (PubMed)": metadata.get(
+                        "citations_count_pubmed", 0
+                    ),
+                    "Citations Count (CrossRef)": metadata.get(
+                        "citations_count_crossref", 0
+                    ),
                     "Journal": metadata.get("journal", ""),
                     "Article Type": metadata.get("article_type", ""),
                     "Title": metadata.get("title", ""),
@@ -99,16 +124,24 @@ def convert_to_table(user_query: str, search_results: str) -> pd.DataFrame:
 
 def search(
     user_query: str,
-    metadata_filters: dict,
+    metadata_filters: dict = None,
     show_as_table: bool = False,
+    top_k: int = 5,
+    SCORE_THRESHOLD: float = 0.7,
     embeddings_model: str = "pubmedbert",
 ):
     pubtator_retriever = PubtatorRetriever()
     user_query_embeddings = get_user_query_embeddings(embeddings_model, user_query)
 
     # Get the relevant chunks from Vector store filtered by Metadata Filters
+    if metadata_filters is None:
+        metadata_filters = {}
+
     final_chunks_by_article = pubtator_retriever.retrieve_matching_chunks(
-        user_query_embeddings, metadata_filters
+        query_vector=user_query_embeddings,
+        metadata_filters=metadata_filters,
+        top_k=top_k,
+        SCORE_THRESHOLD=SCORE_THRESHOLD,
     )
 
     if show_as_table:

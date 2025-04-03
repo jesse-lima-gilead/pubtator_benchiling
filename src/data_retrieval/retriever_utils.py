@@ -1,3 +1,5 @@
+import requests
+import xml.etree.ElementTree as ET
 from src.data_processing.embedding.embeddings_handler import get_embeddings
 from src.pubtator_utils.vector_db_handler.vector_db_handler_factory import (
     VectorDBHandler,
@@ -37,6 +39,46 @@ def get_user_query_embeddings(embeddings_model: str, user_query: str):
     # Get embeddings for the user query
     query_vector = get_embeddings(model_name=embeddings_model, texts=[user_query])
     return query_vector.squeeze(0).tolist()
+
+
+def get_pubmed_citations_count(pmid: str):
+    elink_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi"
+    params = {
+        "dbfrom": "pubmed",
+        "linkname": "pubmed_pubmed_citedin",
+        "id": pmid,
+        "retmode": "xml",
+    }
+    response = requests.get(elink_url, params=params)
+    response.raise_for_status()
+    xml_content = response.text
+    root = ET.fromstring(xml_content)
+    citing_pmids = [
+        link.find("Id").text
+        for link in root.findall(".//LinkSetDb[LinkName='pubmed_pubmed_citedin']/Link")
+    ]
+    return len(citing_pmids)
+
+
+def get_crossref_citations_count(doi: str):
+    crossref_url = f"https://api.crossref.org/works/{doi}"
+    response = requests.get(crossref_url)
+    response.raise_for_status()
+    data = response.json()
+    references = []
+    if "message" in data and "reference" in data["message"]:
+        references = [
+            ref.get("DOI", ref.get("unstructured", "Unknown Reference"))
+            for ref in data["message"]["reference"]
+        ]
+    return len(references)
+
+
+def get_citations_count(pmid: str, doi: str):
+    return {
+        "pubmed_citations_count": get_pubmed_citations_count(pmid),
+        "crossref_citations_count": get_crossref_citations_count(doi),
+    }
 
 
 if __name__ == "__main__":
