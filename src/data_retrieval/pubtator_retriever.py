@@ -128,12 +128,15 @@ def search(
     user_query: str,
     metadata_filters: dict = None,
     show_as_table: bool = False,
-    top_k: int = 5,
+    top_n: int = 5,
+    top_k: int = 100,
     SCORE_THRESHOLD: float = 0.7,
     embeddings_model: str = "pubmedbert",
 ):
     pubtator_retriever = PubtatorRetriever()
-    user_query_embeddings = get_user_query_embeddings(embeddings_model, user_query)
+    user_query_embeddings = get_user_query_embeddings(
+        user_query=user_query, embeddings_model=embeddings_model
+    )
 
     # Get the relevant chunks from Vector store filtered by Metadata Filters
     if metadata_filters is None:
@@ -142,6 +145,7 @@ def search(
     final_chunks_by_article = pubtator_retriever.retrieve_matching_chunks(
         query_vector=user_query_embeddings,
         metadata_filters=metadata_filters,
+        top_n=top_n,
         top_k=top_k,
         SCORE_THRESHOLD=SCORE_THRESHOLD,
     )
