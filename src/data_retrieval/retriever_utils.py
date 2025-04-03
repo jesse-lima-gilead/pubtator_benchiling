@@ -35,7 +35,7 @@ def initialize_vectordb_manager(collection_type: str):
     return vector_db_manager
 
 
-def get_user_query_embeddings(embeddings_model: str, user_query: str):
+def get_user_query_embeddings(user_query: str, embeddings_model: str = "pubmedbert"):
     # Get embeddings for the user query
     query_vector = get_embeddings(model_name=embeddings_model, texts=[user_query])
     return query_vector.squeeze(0).tolist()

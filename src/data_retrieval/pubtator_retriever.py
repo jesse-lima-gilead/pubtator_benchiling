@@ -24,11 +24,13 @@ class PubtatorRetriever:
         top_k: int = 5,
         top_n: int = 5,
     ):
-        self.vectordb_manager = opensearch_manager
+        self.vectordb_manager = initialize_vectordb_manager(
+            collection_type=collection_type
+        )
         self.embeddings_model = embeddings_model
         self.top_k = top_k
         self.top_n = top_n
-        print(f"Initialized the retriever!")
+        logger.info(f"Initialized the retriever!")
 
     def retrieve_matching_chunks(
         self,
@@ -187,16 +189,6 @@ if __name__ == "__main__":
         "title": "Lung cancer promotion by air pollution",
         "authors": "Wiliam Hil",
     }
-
-    # metadata_filters = {
-    #     "journal": "Nature",  # Pre-filter (Low Cardinality)
-    #     "year": 2022,  # Exact match
-    #     "years_after": 2015,  # Range filter: year > 2015
-    #     "years_before": 2020,  # Range filter: year < 2020
-    #     "authors": "John Doe",  # Post-filter (High Cardinality)
-    #     "keywords": "gene therapy",  # Post-filter (High Cardinality)
-    #     "title": "Cancer Treatment"  # Post-filter (High Cardinality)
-    # }
 
     # Get the relevant chunks from Vector store filtered by Metadata Filters
     final_chunks_by_article = search(
