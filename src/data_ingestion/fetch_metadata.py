@@ -132,7 +132,13 @@ class MetadataExtractor:
             ref_data["label"] = self.get_text(ref, ".//label")
 
             # Check for <mixed-citation> and <element-citation>
-            citation = ref.find(".//mixed-citation") or ref.find(".//element-citation")
+            # citation = ref.find(".//mixed-citation") or ref.find(".//element-citation") or ref.find(".//citation")
+            citation = None
+            # Iterate over all descendant elements
+            for child in ref.iter():
+                if "citation" in child.tag:
+                    citation = child
+                    break
             if citation is None:
                 print(f"No citation found for ref ID: {ref.get('id')}")
                 continue

@@ -150,9 +150,7 @@ if __name__ == "__main__":
     article_ids = (
         # dataset_config["golden_dataset_article_ids"]
         # +
-        # dataset_config["thalidomide_articles_ids"]
-        # +
-        dataset_config["thalidomide_full_articles_ids"]
+        dataset_config["thalidomide_articles_ids"]
     )
 
     sample_articles_id = ["2361529", "2480972"]
