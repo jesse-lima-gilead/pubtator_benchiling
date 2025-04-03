@@ -243,8 +243,8 @@ class MetadataExtractor:
     def extract_publication_date(self, section):
         """Extract publication date from the <front> section."""
         return {
-            "day": self.get_text(section, ".//day"),
-            "month": self.get_text(section, ".//month"),
+            "day": (self.get_text(section, ".//day") or "").lstrip("0") or None,
+            "month": (self.get_text(section, ".//month") or "").lstrip("0") or None,
             "year": self.get_text(section, ".//year"),
         }
 
