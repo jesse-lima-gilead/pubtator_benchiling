@@ -292,6 +292,39 @@ class OpenSearchManager(BaseVectorDBHandler):
                 ]
             )
 
+            # # More stricter one
+            # # Handle user_keywords filter:
+            # if user_keywords := filters.get("user_keywords"):
+            #     # Split by comma and trim whitespace
+            #     keywords_list = [kw.strip() for kw in user_keywords.split(",")]
+            #     # Create a bool query that matches if any one of the keywords matches
+            #     user_keywords_filter = {
+            #         "bool": {
+            #             "should": [
+            #                 {"match_phrase": {"chunk_text": kw}} for kw in keywords_list
+            #             ],
+            #             "minimum_should_match": 1
+            #         }
+            #     }
+            #     filter_conditions.append(user_keywords_filter)
+
+            # Slightly less stricter, allows for partial matches
+            # Handle user_keywords filter with partial matching using a "match" query:
+            if user_keywords := filters.get("user_keywords"):
+                # Split by comma and trim whitespace
+                keywords_list = [kw.strip() for kw in user_keywords.split(",")]
+                # Create a bool query that matches if any one of the keywords partially matches the field
+                user_keywords_filter = {
+                    "bool": {
+                        "should": [
+                            {"match": {"chunk_text": {"query": kw, "operator": "and"}}}
+                            for kw in keywords_list
+                        ],
+                        "minimum_should_match": 1,
+                    }
+                }
+                filter_conditions.append(user_keywords_filter)
+
         # Construct Query
         base_query = {
             "size": top_k * 2,
