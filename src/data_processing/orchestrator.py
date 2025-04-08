@@ -3,12 +3,8 @@ import uuid
 from typing import Dict, List
 from collections import Counter
 from transformers import AutoTokenizer
-from src.pubtator_utils.db_handler.alembic_models.chunks_with_annotations import (
-    ChunkWithAnnotations,
-)  # Import the Chunk model
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
-from src.pubtator_utils.db_handler.db import session  # Import the session
 
 from src.data_processing.chunking.chunks_handler import (
     chunk_annotated_articles,
@@ -17,7 +13,7 @@ from src.pubtator_utils.vector_db_handler.vector_db_handler_factory import (
     VectorDBHandler,
 )
 from src.data_processing.merging.merge_handler import merge_annotations
-from src.data_processing.embedding.embeddings_handler import (
+from src.pubtator_utils.embeddings_handler.embeddings_generator import (
     get_embeddings,
     get_model_info,
     save_embeddings_details_to_json,

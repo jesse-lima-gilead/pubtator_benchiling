@@ -73,11 +73,11 @@ class AWSConnection:
 
 
 # # Usage Example:
-# if __name__ == "__main__":
-#     aws_connection = AWSConnection()
-#     connection_status = aws_connection.setup_connection()
-#
-#     if connection_status:
-#         logger.info("AWS connection established and maintained.")
-#     else:
-#         logger.info("Failed to establish AWS connection.")
+if __name__ == "__main__":
+    aws_connection = AWSConnection()
+    connection_status = aws_connection.setup_session()
+
+    if connection_status:
+        logger.info("AWS connection established and maintained.")
+    else:
+        logger.info("Failed to establish AWS connection.")

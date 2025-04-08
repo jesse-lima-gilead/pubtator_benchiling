@@ -1,15 +1,5 @@
-import os
-import uuid
-
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
-from src.pubtator_utils.vector_db_handler.vector_db_handler_factory import (
-    VectorDBHandler,
-)
-from src.data_processing.embedding.embeddings_handler import (
-    get_embeddings,
-    get_model_info,
-)
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
 

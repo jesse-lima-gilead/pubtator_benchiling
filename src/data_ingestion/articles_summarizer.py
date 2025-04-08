@@ -3,6 +3,8 @@ from src.pubtator_utils.prompts_handler.PromptBuilder import PromptBuilder
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
 from src.pubtator_utils.llm_handler.llm_factory import LLMFactory
+from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
+from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 import re
 import json
 
@@ -54,61 +56,40 @@ class SummarizeArticle:
         return clean_summary
 
     def summarize(self):
-        summary_generated = False
-        while not summary_generated:
-            # Prepare the Prompt for the LLM
-            custom_article_summary_prompt = (
-                self.prompt_builder.get_article_summary_combined_prompt(
-                    self.pmc_article_text
-                )
+        # Prepare the Prompt for the LLM
+        custom_article_summary_prompt = (
+            self.prompt_builder.get_article_summary_combined_prompt(
+                self.pmc_article_text
             )
-            logger.info(f"Generated prompt: {custom_article_summary_prompt}")
+        )
+        logger.info(f"Generated prompt: {custom_article_summary_prompt}")
 
-            # Generate the response using Query LLM
-            llm_summary_response = self.query_llm.invoke(
-                input=custom_article_summary_prompt
-            )
+        # Generate the response using Query LLM
+        llm_summary_response = self.query_llm.invoke(
+            input=custom_article_summary_prompt
+        )
 
-            # Parse the LLM response to fetch the summary
-            response_content = llm_summary_response.content
-            print(response_content)
-
-            # return response_content
-
-            try:
-                # Extract the JSON block using regex
-                match = re.search(
-                    r"```json(.*?)```", response_content, re.DOTALL | re.IGNORECASE
-                )
-                if match:
-                    json_str = match.group(
-                        1
-                    ).strip()  # Extract the content inside ```json ... ```
-                    # Validate and parse the JSON response
-                    parsed_response = json.loads(json_str)
-                    if (
-                        isinstance(parsed_response, dict)
-                        and "summary" in parsed_response
-                    ):
-                        clean_summary = parsed_response["summary"]
-                        summary_generated = True
-                        return clean_summary
-                    else:
-                        logger.error(
-                            "Response JSON is not in the expected format. Trying again!"
-                        )
-                else:
-                    logger.error(
-                        "No valid JSON block found in the response. Trying again!"
-                    )
-            except json.JSONDecodeError:
-                logger.error("Response contains invalid JSON. Trying again!")
+        # Parse the LLM response to fetch the summary
+        response_content = llm_summary_response.content
+        print(response_content)
+        return response_content
 
 
 # Usage
 if __name__ == "__main__":
-    input_file_path = "../../data/staging/bioc_xml/PMC_6946810.xml"
-    output_file_path = "../../data/articles_metadata/summary/PMC_6946810.txt"
+    # Initialize the config loader
+    config_loader = YAMLConfigLoader()
+
+    # Retrieve paths config
+    paths_config = config_loader.get_config("paths")
+    storage_type = paths_config["storage"]["type"]
+
+    # Get file handler instance from factory
+    file_handler = FileHandlerFactory.get_handler(storage_type)
+    # Retrieve paths from config
+    paths = paths_config["storage"][storage_type]
+    input_file_path = "../../data/thal_extra_staging/bioc_xml/PMC_128942.xml"
+    output_file_path = "../../data/thal_extra_articles_metadata/summary/PMC_128942.txt"
     summarizer = SummarizeArticle(input_file_path)
     summary = summarizer.summarize()
     print(f"\nArticle Summary:\n{summary}")

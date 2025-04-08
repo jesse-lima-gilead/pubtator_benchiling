@@ -1,6 +1,6 @@
 import requests
 import xml.etree.ElementTree as ET
-from src.data_processing.embedding.embeddings_handler import get_embeddings
+from src.pubtator_utils.embeddings_handler.embeddings_generator import get_embeddings
 from src.pubtator_utils.vector_db_handler.vector_db_handler_factory import (
     VectorDBHandler,
 )
