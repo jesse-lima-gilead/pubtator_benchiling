@@ -14,11 +14,30 @@ config_loader = YAMLConfigLoader()
 def pmc_articles_search_service(request: SearchRequest):
     user_query = request.user_query
     metadata_filter = request.metadata_filters
-    chunks_by_article = search(user_query=user_query, metadata_filters=metadata_filter)
+    top_n = request.top_n
+    top_k = request.top_k
+    score_threshold = request.score_threshold
+    embeddings_model = request.embeddings_model
+    show_as_table = request.show_as_table
+    chunks_by_article = search(
+        user_query=user_query,
+        metadata_filters=metadata_filter,
+        top_n=top_n,
+        top_k=top_k,
+        score_threshold=score_threshold,
+        embeddings_model=embeddings_model,
+        show_as_table=show_as_table,
+    )
     return chunks_by_article
 
 
 def pmc_metadata_values_service(request: ValuesSearchRequest):
     field_name = request.field_name
-    distinct_values = get_distinct_values(field_name=field_name)
+    field_value = request.field_value
+    show_as_table = request.show_as_table
+    distinct_values = get_distinct_values(
+        field_name=field_name,
+        field_value=field_value,
+        show_as_table=show_as_table,
+    )
     return distinct_values
