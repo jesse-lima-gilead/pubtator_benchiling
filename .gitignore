@@ -28,6 +28,9 @@ run_commands.txt
 # Misc Code
 src/misc/
 
+# Retriever Code
+src/data_retrieval/
+
 # FastAPI Endpoint Code
 #src/pydantic_models/
 #src/routes/
