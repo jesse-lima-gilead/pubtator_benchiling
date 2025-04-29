@@ -14,7 +14,7 @@ config_loader = YAMLConfigLoader()
 logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()
 
-load_dotenv()  # Load environment variables from .env file
+# load_dotenv()  # Load environment variables from .env file
 
 
 class VectorDBHandler:
