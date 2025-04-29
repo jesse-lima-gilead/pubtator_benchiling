@@ -1,19 +1,33 @@
 storage:
-  type: "local"  # Change to "s3" for S3
+  type: "hpc"  # Change to "s3" for S3
+  hpc:
+    pmc_path: "/scratch/pubtator/data/staging/pmc_xml"
+    bioc_path: "/scratch/pubtator/data/staging/bioc_xml"
+    metadata_path: "/scratch/pubtator/data/articles_metadata/metadata"
+    aioner_path: "/scratch/pubtator/data/ner_processed/aioner_annotated"
+    gnorm2_path: "/scratch/pubtator/data/ner_processed/gnorm2_annotated"
+    nlmchem_path: "/scratch/pubtator/data/ner_processed/nlmchem_annotated"
+    taggerone_cellLine_path: "/scratch/pubtator/data/ner_processed/taggerone_cellLine_annotated"
+    taggerone_disease_path: "/scratch/pubtator/data/ner_processed/taggerone_disease_annotated"
+    tmvar_path: "/scratch/pubtator/data/ner_processed/tmvar_annotated"
+    annotations_merged_path: "/scratch/pubtator/data/ner_processed/all_in_one_annotated"
+    summary_path: "/scratch/pubtator/data/articles_metadata/summary"
+    chunks_path: "/scratch/pubtator/data/indexing/chunks"
+    embeddings_path: "/scratch/pubtator/data/indexing/embeddings"
   local:
-    pmc_path: "../../data/thal_extra_staging/pmc_xml"
-    bioc_path: "../../data/thal_extra_staging/bioc_xml"
-    metadata_path: "../../data/thal_extra_articles_metadata/metadata"
-    aioner_path: "../../data/thal_extra_ner_processed/aioner_annotated"
-    gnorm2_path: "../../data/thal_extra_ner_processed/gnorm2_annotated"
-    nlmchem_path: "../../data/thal_extra_ner_processed/nlmchem_annotated"
-    taggerone_cellLine_path: "../../data/thal_extra_ner_processed/taggerone_cellLine_annotated"
-    taggerone_disease_path: "../../data/thal_extra_ner_processed/taggerone_disease_annotated"
-    tmvar_path: "../../data/thal_extra_ner_processed/tmvar_annotated"
-    annotations_merged_path: "../../data/thal_extra_ner_processed/all_in_one_annotated"
-    summary_path: "../../data/thal_extra_articles_metadata/summary"
-    chunks_path: "../../data/thal_extra_indexing/chunks"
-    embeddings_path: "../../data/thal_extra_indexing/embeddings"
+    pmc_path: "../../data/staging/pmc_xml"
+    bioc_path: "../../data/staging/bioc_xml"
+    metadata_path: "../../data/articles_metadata/metadata"
+    aioner_path: "../../data/ner_processed/aioner_annotated"
+    gnorm2_path: "../../data/ner_processed/gnorm2_annotated"
+    nlmchem_path: "../../data/ner_processed/nlmchem_annotated"
+    taggerone_cellLine_path: "../../data/ner_processed/taggerone_cellLine_annotated"
+    taggerone_disease_path: "../../data/ner_processed/taggerone_disease_annotated"
+    tmvar_path: "../../data/ner_processed/tmvar_annotated"
+    annotations_merged_path: "../../data/ner_processed/all_in_one_annotated"
+    summary_path: "../../data/articles_metadata/summary"
+    chunks_path: "../../data/indexing/chunks"
+    embeddings_path: "../../data/indexing/embeddings"
   s3:
     pmc_path: "data/staging/pmc_xml"
     bioc_path: "data/staging/bioc_xml"
@@ -30,34 +44,12 @@ storage:
     embeddings_path: "data/indexing/embeddings"
 model:
   embeddings_model:
-    base_location: "jfrog_artifactory" # Change to "hugging_face" for Hugging Face
+    base_location: "hpc"      # Change to "hugging_face" for Hugging Face
     pubmedbert:
+      hpc:
+        model_path: "/scratch/pubtator/models/pubmedbert-base-embeddings/"
       jfrog_artifactory:
         model_path: "../../../models/pubmedbert-base-embeddings/ba210f40b1b6d555d675c2d1ed6372e44570fc3c"
       hugging_face:
         model_path: "NeuML/pubmedbert-base-embeddings"
-      token_limit: 512
-    biobert:
-      jfrog_artifactory:
-        model_path: "../../../models/biobert-base-embeddings/1e1b4b3b1b6d555d675c2d1ed6372e44570fc3c"
-      hugging_face:
-        model_path: "dmis-lab/biobert-v1.1"
-      token_limit: 512
-    longformer:
-      jfrog_artifactory:
-        model_path: "../../../models/biobert-base-embeddings/1e1b4b3b1b6d555d675c2d1ed6372e44570fc3c"
-      hugging_face:
-        model_path: "allenai/longformer-base-4096"
-      token_limit: 4096
-    medembed:
-      jfrog_artifactory:
-        model_path: "../../../models/biobert-base-embeddings/1e1b4b3b1b6d555d675c2d1ed6372e44570fc3c"
-      hugging_face:
-        model_path: "abhinand/MedEmbed-base-v0.1"
-      token_limit: 512
-    microsoft_biomednlp_biomedbert:
-      jfrog_artifactory:
-        model_path: "../../../models/biobert-base-embeddings/1e1b4b3b1b6d555d675c2d1ed6372e44570fc3c"
-      hugging_face:
-        model_path: "microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext"
       token_limit: 512
