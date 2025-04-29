@@ -242,7 +242,11 @@ class OpenSearchManager(BaseVectorDBHandler):
         return False
 
     def search_with_filters(
-        self, query_vector: List[float], top_k: int, filters: Dict[str, Any]
+        self,
+        query_vector: List[float],
+        top_k: int,
+        filters: Dict[str, Any],
+        SCORE_THRESHOLD: float = 0.7,
     ) -> List[Dict[str, Any]]:
         """Search with pre-filtering and post-filtering in OpenSearch"""
 
@@ -277,7 +281,9 @@ class OpenSearchManager(BaseVectorDBHandler):
                     {
                         "term": {"publication_date.month": month.lstrip("0")}
                     },  # Remove leading zero
-                    {"term": {"publication_date.day": day}},  # Remove leading zero
+                    {
+                        "term": {"publication_date.day": day.lstrip("0")}
+                    },  # Remove leading zero
                 ]
             )
 
@@ -292,38 +298,44 @@ class OpenSearchManager(BaseVectorDBHandler):
                 ]
             )
 
-            # # More stricter one
-            # # Handle user_keywords filter:
-            # if user_keywords := filters.get("user_keywords"):
-            #     # Split by comma and trim whitespace
-            #     keywords_list = [kw.strip() for kw in user_keywords.split(",")]
-            #     # Create a bool query that matches if any one of the keywords matches
-            #     user_keywords_filter = {
-            #         "bool": {
-            #             "should": [
-            #                 {"match_phrase": {"chunk_text": kw}} for kw in keywords_list
-            #             ],
-            #             "minimum_should_match": 1
-            #         }
-            #     }
-            #     filter_conditions.append(user_keywords_filter)
+        # Fuzzy match for title in OpenSearch
+        if title := filters.get("title"):
+            filter_conditions.append(
+                {"match": {"title": {"query": title, "fuzziness": "AUTO"}}}
+            )
 
-            # Slightly less stricter, allows for partial matches
-            # Handle user_keywords filter with partial matching using a "match" query:
-            if user_keywords := filters.get("user_keywords"):
-                # Split by comma and trim whitespace
-                keywords_list = [kw.strip() for kw in user_keywords.split(",")]
-                # Create a bool query that matches if any one of the keywords partially matches the field
-                user_keywords_filter = {
-                    "bool": {
-                        "should": [
-                            {"match": {"chunk_text": {"query": kw, "operator": "and"}}}
-                            for kw in keywords_list
-                        ],
-                        "minimum_should_match": 1,
-                    }
+        # # More stricter one
+        # # Handle user_keywords filter:
+        # if user_keywords := filters.get("user_keywords"):
+        #     # Split by comma and trim whitespace
+        #     keywords_list = [kw.strip() for kw in user_keywords.split(",")]
+        #     # Create a bool query that matches if any one of the keywords matches
+        #     user_keywords_filter = {
+        #         "bool": {
+        #             "should": [
+        #                 {"match_phrase": {"chunk_text": kw}} for kw in keywords_list
+        #             ],
+        #             "minimum_should_match": 1
+        #         }
+        #     }
+        #     filter_conditions.append(user_keywords_filter)
+
+        # Slightly less stricter, allows for partial matches
+        # Handle user_keywords filter with partial matching using a "match" query:
+        if user_keywords := filters.get("user_keywords"):
+            # Split by comma and trim whitespace
+            keywords_list = [kw.strip() for kw in user_keywords.split(",")]
+            # Create a bool query that matches if any one of the keywords partially matches the field
+            user_keywords_filter = {
+                "bool": {
+                    "should": [
+                        {"match": {"chunk_text": {"query": kw, "operator": "and"}}}
+                        for kw in keywords_list
+                    ],
+                    "minimum_should_match": 1,
                 }
-                filter_conditions.append(user_keywords_filter)
+            }
+            filter_conditions.append(user_keywords_filter)
 
         # Construct Query
         base_query = {
@@ -350,12 +362,6 @@ class OpenSearchManager(BaseVectorDBHandler):
             ],
         }
 
-        # Fuzzy match for title in OpenSearch
-        if title := filters.get("title"):
-            base_query["query"]["bool"].setdefault("must", []).append(
-                {"match": {"title": {"query": title, "fuzziness": "AUTO"}}}
-            )
-
         # Execute OpenSearch Query
         response = self.client.search(index=self.index_name, body=base_query)
 
@@ -380,8 +386,11 @@ class OpenSearchManager(BaseVectorDBHandler):
                 )
             ]
 
+        # Similarity Threshold
+        filtered_results = [res for res in results if res["score"] >= SCORE_THRESHOLD]
+
         # Return top_k results after post-filtering
-        return results[:top_k]
+        return filtered_results[:top_k]
 
     def get_distinct_values(
         self, field_name: str, field_value: str = None

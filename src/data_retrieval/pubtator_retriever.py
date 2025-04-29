@@ -1,4 +1,6 @@
 import json
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.serving import ChatMessage, ChatMessageRole
 import pandas as pd
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
@@ -6,6 +8,9 @@ from src.data_retrieval.retriever_utils import (
     initialize_vectordb_manager,
     get_user_query_embeddings,
     get_citations_count,
+    build_summarization_prompt,
+    download_s3_to_dbfs,
+    clear_dbfs_temp_folder,
 )
 
 # Initialize the config loader
@@ -21,7 +26,7 @@ class PubtatorRetriever:
         self,
         embeddings_model: str = "pubmedbert",
         collection_type: str = "processed_pubmedbert",
-        top_k: int = 5,
+        top_k: int = 100,
         top_n: int = 5,
     ):
         self.vectordb_manager = initialize_vectordb_manager(
@@ -36,6 +41,7 @@ class PubtatorRetriever:
         self,
         query_vector: list,
         metadata_filters: dict,
+        top_n: int = 5,
         top_k: int = 5,
         SCORE_THRESHOLD: float = 0.7,
     ):
@@ -73,7 +79,7 @@ class PubtatorRetriever:
                     "crossref_citations_count"
                 ]
 
-        print(f"Fetched article_ids: {list(chunks_by_article.keys())}")
+        print(f"Fetched article_ids after Search: {list(chunks_by_article.keys())}")
         return chunks_by_article
 
     def get_distinct_field_values(self, field_name: str, field_value: str = None):
@@ -132,6 +138,7 @@ def search(
     top_k: int = 100,
     SCORE_THRESHOLD: float = 0.7,
     embeddings_model: str = "pubmedbert",
+    return_as_json: bool = False,
 ):
     pubtator_retriever = PubtatorRetriever()
     user_query_embeddings = get_user_query_embeddings(
@@ -155,6 +162,8 @@ def search(
             user_query=user_query,
             search_results=json.dumps(final_chunks_by_article, indent=4),
         )
+    elif return_as_json:
+        return final_chunks_by_article
     else:
         return json.dumps(final_chunks_by_article, indent=4)
 
@@ -170,6 +179,71 @@ def get_distinct_values(
         return pd.DataFrame(distinct_values)
     else:
         return json.dumps(distinct_values, indent=4)
+
+
+def get_response(user_query, metadata_filters={}, top_n: int = 5, top_k: int = 100):
+    # Get the relevant chunks from Vector store filtered by Metadata Filters
+    search_results_json = search(
+        user_query=user_query,
+        metadata_filters=metadata_filters,
+        top_n=top_n,
+        top_k=top_k,
+        return_as_json=True,
+    )
+
+    # Build the prompt using the user query and search result context.
+    prompt = build_summarization_prompt(search_results_json, user_query)
+
+    ## Inspect the built prompt (for debugging or logging)
+    # print("Built prompt for summarization:")
+    # print(prompt)
+
+    # -------------------------------------------------------------------------------------------------
+    # Set up the Databricks SDK client.
+    w = WorkspaceClient()
+
+    json_response_try = 0
+    while json_response_try < 3:
+        # Build the conversation messages.
+        messages = [
+            ChatMessage(
+                role=ChatMessageRole.SYSTEM,
+                content=(
+                    "You are a summarization assistant that must generate responses ONLY using the provided context. "
+                    "Your answer must be formatted as a JSON object with the following keys:\n"
+                    '"Response": A clear and concise answer to the user query, and \n'
+                    '"Citations": A list of citations, where each citation includes the highlighted context excerpt and its corresponding PMC Id.\n'
+                    "Do not include any information that is not present in the provided context."
+                ),
+            ),
+            ChatMessage(role=ChatMessageRole.USER, content=prompt),
+        ]
+
+        # Send the query to the serving endpoint (update the endpoint name as needed).
+        response = w.serving_endpoints.query(
+            name="databricks-claude-3-7-sonnet",
+            messages=messages,
+            max_tokens=8000,  # Adjust token count if you expect longer outputs.
+        )
+
+        # Extract and print the final output from the completion.
+        output = response.choices[0].message.content
+        try:
+            data = json.loads(output)
+
+            citations_list = data["Citations"]
+            for citation in citations_list:
+                citation["article_download_link"] = download_s3_to_dbfs(
+                    citation["pmc_id"], citation["excerpt"]
+                )
+
+            json_response = json.dumps(data, indent=4)
+            return json_response
+        except json.JSONDecodeError as e:
+            json_response_try += 1
+
+    # if JSON was still not formed after 3 attempts, return the LLM response itself
+    return output
 
 
 if __name__ == "__main__":
