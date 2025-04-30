@@ -49,7 +49,7 @@ class OpenSearchManager(BaseVectorDBHandler):
                 host_details = [{"host": host, "port": port}]
 
             use_ssl = vector_db_params.get("use_ssl", True)
-            verify_certs = eval(vector_db_params.get("verify_certs", False))
+            verify_certs = eval(vector_db_params.get("verify_certs", "False"))
 
             self.client = OpenSearch(
                 hosts=host_details,
