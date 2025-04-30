@@ -2,6 +2,7 @@ from datetime import date
 import bioc
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
 from src.pubtator_utils.file_handler.base_handler import FileHandler
+import copy
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -188,7 +189,13 @@ def extract_body_data(body, bioc_document):
             if sec.find("title") is not None
             else "Untitled Section"
         )
-        section_text = "".join(sec.itertext())
+        # deep-copy so you don’t mutate the original tree
+        sec_copy = copy.deepcopy(sec)
+        if sec_copy.find("title") is not None:
+            sec_copy.remove(sec_copy.find("title"))
+
+        # now this contains everything *except* the title
+        section_text = "".join(sec_copy.itertext()).strip()
 
         # Create a passage for each section of the body
         bioc_passage = bioc.BioCPassage()
