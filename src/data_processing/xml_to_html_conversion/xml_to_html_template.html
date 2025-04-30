@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PubTator‑Style Viewer</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; display: flex; }
+    .sidebar { width: 260px; background: #f7f7f7; padding: 1rem; box-shadow: 1px 0 4px rgba(0,0,0,0.1); overflow-y: auto; }
+    .main { flex: 1; padding: 1.5rem; }
+    h1 { margin-top: 0; }
+    h2 { margin-bottom: 0.5rem; color: #333; text-transform: uppercase; }
+    .entity { cursor: pointer; padding: 0.1em 0.2em; border-radius: 3px; }
+    .Gene      { background: #f3e5f5; }
+    .Disease   { background: #ffebee; }
+    .Chemical  { background: #e8f5e9; }
+    .Species   { background: #e3f2fd; }
+    .CellLine  { background: #e0f7fa; }
+    .Variant   { background: #fff3e0; }
+    mark { background: yellow; }
+    #popup { position: absolute; background: #fff; border: 1px solid #ccc; padding: 0.5rem; border-radius: 4px; display: none; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+    .sidebar h3 { margin-top: 1rem; margin-bottom: 0.5rem; text-transform: uppercase; }
+    #sectionsNav, .conceptGroup ul { list-style: none; padding-left: 0; }
+    #sectionsNav li { margin: 0.2rem 0; }
+    #sectionsNav a { text-decoration: none; color: #0073e6; text-transform: uppercase; }
+    .conceptGroup { margin-bottom: 1rem; }
+    .conceptTitle { font-weight: bold; color: #555; margin-bottom: 0.3rem; text-transform: uppercase; }
+    .conceptGroup ul li { display: flex; justify-content: space-between; padding: 0.1rem 0; }
+    .rest-item { display: none; }
+    .toggle-btn { background: none; border: none; color: #0073e6; cursor: pointer; padding: 0; font-size: 0.9em; }
+    .count { color: #888; }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h3>Options</h3>
+    <div><input type="checkbox" id="toggleAbstract" checked> <label for="toggleAbstract">SHOW ABSTRACT</label></div>
+    <h3>Filter Highlights</h3>
+    <div><input type="checkbox" id="toggleGene" checked> <label for="toggleGene">GENE</label></div>
+    <div><input type="checkbox" id="toggleDisease" checked> <label for="toggleDisease">DISEASE</label></div>
+    <div><input type="checkbox" id="toggleChemical" checked> <label for="toggleChemical">CHEMICAL</label></div>
+    <div><input type="checkbox" id="toggleSpecies" checked> <label for="toggleSpecies">SPECIES</label></div>
+    <div><input type="checkbox" id="toggleCellLine" checked> <label for="toggleCellLine">CELL LINE</label></div>
+    <div><input type="checkbox" id="toggleVariant" checked> <label for="toggleVariant">VARIANT</label></div>
+    <h3>Sections</h3>
+    <ul id="sectionsNav"></ul>
+    <h3>Bioconcepts and Mentions</h3>
+    <div id="conceptsList"></div>
+  </div>
+
+  <div class="main">
+    <div id="metadata"></div>
+    <div id="passages"></div>
+  </div>
+
+  <div id="popup"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js"></script>
+  <script id="xml-data" type="application/xml">
+{{XML_CONTENT}}
+  </script>
+
+  <script>
+    // Template placeholder: inject your highlight phrase here
+    const HIGHLIGHT_TEXT = "{{HIGHLIGHT_TEXT}}";
+
+    // escapeRegex must be declared before use
+    function escapeRegex(s) {
+      return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    }
+    function escape(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Determine highlightText: template first, then URL
+      const params = new URLSearchParams(window.location.search);
+      let highlightText = HIGHLIGHT_TEXT || params.get('highlight') || '';
+      console.log('[Highlight] Using highlightText =', highlightText);
+      const highlightRegex = highlightText ? new RegExp(escapeRegex(highlightText), 'gi') : null;
+
+      // Parse XML
+      const xmlText = document.getElementById('xml-data').textContent.trim();
+      const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+      const d = doc.querySelector('document');
+      if (!d) {
+        console.error('No <document> element found in XML');
+        return;
+      }
+
+      // Helper to safely get infon text
+      function getInfon(key) {
+        const node = d.querySelector(`infon[key='${key}']`);
+        return node?.textContent || '';
+      }
+
+      // Metadata with safe defaults
+      const md = {
+        title:   getInfon('title'),
+        pmcid:   getInfon('article_id_pmc'),
+        pmid:    getInfon('article_id_pmid'),
+        doi:     getInfon('article_id_doi'),
+        subject: getInfon('subject_heading'),
+        date:    getInfon('publication_date')
+      };
+      document.getElementById('metadata').innerHTML = `
+        <h1>${md.title || 'No Title'}</h1>
+        <div>
+          PMCID: ${md.pmcid || 'N/A'} |
+          PMID: ${md.pmid || 'N/A'} |
+          DOI: ${md.doi ? `<a href="https://doi.org/${md.doi}" target="_blank">${md.doi}</a>` : 'N/A'} |
+          SUBJECT: ${md.subject.toUpperCase() || 'N/A'} |
+          DATE: ${md.date || 'N/A'}
+        </div>
+      `;
+
+      // Render passages
+      const sections = [], seen = new Set();
+      const countsAll = {}, countsAbs = {};
+      const passagesContainer = document.getElementById('passages');
+      let prevHdr = '';
+
+      doc.querySelectorAll('passage').forEach(p => {
+        const raw = p.querySelector("infon[key='type']").textContent;
+        let hdr = '';
+        if (raw === 'abstract_Unknown') hdr = 'Abstract';
+        else if (raw === 'body_text' && prevHdr === 'Abstract') hdr = 'Main';
+        else if (raw !== 'body_text') hdr = raw;
+        if (hdr && !seen.has(hdr)) { seen.add(hdr); sections.push({hdr, id: `section-${hdr}`}); }
+        prevHdr = hdr || prevHdr;
+
+        // Original passage text
+        let txt = p.querySelector('text').textContent;
+        // // Optionally remove duplicate heading text
+        // if (hdr && txt.toLowerCase().startsWith(hdr.toLowerCase())) {
+        //   txt = txt.slice(hdr.length).trimStart();
+        // }
+
+        const annots = Array.from(p.querySelectorAll('annotation')).map(a => {
+          const type = a.querySelector("infon[key='type']").textContent;
+          const text = a.querySelector('text').textContent;
+          countsAll[type] = countsAll[type]||{};
+          countsAll[type][text] = (countsAll[type][text]||0)+1;
+          if (hdr === 'Abstract') {
+            countsAbs[type] = countsAbs[type]||{};
+            countsAbs[type][text] = (countsAbs[type][text]||0)+1;
+          }
+          const idNode = a.querySelector("infon[key='identifier']");
+          const geneNode = a.querySelector("infon[key='NCBI Gene']");
+          const taxNode = a.querySelector("infon[key='NCBI Taxonomy']");
+          let id = idNode?.textContent || geneNode?.textContent || taxNode?.textContent || '';
+          return { type, id, loc: +a.querySelector('location').getAttribute('offset'), len: +a.querySelector('location').getAttribute('length'), text };
+        }).sort((a,b) => a.loc - b.loc);
+
+        let html = '', cursor = 0;
+        annots.forEach(a => {
+          html += escape(txt.slice(cursor, a.loc));
+          html += `<span class="entity ${a.type}" data-type="${a.type}" data-id="${a.id}" data-text="${a.text}">${escape(txt.substr(a.loc, a.len))}</span>`;
+          cursor = a.loc + a.len;
+        });
+        html += escape(txt.slice(cursor));
+
+        // Logging before highlight
+        console.log('[Highlight] before highlight html =', html.substring(0, 100));
+        if (highlightRegex) {
+          html = html.replace(highlightRegex, match => `<mark>${match}</mark>`);
+          console.log('[Highlight] after highlight html =', html.substring(0, 100));
+        }
+
+        const div = document.createElement('div');
+        const hdrHTML = hdr ? `<h2 id="section-${hdr}">${hdr.toUpperCase()}</h2>` : '';
+        div.innerHTML = hdrHTML + `<p>${html}</p>`;
+        passagesContainer.appendChild(div);
+      });
+
+            // 5) Use mark.js to highlight across tags
+      if (highlightText) {
+        console.log('[Mark.js] highlighting with mark.js:', highlightText);
+        const context = document.querySelector('#passages');
+        // Remove previous markings
+        new Mark(context).unmark({
+          done: () => {
+            // Apply new highlighting with count callback
+            new Mark(context).mark(highlightText, {
+              element: 'mark',
+              className: 'custom-highlight',
+              separateWordSearch: false,
+              acrossElements: true,
+              caseSensitive: false,
+              done: (count) => console.log('[Mark.js] marked', count, 'instances')
+            });
+          }
+        });
+      }
+
+      // Sections Nav
+      const nav = document.getElementById('sectionsNav');
+      sections.forEach(s => {
+        const li = document.createElement('li');
+        li.innerHTML = `<a href="#${s.id}">${s.hdr.toUpperCase()}</a>`;
+        nav.appendChild(li);
+      });
+
+      // Concepts List
+      const cdiv = document.getElementById('conceptsList');
+      function renderConcepts(useAbs) {
+        cdiv.innerHTML = '';
+        const src = useAbs ? countsAbs : countsAll;
+        Object.keys(src).sort().forEach(type => {
+          const entries = Object.entries(src[type]||{}).sort((a,b) => b[1] - a[1]);
+          const grp = document.createElement('div'); grp.className = 'conceptGroup';
+          grp.innerHTML = `<div class="conceptTitle">${type.toUpperCase()}</div>`;
+          const ul = document.createElement('ul');
+          entries.forEach(([ent,c], i) => {
+            const li = document.createElement('li');
+            if (i >= 5) { li.className = 'rest-item'; li.style.display = 'none'; }
+            li.innerHTML = `${escape(ent)} <span class="count">${c}</span>`;
+            ul.appendChild(li);
+          });
+          grp.appendChild(ul);
+          if (entries.length > 5) {
+            const btn = document.createElement('button'); btn.className = 'toggle-btn'; btn.textContent = 'more';
+            btn.addEventListener('click', () => {
+              const show = btn.textContent === 'more';
+              grp.querySelectorAll('.rest-item').forEach(el => el.style.display = show ? 'flex' : 'none');
+              btn.textContent = show ? 'less' : 'more';
+            });
+            grp.appendChild(btn);
+          }
+          cdiv.appendChild(grp);
+        });
+      }
+      renderConcepts(false);
+
+      // Abstract Toggle
+      document.getElementById('toggleAbstract').addEventListener('change', e => {
+        const show = e.target.checked;
+        document.querySelectorAll('#passages > div').forEach(div => {
+          const h2 = div.querySelector('h2');
+          div.style.display = show ? (h2?.id === 'section-Abstract' ? '' : 'none') : '';
+        });
+        document.querySelectorAll('#sectionsNav li').forEach(li => {
+          const href = li.querySelector('a').getAttribute('href');
+          li.style.display = show ? (href === '#section-Abstract' ? '' : 'none') : '';
+        });
+        renderConcepts(show);
+      });
+
+      // Highlight Toggles
+      ['Gene','Disease','Chemical','Species','CellLine','Variant'].forEach(type => {
+        document.getElementById('toggle'+type).addEventListener('change', e => {
+          document.querySelectorAll(`.entity.${type}`).forEach(el => el.style.background = e.target.checked ? '' : 'transparent');
+        });
+      });
+
+      // Entity Popups
+      document.querySelectorAll('.entity').forEach(el => {
+        el.addEventListener('click', e => {
+          const pop = document.getElementById('popup');
+          let html = `<strong>${el.dataset.type}</strong><br>${el.dataset.text}` +
+                     (el.dataset.id ? `<br><em>${el.dataset.id}</em>` : '');
+          const id = el.dataset.id.split(':').pop();
+          let link = '';
+          switch(el.dataset.type) {
+            case 'Gene':
+              link = `<br><a href="https://www.ncbi.nlm.nih.gov/gene/${id}" target="_blank">View in NCBI Gene</a>`;
+              break;
+            case 'Species':
+              link = `<br><a href="https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=${id}" target="_blank">View in Taxonomy Browser</a>`;
+              break;
+            case 'Disease':
+              link = `<br><a href="https://meshb.nlm.nih.gov/record/ui?ui=${id}" target="_blank">View in MeSH</a>`;
+              break;
+            case 'CellLine':
+              link = `<br><a href="https://www.cellosaurus.org/CVCL_${id}" target="_blank">View in Cellosaurus</a>`;
+              break;
+            case 'Chemical':
+              link = `<br><a href="https://meshb.nlm.nih.gov/record/ui?ui=${id}" target="_blank">View in MeSH</a>`;
+              break;
+          }
+          pop.innerHTML = html + link;
+          pop.style.top = `${e.pageY + 5}px`;
+          pop.style.left = `${e.pageX + 5}px`;
+          pop.style.display = 'block';
+          e.stopPropagation();
+        });
+      });
+      document.body.addEventListener('click', () => document.getElementById('popup').style.display = 'none');
+    });
+  </script>
+</body>
+</html>

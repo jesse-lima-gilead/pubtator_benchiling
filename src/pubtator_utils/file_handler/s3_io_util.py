@@ -22,7 +22,12 @@ class S3IOUtil:
         """Initialize the S3Util class with a specific S3 bucket."""
         self.bucket_name = aws_s3_config["bucket_name"]
         self.bucket_region = aws_s3_config["bucket_region"]
-        self.s3 = boto3.resource("s3", region_name=self.bucket_region)
+        # self.s3 = boto3.resource("s3", region_name=self.bucket_region)
+        self.s3 = (
+            AWSConnection()
+            .setup_session()
+            .resource("s3", region_name=self.bucket_region)
+        )
         self.bucket = self.s3.Bucket(self.bucket_name)
         self.client = AWSConnection().get_client("s3")
 
@@ -91,7 +96,8 @@ class S3IOUtil:
         try:
             files = []
             for obj in self.bucket.objects.filter(Prefix=prefix):
-                files.append(obj.key)
+                if not obj.key.endswith("/"):
+                    files.append(obj.key)
             logger.info(f"Files in bucket: {files}")
             return files
         except ClientError as e:

@@ -1,3 +1,4 @@
+xml_to_html_template_path: "xml_to_html_conversion/xml_to_html_template.html"
 storage:
   type: "hpc"  # Change to "s3" for S3
   hpc:
@@ -14,6 +15,7 @@ storage:
     summary_path: "/scratch/pubtator/data/articles_metadata/summary"
     chunks_path: "/scratch/pubtator/data/indexing/chunks"
     embeddings_path: "/scratch/pubtator/data/indexing/embeddings"
+    static_html_path: "/scratch/pubtator/data/processed/bioc_html"
   local:
     pmc_path: "../../data/staging/pmc_xml"
     bioc_path: "../../data/staging/bioc_xml"
@@ -28,6 +30,7 @@ storage:
     summary_path: "../../data/articles_metadata/summary"
     chunks_path: "../../data/indexing/chunks"
     embeddings_path: "../../data/indexing/embeddings"
+    static_html_path: "../../data/processed/bioc_html"
   s3:
     pmc_path: "data/staging/pmc_xml"
     bioc_path: "data/staging/bioc_xml"
@@ -42,6 +45,7 @@ storage:
     summary_path: "data/articles_metadata/summary"
     chunks_path: "data/indexing/chunks"
     embeddings_path: "data/indexing/embeddings"
+    static_html_path: "data/processed/bioc_html"
 model:
   embeddings_model:
     base_location: "hpc"      # Change to "hugging_face" for Hugging Face

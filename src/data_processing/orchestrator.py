@@ -1,8 +1,13 @@
 import math
+import multiprocessing
 import uuid
 from typing import Dict, List
 from collections import Counter
 from transformers import AutoTokenizer
+
+from src.data_processing.xml_to_html_conversion.xml_to_html_converter import (
+    XmlToHtmlConverter,
+)
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
 
@@ -20,9 +25,6 @@ from src.pubtator_utils.embeddings_handler.embeddings_generator import (
 )
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
-
-# Initialize the config loader
-config_loader = YAMLConfigLoader()
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -317,7 +319,7 @@ class ArticleProcessor:
                 )
                 logger.info(f"Chunks file saved to {chunks_output_path}")
 
-    def get_chunks_embeddings_details(self, chunks: List[Dict], chunk_file_path: str):
+    def get_chunks_embeddings_details(self, chunks: List[Dict], collection_type: str):
         try:
             logger.info("Generating embeddings for the chunks")
             chunk_texts = []
@@ -425,7 +427,7 @@ class ArticleProcessor:
                 chunks = self.file_handler.read_json_file(chunk_file_path)
                 if store_embeddings_as_file:
                     embeddings_details = self.get_chunks_embeddings_details(
-                        chunks=chunks, chunk_file_path=chunk_file_path
+                        chunks=chunks, collection_type=collection_type
                     )
                     # print(f"Embedding details in process_embeddings(): {embeddings_details}")
                     self.store_embeddings_details_in_file(
@@ -460,7 +462,7 @@ class ArticleProcessor:
         logger.info("Embeddings stored successfully")
 
 
-def run(
+def run_chunking_and_embedding(
     run_type: str = "all",
     collection_type: str = "processed_pubmedbert",
     store_embeddings_as_file: bool = True,
@@ -522,20 +524,71 @@ def run(
         logger.error(f"Invalid run type: {run_type}")
 
 
-if __name__ == "__main__":
-    # Processed Text Collection
-    collection_type = "processed_pubmedbert"
+def run_xml_to_html_conversion():
+    # Initialize the config loader
+    config_loader = YAMLConfigLoader()
 
+    # Retrieve paths config
+    paths_config = config_loader.get_config("paths")
+    xml_to_html_template_path = paths_config["xml_to_html_template_path"]
+    storage_type = paths_config["storage"]["type"]
+
+    # Get file handler instance from factory
+    file_handler = FileHandlerFactory.get_handler(storage_type)
+    # Retrieve paths from config
+    paths = paths_config["storage"][storage_type]
+
+    html_converter = XmlToHtmlConverter(paths, file_handler, xml_to_html_template_path)
+    html_converter.xml_html_converter()
+
+
+def _safe_run_chunking_and_embedding(
+    run_type, collection_type, store_embeddings_as_file
+):
+    try:
+        run_chunking_and_embedding(
+            run_type=run_type,
+            collection_type=collection_type,
+            store_embeddings_as_file=store_embeddings_as_file,
+        )
+        logger.info("Chunking & embedding finished successfully.")
+    except Exception:
+        logger.exception("Chunking & embedding failed")
+
+
+def _safe_run_xml_to_html_conversion():
+    try:
+        run_xml_to_html_conversion()
+        logger.info("XML→HTML conversion finished successfully.")
+    except Exception:
+        logger.exception("XML→HTML conversion failed")
+
+
+if __name__ == "__main__":
     # Baseline Text Collection
     # collection_type = "baseline"
 
     # Test Collection
     # collection_type = "test"
 
+    # Processed Text Collection
+    collection_type = "processed_pubmedbert"
     store_embeddings_as_file = True
     run_type = "all"  # "all" or "chunks" or "embeddings"
-    run(
-        run_type=run_type,
-        collection_type=collection_type,
-        store_embeddings_as_file=store_embeddings_as_file,
+
+    # set up two separate processes
+    p1 = multiprocessing.Process(
+        target=_safe_run_chunking_and_embedding,
+        args=(run_type, collection_type, store_embeddings_as_file),
     )
+    p2 = multiprocessing.Process(target=_safe_run_xml_to_html_conversion)
+
+    # start both
+    p1.start()
+    p2.start()
+
+    # wait for both to finish
+    p1.join()
+    p2.join()
+
+    logger.info("Orchestrator Run is Complete.")

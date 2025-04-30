@@ -1,8 +1,12 @@
 aws:
-  platform_type: "Sandbox" #change to GDNA or Sandbox or TW
+  platform_type: "Sandbox" #change to GDNA or Sandbox or TW or HPC
   GDNA:
     s3:
       bucket_name: "gilead-edp-research-dev-us-west-2-pubmed"
+      bucket_region: "us-west-2"
+  HPC:
+    s3:
+      bucket_name: "gilead-ri-hpc-pubmed-dev-us-west-2"
       bucket_region: "us-west-2"
   TW:
     s3:

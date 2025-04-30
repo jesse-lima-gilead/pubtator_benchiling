@@ -36,7 +36,7 @@ class AWSConnection:
                     aws_session_token=os.getenv("AWS_SESSION_TOKEN"),
                     region_name=aws_sso_region,
                 )
-            else:  # GDNA
+            else:  # GDNA or HPC
                 self.session = boto3.Session()
 
             # Test the connection by creating an STS client and calling 'get_caller_identity'

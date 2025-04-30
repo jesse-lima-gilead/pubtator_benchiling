@@ -33,6 +33,8 @@ class BioCFileMerger:
         """
         file_names = self.file_handler.list_files(self.input_dirs["disease"])
         for file_name in file_names:
+            if not file_name.endswith(".xml"):
+                continue
             logger.info(f"Processing file: {file_name}")
             documents = [
                 self._parse_bioc_file(
