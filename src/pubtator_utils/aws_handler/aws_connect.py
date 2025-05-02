@@ -28,16 +28,7 @@ class AWSConnection:
     def setup_session(self):
         """Sets up and maintains the AWS session and client."""
         try:
-            if self.platform == "Sandbox":
-                aws_sso_region = os.getenv("SSO_REGION")
-                self.session = boto3.Session(
-                    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-                    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-                    aws_session_token=os.getenv("AWS_SESSION_TOKEN"),
-                    region_name=aws_sso_region,
-                )
-            else:  # GDNA or HPC
-                self.session = boto3.Session()
+            self.session = boto3.Session()
 
             # Test the connection by creating an STS client and calling 'get_caller_identity'
             self.client = self.session.client("sts")

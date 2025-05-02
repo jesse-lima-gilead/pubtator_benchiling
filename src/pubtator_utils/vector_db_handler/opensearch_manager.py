@@ -28,25 +28,17 @@ class OpenSearchManager(BaseVectorDBHandler):
             self.method = index_params.get("method", "hnsw")
 
             host = vector_db_params["host"]
-            if "https" in host:
-                # AWS credentials and region
-                region = vector_db_params.get("region")
-                service = vector_db_params.get("service")
-                credentials = boto3.Session().get_credentials()
-                auth = AWS4Auth(
-                    credentials.access_key,
-                    credentials.secret_key,
-                    region,
-                    service,
-                    session_token=credentials.token,
-                )
-                host_details = [host]
-            else:
-                port = vector_db_params.get("port", 9200)
-                username = os.getenv("OPENSEARCH_USER")
-                password = os.getenv("OPENSEARCH_PASS")
-                auth = (username, password) if username and password else None
-                host_details = [{"host": host, "port": port}]
+            region = vector_db_params.get("region")
+            service = vector_db_params.get("service")
+            credentials = boto3.Session().get_credentials()
+            auth = AWS4Auth(
+                credentials.access_key,
+                credentials.secret_key,
+                region,
+                service,
+                session_token=credentials.token,
+            )
+            host_details = [host]
 
             use_ssl = vector_db_params.get("use_ssl", True)
             verify_certs = eval(vector_db_params.get("verify_certs", "False"))

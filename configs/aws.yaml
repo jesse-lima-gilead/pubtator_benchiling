@@ -1,5 +1,5 @@
 aws:
-  platform_type: "Sandbox" #change to GDNA or Sandbox or TW or HPC
+  platform_type: "HPC" #change to GDNA or HPC
   GDNA:
     s3:
       bucket_name: "gilead-edp-research-dev-us-west-2-pubmed"
@@ -8,22 +8,3 @@ aws:
     s3:
       bucket_name: "gilead-ri-hpc-pubmed-dev-us-west-2"
       bucket_region: "us-west-2"
-  TW:
-    s3:
-      bucket_name: "gilead-edp-research-dev-us-west-2-pubmed-tw"
-      bucket_region: "us-west-2"
-  Sandbox:
-    infra:
-      sso_region: "us-west-2"
-    s3:
-      bucket_name: "pubtator-poc"
-      bucket_region: "us-west-2"
-    ecs:
-      cluster_name: "pubtator-fargate-cluster"
-      tasks:
-        aioner:
-          task_definition: "aioner-ncbi-task"
-          container_name: "aioner-ncbi"
-        gnorm2:
-          task_definition: "gnorm2-ncbi-task"
-          container_name: "gnorm2-ncbi"
