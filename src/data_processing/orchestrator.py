@@ -197,6 +197,58 @@ class ArticleProcessor:
         }
         return result
 
+    def get_annotation_ids_per_bioconcept(
+        self, chunk_annotations: List[Dict]
+    ) -> Dict[str, List[str]]:
+        """
+        Gets the annotation_ids per bioconcept.
+
+        Args:
+            chunk_annotations (List[Dict]): List of annotation dictionaries.
+
+        Returns:
+            Dict[str, List[str]]: Dictionary with List of ids per bioconcept, including empty list for those not present.
+        """
+        # List of bioconcepts to calculate counts for
+        # Predefined bioconcepts
+        bioconcepts = {
+            "Gene",
+            "Species",
+            "Strain",
+            "Genus",
+            "CellLine",
+            "Disease",
+            "Chemical",
+        }
+        annotation_id_dic = {}
+        for concept in bioconcepts.union({"Variant"}):
+            annotation_id_dic[concept] = set()
+
+        # Count annotations ids per bioconcept, classifying unknown types as "Variant"
+        for annotation in chunk_annotations:
+            annotation_type = annotation.get("type")
+            if annotation_type not in bioconcepts:
+                annotation_type = "Variant"
+            if annotation["identifier"] is not None:
+                annotation_id_dic[annotation_type].add(annotation["identifier"])
+
+        for annotation_id_per_concept in annotation_id_dic:
+            annotation_id_dic[annotation_id_per_concept] = list(
+                annotation_id_dic[annotation_id_per_concept]
+            )
+
+        return annotation_id_dic
+
+    def get_unique_keyword_annotations(
+        self, chunk_annotations: List[Dict]
+    ) -> List[str]:
+        unique_keywords = set()
+        for annotation in chunk_annotations:
+            annotation_text = annotation.get("text").lower()
+            unique_keywords.add(annotation_text)
+
+        return list(unique_keywords)
+
     def process_chunks(self):
         for article_file in self.file_handler.list_files(self.articles_input_dir):
             if article_file.endswith(".xml"):
@@ -235,6 +287,10 @@ class ArticleProcessor:
                     annotations_per_bioconcept = (
                         self.calculate_annotations_per_bioconcept(chunk_annotations)
                     )
+                    keywords = self.get_unique_keyword_annotations(chunk_annotations)
+                    annotation_ids_per_bioconcept = (
+                        self.get_annotation_ids_per_bioconcept(chunk_annotations)
+                    )
                     chunk_length = self.get_token_count(chunk_text)
                     # token_count = len(merged_text_with_summary.split())
                     token_count = self.get_token_count(merged_text_with_summary)
@@ -268,6 +324,15 @@ class ArticleProcessor:
                             "diseases": annotations_per_bioconcept["Disease"],
                             "chemicals": annotations_per_bioconcept["Chemical"],
                             "variants": annotations_per_bioconcept["Variant"],
+                            "keywords": keywords,
+                            "gene_ids": annotation_ids_per_bioconcept["Gene"],
+                            "species_ids": annotation_ids_per_bioconcept["Species"],
+                            "strain_ids": annotation_ids_per_bioconcept["Strain"],
+                            "genus_ids": annotation_ids_per_bioconcept["Genus"],
+                            "cell_line_ids": annotation_ids_per_bioconcept["CellLine"],
+                            "disease_ids": annotation_ids_per_bioconcept["Disease"],
+                            "chemical_ids": annotation_ids_per_bioconcept["Chemical"],
+                            "variant_ids": annotation_ids_per_bioconcept["Variant"],
                             # "chunk_offset": chunk_offset,
                             # "chunk_infons": chunk_infons,
                             # "chunker_type": chunker_type,

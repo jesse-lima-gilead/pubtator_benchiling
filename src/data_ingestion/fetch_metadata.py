@@ -71,7 +71,7 @@ class MetadataExtractor:
         # Adding additional article metadata like title and keywords if available
         article_data = {
             "title": self.get_text(article_meta, "title-group/article-title"),
-            "keywords": [
+            "keywords_from_source": [
                 kwd.text.strip() for kwd in article_meta.findall(".//kwd") if kwd.text
             ],
         }
@@ -286,7 +286,9 @@ class MetadataExtractor:
             "publisher-id": metadata.get("article_meta", {}).get("publisher-id", ""),
             "title": metadata.get("article_meta", {}).get("title", ""),
             "article_type": metadata.get("article_meta", {}).get("article_type", ""),
-            "keywords": metadata.get("article_meta", {}).get("keywords", ""),
+            "keywords_from_source": metadata.get("article_meta", {}).get(
+                "keywords", ""
+            ),
             "authors": [
                 f"{author.get('given-names', '')} {author.get('surname', '')}"
                 for author in metadata.get("front", {}).get("authors", [])

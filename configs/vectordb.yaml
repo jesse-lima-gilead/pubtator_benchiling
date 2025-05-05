@@ -1,5 +1,5 @@
 vector_db:
-  type: "opensearch"
+  type: "opensearch_cloud"
   opensearch_cloud:
     vector_db_params:
       host: "https://vpc-research-dev-domain-a7dj35akdal35go3cv5eitd5ba.us-west-2.es.amazonaws.com"

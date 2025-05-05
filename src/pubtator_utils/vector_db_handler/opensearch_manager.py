@@ -1,4 +1,3 @@
-import os
 from typing import Dict, List, Any
 import boto3
 from requests_aws4auth import AWS4Auth
@@ -316,13 +315,17 @@ class OpenSearchManager(BaseVectorDBHandler):
         # Handle user_keywords filter with partial matching using a "match" query:
         if user_keywords := filters.get("user_keywords"):
             # Split by comma and trim whitespace
-            keywords_list = [kw.strip() for kw in user_keywords.split(",")]
+            user_keywords_list = [kw.strip().lower() for kw in user_keywords.split(",")]
             # Create a bool query that matches if any one of the keywords partially matches the field
             user_keywords_filter = {
                 "bool": {
                     "should": [
-                        {"match": {"chunk_text": {"query": kw, "operator": "and"}}}
-                        for kw in keywords_list
+                        {
+                            "match": {
+                                "keywords": {"query": user_keyword, "operator": "and"}
+                            }
+                        }
+                        for user_keyword in user_keywords_list
                     ],
                     "minimum_should_match": 1,
                 }
