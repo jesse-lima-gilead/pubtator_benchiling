@@ -1,7 +1,5 @@
 from typing import Any, Dict
 
-from dotenv import load_dotenv
-
 from src.pubtator_utils.vector_db_handler.opensearch_manager import OpenSearchManager
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
@@ -12,8 +10,6 @@ config_loader = YAMLConfigLoader()
 # Initialize the logger
 logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()
-
-# load_dotenv()  # Load environment variables from .env file
 
 
 class VectorDBHandler:

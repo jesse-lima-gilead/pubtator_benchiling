@@ -2,7 +2,6 @@ from typing import Dict, List, Any
 import boto3
 from requests_aws4auth import AWS4Auth
 from rapidfuzz import fuzz
-from dotenv import load_dotenv
 from opensearchpy import OpenSearch, exceptions, helpers, RequestsHttpConnection
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
 from src.pubtator_utils.vector_db_handler.vector_db_base_handler import (
@@ -12,8 +11,6 @@ from src.pubtator_utils.vector_db_handler.vector_db_base_handler import (
 # Get the logger instance
 logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()
-
-load_dotenv()  # Load environment variables from .env file
 
 
 class OpenSearchManager(BaseVectorDBHandler):
