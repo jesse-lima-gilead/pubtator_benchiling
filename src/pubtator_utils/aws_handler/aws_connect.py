@@ -2,7 +2,6 @@ import os
 
 import boto3
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
-from dotenv import load_dotenv
 
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
@@ -23,7 +22,6 @@ class AWSConnection:
         self.platform = aws_platform_type
         self.session = None
         self.client = None
-        load_dotenv()  # Load environment variables from .env file
 
     def setup_session(self):
         """Sets up and maintains the AWS session and client."""
