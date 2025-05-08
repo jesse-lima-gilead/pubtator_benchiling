@@ -15,6 +15,7 @@ storage:
     summary_path: "/scratch/pubtator/data/articles_metadata/summary"
     chunks_path: "/scratch/pubtator/data/indexing/chunks"
     embeddings_path: "/scratch/pubtator/data/indexing/embeddings"
+    embeddings_archived_path: "data/indexing/embeddings_archived"
     static_html_path: "/scratch/pubtator/data/processed/bioc_html"
   s3:
     pmc_path: "data/staging/pmc_xml"
@@ -30,6 +31,7 @@ storage:
     summary_path: "data/articles_metadata/summary"
     chunks_path: "data/indexing/chunks"
     embeddings_path: "data/indexing/embeddings"
+    embeddings_archived_path: "data/indexing/embeddings_archived"
     static_html_path: "data/processed/bioc_html"
 model:
   embeddings_model:

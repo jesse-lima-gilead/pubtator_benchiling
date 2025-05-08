@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 from typing import Union, Any
 from xml.etree import ElementTree as ET
 from src.pubtator_utils.file_handler.base_handler import FileHandler
@@ -153,3 +154,74 @@ class LocalFileHandler(FileHandler):
             tree.write(file_path, encoding="utf-8", xml_declaration=True)
         except OSError as e:
             raise OSError(f"Error writing BioC file {file_path}: {e}")
+
+    def copy_file(self, src_path: str, dest_path: str, dest_bucket=None) -> None:
+        """Copies a file from src_path to dest_path.
+
+        Args:
+            src_path (str): The source file path.
+            dest_path (str): The destination file path.
+            dest_bucket (Not Applicable for local): The destination bucket. Defaults to None.
+
+        Raises:
+            FileNotFoundError: If the source file does not exist.
+            FileExistsError: If the destination exists and overwrite is False.
+            PermissionError: If access is denied.
+            OSError: If an error occurs during copying.
+        """
+        if not os.path.isfile(src_path):
+            raise FileNotFoundError(f"Source file not found: {src_path}")
+        if os.path.exists(dest_path):
+            raise FileExistsError(f"Destination file already exists: {dest_path}")
+        try:
+            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+            shutil.copy2(src_path, dest_path)
+        except PermissionError:
+            raise PermissionError(f"Permission denied: {src_path} or {dest_path}")
+        except OSError as e:
+            raise OSError(f"Error copying file from {src_path} to {dest_path}: {e}")
+
+    def move_file(self, src_path: str, dest_path: str) -> None:
+        """Moves a file from src_path to dest_path.
+
+        Args:
+            src_path (str): The source file path.
+            dest_path (str): The destination file path.
+
+        Raises:
+            FileNotFoundError: If the source file does not exist.
+            FileExistsError: If the destination exists and overwrite is False.
+            PermissionError: If access is denied.
+            OSError: If an error occurs during moving.
+        """
+        if not os.path.isfile(src_path):
+            raise FileNotFoundError(f"Source file not found: {src_path}")
+        if os.path.exists(dest_path):
+            raise FileExistsError(f"Destination file already exists: {dest_path}")
+        try:
+            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+            shutil.move(src_path, dest_path)
+        except PermissionError:
+            raise PermissionError(f"Permission denied: {src_path} or {dest_path}")
+        except OSError as e:
+            raise OSError(f"Error moving file from {src_path} to {dest_path}: {e}")
+
+    def delete_file(self, file_path: str) -> None:
+        """Deletes a file at the given path.
+
+        Args:
+            file_path (str): The file path to delete.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            PermissionError: If access is denied.
+            OSError: If an error occurs while deleting the file.
+        """
+        if not os.path.isfile(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+        try:
+            os.remove(file_path)
+        except PermissionError:
+            raise PermissionError(f"Permission denied: {file_path}")
+        except OSError as e:
+            raise OSError(f"Error deleting file {file_path}: {e}")

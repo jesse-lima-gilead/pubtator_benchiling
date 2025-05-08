@@ -35,3 +35,15 @@ class FileHandler(ABC):
     @abstractmethod
     def write_file_as_bioc(self, file_path, bioc_document):
         pass
+
+    @abstractmethod
+    def copy_file(self, src_path, dest_path, dest_bucket):
+        pass
+
+    @abstractmethod
+    def move_file(self, src_path, dest_path):
+        pass
+
+    @abstractmethod
+    def delete_file(self, file_path):
+        pass

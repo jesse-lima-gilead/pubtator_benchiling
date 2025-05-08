@@ -87,3 +87,28 @@ class S3FileHandler(FileHandler):
                 )
         except (ClientError, ValueError, ET.ParseError) as e:
             raise Exception(f"Error writing BioC file: {e}")
+
+    def copy_file(self, source_key, dest_key, dest_bucket_name):
+        """Copies S3 file from one location to another."""
+        try:
+            self.s3_util.copy_file(
+                source_key=source_key,
+                dest_bucket_name=dest_bucket_name,
+                dest_key=dest_key,
+            )
+        except ClientError as e:
+            raise Exception(f"Error Copy file {dest_bucket_name}:{dest_key}: {e}")
+
+    def move_file(self, source_key, dest_key):
+        """Move a file within the S3 bucket."""
+        try:
+            self.s3_util.move_file(source_key=source_key, dest_key=dest_key)
+        except ClientError as e:
+            raise Exception(f"Error Moving file {source_key}:{dest_key}: {e}")
+
+    def delete_file(self, file_path):
+        """Delete a file from the S3 bucket."""
+        try:
+            self.s3_util.delete_file(object_name=file_path)
+        except ClientError as e:
+            raise Exception(f"Error Deleting file {file_path}: {e}")

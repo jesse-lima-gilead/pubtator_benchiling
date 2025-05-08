@@ -12,14 +12,11 @@ logger = logger_instance.get_logger()
 # Initialize the config loader
 config_loader = YAMLConfigLoader()
 
-# Retrieve a specific config
-aws_platform_type = config_loader.get_config("aws")["aws"]["platform_type"]
-aws_s3_config = config_loader.get_config("aws")["aws"][aws_platform_type]["s3"]
-
 
 class S3IOUtil:
-    def __init__(self):
+    def __init__(self, platform_type: str):
         """Initialize the S3Util class with a specific S3 bucket."""
+        aws_s3_config = config_loader.get_config("aws")["aws"][platform_type]["s3"]
         self.bucket_name = aws_s3_config["bucket_name"]
         self.bucket_region = aws_s3_config["bucket_region"]
         # self.s3 = boto3.resource("s3", region_name=self.bucket_region)
@@ -114,12 +111,14 @@ class S3IOUtil:
             return False
         return True
 
-    def copy_file(self, source_bucket_name, source_key, dest_key):
-        """Copy a file from another S3 bucket to this one."""
+    def copy_file(self, source_key, dest_bucket_name, dest_key):
+        """Copy a file in S3 bucket."""
         try:
-            copy_source = {"Bucket": source_bucket_name, "Key": source_key}
-            self.bucket.copy(copy_source, dest_key)
-            logger.info(f"File {source_key} copied to {dest_key}.")
+            copy_source = {"Bucket": self.bucket_name, "Key": source_key}
+            self.client.copy(copy_source, dest_bucket_name, dest_key)
+            logger.info(
+                f"File {self.bucket_name}:{source_key} copied to {dest_bucket_name}:{dest_key}."
+            )
         except ClientError as e:
             logger.info(f"Failed to copy file: {e}")
             return False
