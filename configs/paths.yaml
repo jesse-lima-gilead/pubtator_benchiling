@@ -15,7 +15,7 @@ storage:
     summary_path: "/scratch/pubtator/data/articles_metadata/summary"
     chunks_path: "/scratch/pubtator/data/indexing/chunks"
     embeddings_path: "/scratch/pubtator/data/indexing/embeddings"
-    embeddings_archived_path: "data/indexing/embeddings_archived"
+    embeddings_archived_path: "data/indexing/archived_embeddings"
     static_html_path: "/scratch/pubtator/data/processed/bioc_html"
   s3:
     pmc_path: "data/staging/pmc_xml"
@@ -31,14 +31,30 @@ storage:
     summary_path: "data/articles_metadata/summary"
     chunks_path: "data/indexing/chunks"
     embeddings_path: "data/indexing/embeddings"
-    embeddings_archived_path: "data/indexing/embeddings_archived"
+    embeddings_archived_path: "data/indexing/archived_embeddings"
     static_html_path: "data/processed/bioc_html"
+workdir:
+  base_path: "/code"
 model:
   embeddings_model:
-    base_location: "hpc"      # Change to "hugging_face" for Hugging Face
     pubmedbert:
-      hpc:
-        model_path: "/scratch/pubtator/models/pubmedbert-base-embeddings/"
-      jfrog_artifactory:
-        model_path: "../../../models/pubmedbert-base-embeddings/ba210f40b1b6d555d675c2d1ed6372e44570fc3c"
+      s3:
+        bucket: "gilead-edp-research-dev-us-west-2-pubmed"
+        model_path: "models/pubmedbert-base-embeddings"
+      local:
+        model_path: "src/models/pubmedbert-base-embeddings"
       token_limit: 512
+    longformer:
+      s3:
+        bucket: "gilead-edp-research-dev-us-west-2-pubmed"
+        model_path: "models/longformer"
+      local:
+        model_path: "src/models/longformer-base-4096"
+      token_limit: 4096
+  summarization_model:
+    model_1:
+      s3:
+          bucket: "gilead-edp-research-dev-us-west-2-pubmed"
+          model_path: "models/summarization-model-1"
+      local:
+          model_path: "src/models/summarization-model-1"
