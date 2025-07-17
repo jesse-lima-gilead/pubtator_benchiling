@@ -42,23 +42,11 @@ workdir:
 model:
   embeddings_model:
     pubmedbert:
-      s3:
-        bucket: "gilead-edp-research-dev-us-west-2-pubmed"
-        model_path: "models/pubmedbert-base-embeddings"
-      local:
-        model_path: "src/models/pubmedbert-base-embeddings"
+      model_path: "/scratch/pubtator/models/pubmedbert-base-embeddings"
       token_limit: 512
-    longformer:
-      s3:
-        bucket: "gilead-edp-research-dev-us-west-2-pubmed"
-        model_path: "models/longformer"
-      local:
-        model_path: "src/models/longformer-base-4096"
-      token_limit: 4096
+    chemberta:
+      model_path: "/scratch/pubtator/models/ChemBERTa-77M-MLM"
+      token_limit: 512
   summarization_model:
     model_1:
-      s3:
-          bucket: "gilead-edp-research-dev-us-west-2-pubmed"
-          model_path: "models/summarization-model-1"
-      local:
-          model_path: "src/models/summarization-model-1"
+      model_path: "/scratch/pubtator/models/summarization-model"
