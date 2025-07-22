@@ -9,4 +9,6 @@ bioc==2.1
 psycopg2-binary==2.9.9
 langchain-aws==0.2.2
 transformers==4.49.0
+torch==2.7.1
+scikit-learn==1.7.0
 pandas==2.2.3
