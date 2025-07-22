@@ -1,3 +1,4 @@
+import argparse
 from src.data_ingestion.ingest_pubmed.pmc_articles_extractor import extract_pmc_articles
 from src.data_ingestion.ingest_pubmed.pmc_to_bioc_converter import convert_pmc_to_bioc
 from src.data_ingestion.ingest_pubmed.fetch_metadata import MetadataExtractor
@@ -28,11 +29,11 @@ class PMCIngestor:
 
     def pmc_articles_extractor(
         self,
-        query: str,
-        article_ids: list,
-        start_date: str,
-        end_date: str,
-        retmax: int = 50,
+        article_ids: list[str],
+        query: str = "",
+        start_date: str = "1900",
+        end_date: str = "2025",
+        retmax: int = 25,
     ):
         # Extract the free full text articles from PMC:
         logger.info("Extracting PMC Articles...")
@@ -105,23 +106,79 @@ class PMCIngestor:
     # Runs the combined process
     def run(
         self,
-        query: str,
         article_ids: list,
-        start_date: str,
-        end_date: str,
-        retmax: int = 50,
         metadata_storage_type: str = "file",
     ):
-        self.pmc_articles_extractor(
-            query=query,
-            article_ids=article_ids,
-            start_date=start_date,
-            end_date=end_date,
-            retmax=retmax,
-        )
+        self.pmc_articles_extractor(article_ids=article_ids)
         self.articles_metadata_extractor(metadata_storage_type=metadata_storage_type)
         self.pmc_to_bioc_converter()
-        self.articles_summarizer()
+        # self.articles_summarizer()
+
+
+def main():
+    """
+    Main function to run the PMC Ingestor with improved command-line interface.
+    """
+    parser = argparse.ArgumentParser(
+        description="Ingest articles",
+        epilog="Example: python articles_ingestor.py --ids_file_path /scratch/pubtator/data/staging/article_ids.txt",
+    )
+
+    parser.add_argument(
+        "--ids_file_path",
+        "-i",
+        default="/scratch/pubtator/data/staging/article_ids.txt",
+        help="Directories to process (if none specified, uses current directory)",
+    )
+
+    args = parser.parse_args()
+
+    if not args.ids_file_path:
+        logger.info(
+            "No article IDs file path provided. Using default path: /scratch/pubtator/data/staging/article_ids.txt"
+        )
+        article_ids_file_path = args.ids_file_path
+    else:
+        article_ids_file_path = args.ids_file_path
+
+    # Read article IDs from the specified file
+    article_ids = []
+    try:
+        with open(article_ids_file_path, "r") as file:
+            for line in file:
+                # Strip whitespace (like newline characters) and convert to int
+                article_ids.append(line.strip())
+    except FileNotFoundError:
+        print(f"Error: The file '{article_ids_file_path}' was not found.")
+    except ValueError:
+        print(
+            f"Error: Could not fetch the article ids from the file '{article_ids_file_path}'. Ensure it contains valid IDs."
+        )
+
+    logger.info("Execution Started")
+    # Initialize the config loader
+    config_loader = YAMLConfigLoader()
+
+    # Retrieve paths config
+    paths_config = config_loader.get_config("paths")
+    storage_type = paths_config["storage"]["type"]
+
+    # Get file handler instance from factory
+    file_handler = FileHandlerFactory.get_handler(storage_type)
+    # Retrieve paths from config
+    paths = paths_config["storage"][storage_type]
+
+    pmc_ingestor = PMCIngestor(
+        file_handler=file_handler,
+        paths_config=paths,
+    )
+
+    pmc_ingestor.run(
+        article_ids=article_ids,
+        metadata_storage_type="file",
+    )
+
+    logger.info("Execution Completed! Articles Ingested!")
 
 
 # Example usage
@@ -159,11 +216,7 @@ if __name__ == "__main__":
         paths_config=paths,
     )
     pmc_ingestor.run(
-        query=query,
-        start_date=start_date,
-        end_date=end_date,
         article_ids=article_ids,
-        retmax=retmax,
         metadata_storage_type="file",
     )
     logger.info("Execution Completed")
