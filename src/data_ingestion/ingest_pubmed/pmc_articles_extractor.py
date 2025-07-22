@@ -94,12 +94,13 @@ def extract_pmc_articles(
 ):
     if len(article_ids) == 0 and query != "":
         article_ids = search_pubmed(query, start_date, end_date, retmax)
-    logger.info(article_ids)
+    # logger.info(article_ids)
     missing_count = 0
     for article_id in article_ids:
         content = fetch_data(article_id)
         if content:
             file_name = f"PMC_{article_id}.xml"
+            logger.info(f"Fetching {file_name}")
             file_path = file_handler.get_file_path(pmc_path, file_name)
             file_handler.write_file(file_path, content)
             # save_locally(article_id, content, pmc_local_path)

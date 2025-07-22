@@ -62,7 +62,7 @@ class PMCIngestor:
                 metadata_extractor = MetadataExtractor(
                     file_path=file_path,
                     metadata_path=metadata_path,
-                    file_handler=file_handler,
+                    file_handler=self.file_handler,
                 )
                 if metadata_storage_type == "file":
                     metadata_extractor.save_metadata_as_json()
@@ -81,7 +81,9 @@ class PMCIngestor:
     def prettify_bioc_xml(self):
         # Prettify the BioC XML files:
         logger.info("Prettifying the BioC XML files...")
-        formatter = XMLFormatter(folder_path=self.bioc_path, file_handler=file_handler)
+        formatter = XMLFormatter(
+            folder_path=self.bioc_path, file_handler=self.file_handler
+        )
         formatter.process_folder()
 
     def articles_summarizer(self):
@@ -93,7 +95,7 @@ class PMCIngestor:
                 file_path = self.file_handler.get_file_path(self.bioc_path, file)
                 # file_path = os.path.join(self.bioc_local_path, file)
                 summarizer = SummarizeArticle(
-                    input_file_path=file_path, file_handler=file_handler
+                    input_file_path=file_path, file_handler=self.file_handler
                 )
                 summary = summarizer.summarize()
                 summary_file_name = file.replace(".xml", ".txt")
@@ -119,15 +121,18 @@ def main():
     """
     Main function to run the PMC Ingestor with improved command-line interface.
     """
+    logger.info("Execution Started")
+
     parser = argparse.ArgumentParser(
         description="Ingest articles",
-        epilog="Example: python articles_ingestor.py --ids_file_path /scratch/pubtator/data/staging/article_ids.txt",
+        epilog="Example: python articles_ingestor.py --ids_file_path "
+        "/scratch/pubtator/data/staging/jit_ingestion/article_ids.txt",
     )
 
     parser.add_argument(
         "--ids_file_path",
         "-i",
-        default="/scratch/pubtator/data/staging/article_ids.txt",
+        default="/scratch/pubtator/data/staging/jit_ingestion/article_ids.txt",
         help="Directories to process (if none specified, uses current directory)",
     )
 
@@ -155,7 +160,12 @@ def main():
             f"Error: Could not fetch the article ids from the file '{article_ids_file_path}'. Ensure it contains valid IDs."
         )
 
-    logger.info("Execution Started")
+    if not article_ids:
+        logger.error("No article IDs found in the provided file.")
+        return
+
+    logger.info(f"Article IDs to ingest: {article_ids}")
+
     # Initialize the config loader
     config_loader = YAMLConfigLoader()
 
@@ -181,42 +191,43 @@ def main():
     logger.info("Execution Completed! Articles Ingested!")
 
 
-# Example usage
+# Calling the main method
 if __name__ == "__main__":
-    logger.info("Execution Started")
-    query = ""
-    start_date = "1900"
-    end_date = "2025"
-    retmax = 25
-
-    # Initialize the config loader
-    config_loader = YAMLConfigLoader()
-
-    # Retrieve paths config
-    paths_config = config_loader.get_config("paths")
-    storage_type = paths_config["storage"]["type"]
-
-    # Get file handler instance from factory
-    file_handler = FileHandlerFactory.get_handler(storage_type)
-    # Retrieve paths from config
-    paths = paths_config["storage"][storage_type]
-
-    # Retrieve dataset config
-    dataset_config = config_loader.get_config("curated_dataset")
-    article_ids = (
-        # dataset_config["golden_dataset_article_ids"]
-        # +
-        dataset_config["thalidomide_articles_ids"]
-    )
-
-    sample_articles_id = ["2361529", "2480972"]
-
-    pmc_ingestor = PMCIngestor(
-        file_handler=file_handler,
-        paths_config=paths,
-    )
-    pmc_ingestor.run(
-        article_ids=article_ids,
-        metadata_storage_type="file",
-    )
-    logger.info("Execution Completed")
+    main()
+    # logger.info("Execution Started")
+    # query = ""
+    # start_date = "1900"
+    # end_date = "2025"
+    # retmax = 25
+    #
+    # # Initialize the config loader
+    # config_loader = YAMLConfigLoader()
+    #
+    # # Retrieve paths config
+    # paths_config = config_loader.get_config("paths")
+    # storage_type = paths_config["storage"]["type"]
+    #
+    # # Get file handler instance from factory
+    # file_handler = FileHandlerFactory.get_handler(storage_type)
+    # # Retrieve paths from config
+    # paths = paths_config["storage"][storage_type]
+    #
+    # # Retrieve dataset config
+    # dataset_config = config_loader.get_config("curated_dataset")
+    # article_ids = (
+    #     # dataset_config["golden_dataset_article_ids"]
+    #     # +
+    #     dataset_config["thalidomide_articles_ids"]
+    # )
+    #
+    # sample_articles_id = ["2361529", "2480972"]
+    #
+    # pmc_ingestor = PMCIngestor(
+    #     file_handler=file_handler,
+    #     paths_config=paths,
+    # )
+    # pmc_ingestor.run(
+    #     article_ids=article_ids,
+    #     metadata_storage_type="file",
+    # )
+    # logger.info("Execution Completed")
