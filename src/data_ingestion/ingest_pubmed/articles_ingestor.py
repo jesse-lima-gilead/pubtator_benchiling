@@ -1,3 +1,4 @@
+import os
 import argparse
 from src.data_ingestion.ingest_pubmed.pmc_articles_extractor import extract_pmc_articles
 from src.data_ingestion.ingest_pubmed.pmc_to_bioc_converter import convert_pmc_to_bioc
@@ -123,49 +124,6 @@ def main():
     """
     logger.info("Execution Started")
 
-    parser = argparse.ArgumentParser(
-        description="Ingest articles",
-        epilog="Example: python articles_ingestor.py --ids_file_path "
-        "/scratch/pubtator/data/staging/jit_ingestion/article_ids.txt",
-    )
-
-    parser.add_argument(
-        "--ids_file_path",
-        "-i",
-        default="/scratch/pubtator/data/staging/jit_ingestion/article_ids.txt",
-        help="Directories to process (if none specified, uses current directory)",
-    )
-
-    args = parser.parse_args()
-
-    if not args.ids_file_path:
-        logger.info(
-            "No article IDs file path provided. Using default path: /scratch/pubtator/data/staging/article_ids.txt"
-        )
-        article_ids_file_path = args.ids_file_path
-    else:
-        article_ids_file_path = args.ids_file_path
-
-    # Read article IDs from the specified file
-    article_ids = []
-    try:
-        with open(article_ids_file_path, "r") as file:
-            for line in file:
-                # Strip whitespace (like newline characters) and convert to int
-                article_ids.append(line.strip())
-    except FileNotFoundError:
-        print(f"Error: The file '{article_ids_file_path}' was not found.")
-    except ValueError:
-        print(
-            f"Error: Could not fetch the article ids from the file '{article_ids_file_path}'. Ensure it contains valid IDs."
-        )
-
-    if not article_ids:
-        logger.error("No article IDs found in the provided file.")
-        return
-
-    logger.info(f"Article IDs to ingest: {article_ids}")
-
     # Initialize the config loader
     config_loader = YAMLConfigLoader()
 
@@ -177,6 +135,52 @@ def main():
     file_handler = FileHandlerFactory.get_handler(storage_type)
     # Retrieve paths from config
     paths = paths_config["storage"][storage_type]
+
+    parser = argparse.ArgumentParser(
+        description="Ingest articles",
+        epilog="Example: python3 -m articles_ingestor.py --ids_file_name article_ids.txt",
+    )
+
+    parser.add_argument(
+        "--ids_file_name",
+        "-i",
+        default="article_ids.txt",
+        help="Directories to process (if none specified, uses current directory)",
+    )
+
+    args = parser.parse_args()
+
+    if not args.ids_file_name:
+        logger.info(
+            "No article IDs file path provided. Using default path: /scratch/pubtator/data/staging/article_ids.txt"
+        )
+        ids_file_name = "article_ids.txt"
+    else:
+        ids_file_name = args.ids_file_name
+        logger.info(f"Article Ids file name registered at: {ids_file_name}")
+
+    # Read article IDs from the specified file
+    article_ids_base_path = paths["jit_ingestion_path"]
+    article_ids_file_path = os.path.join(article_ids_base_path, ids_file_name)
+    article_ids = []
+    try:
+        with open(article_ids_file_path, "r") as file:
+            for line in file:
+                # Strip whitespace (like newline characters) and convert to int
+                article_ids.append(line.strip())
+    except FileNotFoundError:
+        print(f"Error: The file '{article_ids_file_path}' was not found.")
+    except ValueError:
+        print(
+            f"Error: Could not fetch the article ids from the file '{article_ids_file_path}'. Ensure it contains "
+            f"valid IDs."
+        )
+
+    if not article_ids:
+        logger.error("No article IDs found in the provided file.")
+        return
+
+    logger.info(f"Article IDs to ingest: {article_ids}")
 
     pmc_ingestor = PMCIngestor(
         file_handler=file_handler,

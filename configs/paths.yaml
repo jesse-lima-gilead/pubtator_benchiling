@@ -2,6 +2,7 @@ xml_to_html_template_path: "xml_to_html_conversion/xml_to_html_template.html"
 storage:
   type: "local"  # "local" for HPC or "s3" for S3
   local:
+    jit_ingestion_path: "/scratch/pubtator/data/staging/jit_ingestion"
     pmc_path: "/scratch/pubtator/data/staging/pmc_xml"
     bioc_path: "/scratch/pubtator/data/staging/bioc_xml"
     metadata_path: "/scratch/pubtator/data/articles_metadata/metadata"
@@ -20,6 +21,7 @@ storage:
     internal_docs_path: "/scratch/pubtator/data/staging/internal_docs"
     internal_docs_html_path: "/scratch/pubtator/data/staging/internal_docs_html"
   s3:
+    jit_ingestion_path: "data/staging/jit_ingestion"
     pmc_path: "data/staging/pmc_xml"
     bioc_path: "data/staging/bioc_xml"
     metadata_path: "data/articles_metadata/metadata"
@@ -45,7 +47,7 @@ model:
       model_path: "/scratch/pubtator/models/pubmedbert-base-embeddings"
       token_limit: 512
     chemberta:
-      model_path: "/scratch/pubtator/models/ChemBERTa-77M-MLM"
+      model_path: "/scratch/pubtator/models/chemberta-77m-mlm"
       token_limit: 512
   summarization_model:
     model_1:
