@@ -1,4 +1,3 @@
-import os
 import argparse
 from src.data_ingestion.ingest_pubmed.pmc_articles_extractor import extract_pmc_articles
 from src.data_ingestion.ingest_pubmed.pmc_to_bioc_converter import convert_pmc_to_bioc
@@ -18,13 +17,18 @@ logger = logger_instance.get_logger()
 class PMCIngestor:
     def __init__(
         self,
+        workflow_id: str,
         file_handler: FileHandler,
         paths_config: dict[str, str],
     ):
-        self.pmc_path = paths_config["pmc_path"]
-        self.bioc_path = paths_config["bioc_path"]
-        self.article_metadata_path = paths_config["metadata_path"]
-        self.summary_path = paths_config["summary_path"]
+        self.pmc_path = paths_config["pmc_path"].replace("{workflow_id}", workflow_id)
+        self.bioc_path = paths_config["bioc_path"].replace("{workflow_id}", workflow_id)
+        self.article_metadata_path = paths_config["metadata_path"].replace(
+            "{workflow_id}", workflow_id
+        )
+        self.summary_path = paths_config["summary_path"].replace(
+            "{workflow_id}", workflow_id
+        )
         self.file_handler = file_handler
         # self.s3_io_util = S3IOUtil()
 
@@ -138,30 +142,27 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Ingest articles",
-        epilog="Example: python3 -m articles_ingestor.py --ids_file_name article_ids.txt",
+        epilog="Example: python3 -m articles_ingestor.py --workflow_id 123abc456def",
     )
 
     parser.add_argument(
-        "--ids_file_name",
+        "--workflow_id",
         "-i",
-        default="article_ids.txt",
-        help="Directories to process (if none specified, uses current directory)",
+        help="Workflow ID of JIT pipeline run",
     )
 
     args = parser.parse_args()
 
-    if not args.ids_file_name:
-        logger.info(
-            "No article IDs file path provided. Using default path: /scratch/pubtator/data/staging/article_ids.txt"
-        )
-        ids_file_name = "article_ids.txt"
+    if not args.workflow_id:
+        logger.info("No workflow_id provided. Using default path: 123abc456def")
     else:
-        ids_file_name = args.ids_file_name
-        logger.info(f"Article Ids file name registered at: {ids_file_name}")
+        workflow_id = args.workflow_id
+        logger.info(f"{workflow_id} Workflow Id registered for processing")
 
     # Read article IDs from the specified file
-    article_ids_base_path = paths["jit_ingestion_path"]
-    article_ids_file_path = os.path.join(article_ids_base_path, ids_file_name)
+    article_ids_file_path = paths["jit_ingestion_path"].replace(
+        "{workflow_id}", workflow_id
+    )
     article_ids = []
     try:
         with open(article_ids_file_path, "r") as file:
@@ -183,6 +184,7 @@ def main():
     logger.info(f"Article IDs to ingest: {article_ids}")
 
     pmc_ingestor = PMCIngestor(
+        workflow_id=workflow_id,
         file_handler=file_handler,
         paths_config=paths,
     )

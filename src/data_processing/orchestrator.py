@@ -1,4 +1,5 @@
 import math
+import argparse
 import multiprocessing
 import uuid
 from typing import Dict, List
@@ -31,6 +32,7 @@ logger = logger_instance.get_logger()
 class ArticleProcessor:
     def __init__(
         self,
+        workflow_id: str,
         file_handler: FileHandler,
         paths_config: dict[str, str],
         aioner_model: str = "Bioformer",
@@ -44,11 +46,21 @@ class ArticleProcessor:
         self.embeddings_model = embeddings_model
         self.chunker = chunker
         self.merger = merger
-        self.articles_input_dir = paths_config["annotations_merged_path"]
-        self.articles_summary_dir = paths_config["summary_path"]
-        self.chunks_output_dir = paths_config["chunks_path"]
-        self.embeddings_output_dir = paths_config["embeddings_path"]
-        self.articles_metadata_dir = paths_config["metadata_path"]
+        self.articles_input_dir = paths_config["annotations_merged_path"].replace(
+            "{workflow_id}", workflow_id
+        )
+        self.articles_summary_dir = paths_config["summary_path"].replace(
+            "{workflow_id}", workflow_id
+        )
+        self.chunks_output_dir = paths_config["chunks_path"].replace(
+            "{workflow_id}", workflow_id
+        )
+        self.embeddings_output_dir = paths_config["embeddings_path"].replace(
+            "{workflow_id}", workflow_id
+        )
+        self.articles_metadata_dir = paths_config["metadata_path"].replace(
+            "{workflow_id}", workflow_id
+        )
         self.file_handler = file_handler
         # self.s3_io_util = S3IOUtil()
 
@@ -557,17 +569,82 @@ def _safe_run_xml_to_html_conversion():
         logger.exception("XML→HTML conversion failed")
 
 
-if __name__ == "__main__":
-    # Baseline Text Collection
-    # collection_type = "baseline"
+def main():
+    """
+    Main function to run the PMC Ingestor with improved command-line interface.
+    """
+    logger.info("Execution Started for Processing pipeline")
 
-    # Test Collection
-    # collection_type = "test"
+    parser = argparse.ArgumentParser(
+        description="Ingest articles",
+        epilog="Example: python3 -m orchestrator.py --workflow_id 123abc456def",
+    )
 
-    # Processed Text Collection
-    collection_type = "processed_pubmedbert"
-    store_embeddings_as_file = True
-    run_type = "all"  # "all" or "chunks" or "embeddings"
+    parser.add_argument(
+        "--workflow_id",
+        "-wid",
+        type=str,
+        help="Workflow ID of JIT pipeline run",
+    )
+
+    parser.add_argument(
+        "--collection_type",
+        type=str,
+        default="processed_pubmedbert",
+        help="OpenSearch Collection Type",
+    )
+
+    parser.add_argument(
+        "--run_type",
+        type=str,
+        default="all",
+        help="Select run type out of ['all', 'chunks', 'embeddings']",
+    )
+
+    parser.add_argument(
+        "--store_embeddings_as_file",
+        type=bool,
+        default=True,
+        help="Select if embeddings should be stored as file",
+    )
+
+    args = parser.parse_args()
+
+    if not args.workflow_id:
+        logger.info("No workflow_id provided. Using default path: 123abc456def")
+    else:
+        workflow_id = args.workflow_id
+        logger.info(f"{workflow_id} Workflow Id registered for processing")
+
+    if not args.collection_type:
+        logger.info(
+            "No collection_type provided. Using default: `processed_pubmedbert` "
+            "Out of ['baseline', 'test', 'processed_pubmedbert']"
+        )
+        collection_type = "processed_pubmedbert"
+    else:
+        collection_type = args.collection_type
+        logger.info(f"Collection Type: {collection_type}")
+
+    if not args.run_type:
+        logger.info(
+            "No run_type provided. Using default: `all` out of ['all', 'chunks', 'embeddings']"
+        )
+        run_type = "all"
+    else:
+        run_type = args.run_type
+        logger.info(f"Run Type: {run_type}")
+
+    if not args.store_embeddings_as_file:
+        logger.info("No store_embeddings_as_file provided. Using default: `True`")
+        store_embeddings_as_file = True
+    else:
+        store_embeddings_as_file = args.store_embeddings_as_file
+        logger.info(f"Store Embeddings As File: {store_embeddings_as_file}")
+
+    logger.info(
+        f"Execution Started for Processing pipeline for workflow_id: {workflow_id}"
+    )
 
     # set up two separate processes
     p1 = multiprocessing.Process(
@@ -584,4 +661,8 @@ if __name__ == "__main__":
     p1.join()
     p2.join()
 
-    logger.info("Orchestrator Run is Complete.")
+    logger.info("Execution Completed for Processing pipeline!")
+
+
+if __name__ == "__main__":
+    main()

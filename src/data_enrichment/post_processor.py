@@ -1,3 +1,4 @@
+import argparse
 import xml.etree.ElementTree as ET
 
 from src.pubtator_utils.file_handler.base_handler import FileHandler
@@ -11,7 +12,9 @@ logger = logger_instance.get_logger()
 
 
 class BioCFileMerger:
-    def __init__(self, paths_config: dict[str, str], file_handler: FileHandler):
+    def __init__(
+        self, workflow_id: str, paths_config: dict[str, str], file_handler: FileHandler
+    ):
         """
         Initialize the merger with input directories for normalizers and an output directory.
 
@@ -19,10 +22,16 @@ class BioCFileMerger:
         :param file_handler: A file handler object to do file operations.
         """
         self.input_dirs = {
-            "disease": paths_config["taggerone_disease_path"],
-            "chemical": paths_config["nlmchem_path"],
-            "cellline": paths_config["taggerone_cellLine_path"],
-            "tmvar": paths_config["tmvar_path"],
+            "disease": paths_config["taggerone_disease_path"].replace(
+                "{workflow_id}", workflow_id
+            ),
+            "chemical": paths_config["nlmchem_path"].replace(
+                "{workflow_id}", workflow_id
+            ),
+            "cellline": paths_config["taggerone_cellLine_path"].replace(
+                "{workflow_id}", workflow_id
+            ),
+            "tmvar": paths_config["tmvar_path"].replace("{workflow_id}", workflow_id),
         }
         self.output_dir = paths_config["annotations_merged_path"]
         self.file_handler = file_handler
@@ -47,19 +56,6 @@ class BioCFileMerger:
             merged_document = self._merge_documents(documents)
             self._write_merged_file(file_name, merged_document)
             logger.info(f"Merged file written: {file_name}")
-
-    # def _get_common_file_names(self):
-    #     """
-    #     Get the common file names across all input directories.
-    #
-    #     :return: A set of common file names.
-    #     """
-    #     file_sets = [
-    #         set(self.file_handler.list_files(directory)) for directory in self.input_dirs.values()
-    #     ]
-    #     common_files = set.intersection(*file_sets)
-    #     logger.info(f"Common files across directories: {common_files}")
-    #     return common_files
 
     def _parse_bioc_file(self, file_path):
         """
@@ -179,8 +175,37 @@ class BioCFileMerger:
         self.file_handler.write_file_as_bioc(output_path, merged_document)
 
 
-# Example usage
-if __name__ == "__main__":
+def main():
+    """
+    Main function to run the BioC file merger.
+    """
+
+    logger.info("Execution Started for Processing pipeline")
+
+    parser = argparse.ArgumentParser(
+        description="Ingest articles",
+        epilog="Example: python3 -m articles_ingestor.py --workflow_id 123abc456def",
+    )
+
+    parser.add_argument(
+        "--workflow_id",
+        "-wid",
+        type=str,
+        help="Workflow ID of JIT pipeline run",
+    )
+
+    args = parser.parse_args()
+
+    if not args.workflow_id:
+        logger.info("No workflow_id provided. Using default path: 123abc456def")
+    else:
+        workflow_id = args.workflow_id
+        logger.info(f"{workflow_id} Workflow Id registered for processing")
+
+    logger.info(
+        f"Execution Started for BioC Merger pipeline for workflow_id: {workflow_id}"
+    )
+
     # Initialize the config loader
     config_loader = YAMLConfigLoader()
 
@@ -190,8 +215,18 @@ if __name__ == "__main__":
 
     # Get file handler instance from factory
     file_handler = FileHandlerFactory.get_handler(storage_type)
+
     # Retrieve paths from config
     paths = paths_config["storage"][storage_type]
 
-    merger = BioCFileMerger(paths, file_handler)
+    merger = BioCFileMerger(
+        workflow_id=workflow_id, paths_config=paths, file_handler=file_handler
+    )
     merger.merge_files()
+
+    logger.info("BioC Merger pipeline completed successfully.")
+
+
+# Example usage
+if __name__ == "__main__":
+    main()
