@@ -27,7 +27,9 @@ def convert_pmc_to_bioc(pmc_file: str, bioc_output_dir: str, file_handler: FileH
 
         # Extract and set document-level metadata (e.g., PMID, PMC ID)
         article_meta = article.find("front").find("article-meta")
-        pmcid = article_meta.find("article-id[@pub-id-type='pmc']")
+        pmcid = article_meta.find(
+            "article-id[@pub-id-type='pmc']"
+        ) or article_meta.find("article-id[@pub-id-type='pmcid']")
         bioc_document.id = pmcid.text if pmcid is not None else "Unknown"
 
         # Extract metadata from <front> (article metadata, abstracts, history, permissions)

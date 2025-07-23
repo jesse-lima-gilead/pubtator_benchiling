@@ -484,6 +484,7 @@ class ArticleProcessor:
 
 
 def run_chunking_and_embedding(
+    workflow_id: str,
     run_type: str = "all",
     collection_type: str = "processed_pubmedbert",
     store_embeddings_as_file: bool = True,
@@ -505,6 +506,7 @@ def run_chunking_and_embedding(
     paths = paths_config["storage"][storage_type]
 
     article_processor = ArticleProcessor(
+        workflow_id=workflow_id,
         embeddings_model=embeddings_model,
         chunker=chunker,
         merger=merger,
@@ -529,7 +531,7 @@ def run_chunking_and_embedding(
         logger.error(f"Invalid run type: {run_type}")
 
 
-def run_xml_to_html_conversion():
+def run_xml_to_html_conversion(workflow_id: str):
     # Initialize the config loader
     config_loader = YAMLConfigLoader()
 
@@ -543,15 +545,18 @@ def run_xml_to_html_conversion():
     # Retrieve paths from config
     paths = paths_config["storage"][storage_type]
 
-    html_converter = XmlToHtmlConverter(paths, file_handler, xml_to_html_template_path)
+    html_converter = XmlToHtmlConverter(
+        workflow_id, paths, file_handler, xml_to_html_template_path
+    )
     html_converter.xml_html_converter()
 
 
 def _safe_run_chunking_and_embedding(
-    run_type, collection_type, store_embeddings_as_file
+    workflow_id, run_type, collection_type, store_embeddings_as_file
 ):
     try:
         run_chunking_and_embedding(
+            workflow_id=workflow_id,
             run_type=run_type,
             collection_type=collection_type,
             store_embeddings_as_file=store_embeddings_as_file,
@@ -561,9 +566,9 @@ def _safe_run_chunking_and_embedding(
         logger.exception("Chunking & embedding failed")
 
 
-def _safe_run_xml_to_html_conversion():
+def _safe_run_xml_to_html_conversion(workflow_id: str):
     try:
-        run_xml_to_html_conversion()
+        run_xml_to_html_conversion(workflow_id=workflow_id)
         logger.info("XML→HTML conversion finished successfully.")
     except Exception:
         logger.exception("XML→HTML conversion failed")
@@ -577,7 +582,7 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Ingest articles",
-        epilog="Example: python3 -m orchestrator.py --workflow_id 123abc456def",
+        epilog="Example: python3 -m src.data_processing.orchestrator --workflow_id workflow123",
     )
 
     parser.add_argument(
@@ -611,7 +616,8 @@ def main():
     args = parser.parse_args()
 
     if not args.workflow_id:
-        logger.info("No workflow_id provided. Using default path: 123abc456def")
+        logger.error("No workflow_id provided.")
+        return
     else:
         workflow_id = args.workflow_id
         logger.info(f"{workflow_id} Workflow Id registered for processing")
@@ -649,9 +655,11 @@ def main():
     # set up two separate processes
     p1 = multiprocessing.Process(
         target=_safe_run_chunking_and_embedding,
-        args=(run_type, collection_type, store_embeddings_as_file),
+        args=(workflow_id, run_type, collection_type, store_embeddings_as_file),
     )
-    p2 = multiprocessing.Process(target=_safe_run_xml_to_html_conversion)
+    p2 = multiprocessing.Process(
+        target=_safe_run_xml_to_html_conversion, args=(workflow_id,)
+    )
 
     # start both
     p1.start()

@@ -17,7 +17,7 @@ class BioCFileMerger:
     ):
         """
         Initialize the merger with input directories for normalizers and an output directory.
-
+        :param workflow_id: Unique identifier for the JIT workflow, used to maintain separate path for each flow.
         :param paths_config: A dictionary where keys are normalizer types and values are directory paths.
         :param file_handler: A file handler object to do file operations.
         """
@@ -33,7 +33,9 @@ class BioCFileMerger:
             ),
             "tmvar": paths_config["tmvar_path"].replace("{workflow_id}", workflow_id),
         }
-        self.output_dir = paths_config["annotations_merged_path"]
+        self.output_dir = paths_config["annotations_merged_path"].replace(
+            "{workflow_id}", workflow_id
+        )
         self.file_handler = file_handler
 
     def merge_files(self):
@@ -184,7 +186,7 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Ingest articles",
-        epilog="Example: python3 -m articles_ingestor.py --workflow_id 123abc456def",
+        epilog="Example: python3 -m src.data_enrichment.post_processor.py --workflow_id 123abc456def",
     )
 
     parser.add_argument(
@@ -197,7 +199,8 @@ def main():
     args = parser.parse_args()
 
     if not args.workflow_id:
-        logger.info("No workflow_id provided. Using default path: 123abc456def")
+        logger.error("No workflow_id provided.")
+        return
     else:
         workflow_id = args.workflow_id
         logger.info(f"{workflow_id} Workflow Id registered for processing")

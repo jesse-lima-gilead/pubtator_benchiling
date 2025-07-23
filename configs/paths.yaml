@@ -1,4 +1,4 @@
-xml_to_html_template_path: "xml_to_html_conversion/xml_to_html_template.html"
+xml_to_html_template_path: "./src/data_processing/xml_to_html_conversion/xml_to_html_template.html"
 storage:
   type: "local"  # "local" for HPC or "s3" for S3
   local:

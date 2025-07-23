@@ -11,6 +11,7 @@ logger = logger_instance.get_logger()
 class XmlToHtmlConverter:
     def __init__(
         self,
+        workflow_id: str,
         paths_config: dict[str, str],
         file_handler: FileHandler,
         xml_to_html_template_path: str,
@@ -18,14 +19,19 @@ class XmlToHtmlConverter:
         """
         Initialize the converter with source and target directories and a file handler.
 
+        :param workflow_id: Unique identifier for the JIT workflow, used to maintain separate path for each flow.
         :param paths_config: dict with keys:
             - 'annotations_merged_path': directory containing XML files
             - 'static_html_path': directory to write HTML files
         :param file_handler: FileHandler implementation for I/O operations
         :param xml_to_html_template_path: path to read template html file
         """
-        self.input_dir = paths_config["annotations_merged_path"]
-        self.output_dir = paths_config["static_html_path"]
+        self.input_dir = paths_config["annotations_merged_path"].replace(
+            "{workflow_id}", workflow_id
+        )
+        self.output_dir = paths_config["static_html_path"].replace(
+            "{workflow_id}", workflow_id
+        )
         self.file_handler = file_handler
         self.local_file_handler = FileHandlerFactory.get_handler("local")
         self.html_template_path = xml_to_html_template_path

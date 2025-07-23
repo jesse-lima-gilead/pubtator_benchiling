@@ -142,7 +142,7 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Ingest articles",
-        epilog="Example: python3 -m articles_ingestor.py --workflow_id 123abc456def",
+        epilog="Example: python3 -m src.data_ingestion.ingest_pubmed.articles_ingestor --workflow_id workflow123",
     )
 
     parser.add_argument(
@@ -154,7 +154,8 @@ def main():
     args = parser.parse_args()
 
     if not args.workflow_id:
-        logger.info("No workflow_id provided. Using default path: 123abc456def")
+        logger.error("No workflow_id provided.")
+        return
     else:
         workflow_id = args.workflow_id
         logger.info(f"{workflow_id} Workflow Id registered for processing")
