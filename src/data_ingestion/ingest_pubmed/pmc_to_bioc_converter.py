@@ -19,7 +19,7 @@ def convert_pmc_to_bioc(pmc_file: str, bioc_output_dir: str, file_handler: FileH
     bioc_collection = bioc.BioCCollection()
     bioc_collection.source = "PubMed Central"
     bioc_collection.date = str(date.today())  # Set the current date
-    bioc_collection.key = "Lung Cancer Articles"
+    bioc_collection.key = "Medical Literature for GRSAR"
 
     # Loop through articles in PMC XML
     for article in root.findall("article"):
@@ -349,7 +349,7 @@ def save_bioc_file(pubmed_collection, bioc_output_dir, file_handler):
         bioc_xml = bioc.dumps(single_doc_collection)
 
         # Use pmc_id as the filename
-        bioc_file_name = f"PMC_{document.id}.xml"
+        bioc_file_name = f"PMC_{document.id[3:]}.xml"
         file_path = file_handler.get_file_path(bioc_output_dir, bioc_file_name)
         # file_path = os.path.join(bioc_output_dir, f"PMC_{document.id}.xml")
 
