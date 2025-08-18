@@ -1,46 +1,49 @@
 xml_to_html_template_path: "./src/data_processing/xml_to_html_conversion/xml_to_html_template.html"
 storage:
   type: "local"  # "local" for HPC or "s3" for S3
+  # "source" is "pubmed"/"clinical_trials"/"rfd"/"preprints"/"etc"
   local:
-    jit_ingestion_path: "/scratch/pubtator/data/{workflow_id}/staging/jit_ingestion/articles_ids.txt"
-    pmc_path: "/scratch/pubtator/data/{workflow_id}/staging/pmc_xml"
-    bioc_path: "/scratch/pubtator/data/{workflow_id}/staging/bioc_xml"
-    metadata_path: "/scratch/pubtator/data/{workflow_id}/articles_metadata/metadata"
-    aioner_path: "/scratch/pubtator/data/{workflow_id}/ner_processed/aioner_annotated"
-    gnorm2_path: "/scratch/pubtator/data/{workflow_id}/ner_processed/gnorm2_annotated"
-    nlmchem_path: "/scratch/pubtator/data/{workflow_id}/ner_processed/nlmchem_annotated"
-    taggerone_cellLine_path: "/scratch/pubtator/data/{workflow_id}/ner_processed/taggerone_cellLine_annotated"
-    taggerone_disease_path: "/scratch/pubtator/data/{workflow_id}/ner_processed/taggerone_disease_annotated"
-    tmvar_path: "/scratch/pubtator/data/{workflow_id}/ner_processed/tmvar_annotated"
-    annotations_merged_path: "/scratch/pubtator/data/{workflow_id}/ner_processed/all_in_one_annotated"
-    summary_path: "/scratch/pubtator/data/{workflow_id}/articles_metadata/summary"
-    chunks_path: "/scratch/pubtator/data/{workflow_id}/indexing/chunks"
-    embeddings_path: "/scratch/pubtator/data/{workflow_id}/indexing/embeddings"
-    embeddings_archived_path: "/scratch/pubtator/data/{workflow_id}/indexing/archived_embeddings"
-    static_html_path: "/scratch/pubtator/data/{workflow_id}/processed/bioc_html"
-    internal_docs_path: "/scratch/pubtator/data/{workflow_id}/staging/internal_docs"
-    internal_docs_html_path: "/scratch/pubtator/data/{workflow_id}/staging/internal_docs_html"
+    jit_ingestion_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/jit_ingestion/articles_ids.txt"
+    ingestion_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/ingestion"
+    bioc_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/bioc_xml"
+    metadata_path: "/scratch/pubtator/data/{source}/{workflow_id}/articles_metadata/metadata"
+    aioner_path: "/scratch/pubtator/data/{source}/{workflow_id}/ner_processed/aioner_annotated"
+    gnorm2_path: "/scratch/pubtator/data/{source}/{workflow_id}/ner_processed/gnorm2_annotated"
+    nlmchem_path: "/scratch/pubtator/data/{source}/{workflow_id}/ner_processed/nlmchem_annotated"
+    taggerone_cellLine_path: "/scratch/pubtator/data/{source}/{workflow_id}/ner_processed/taggerone_cellLine_annotated"
+    taggerone_disease_path: "/scratch/pubtator/data/{source}/{workflow_id}/ner_processed/taggerone_disease_annotated"
+    tmvar_path: "/scratch/pubtator/data/{source}/{workflow_id}/ner_processed/tmvar_annotated"
+    annotations_merged_path: "/scratch/pubtator/data/{source}/{workflow_id}/ner_processed/all_in_one_annotated"
+    summary_path: "/scratch/pubtator/data/{source}/{workflow_id}/articles_metadata/summary"
+    chunks_path: "/scratch/pubtator/data/{source}/{workflow_id}/indexing/chunks"
+    embeddings_path: "/scratch/pubtator/data/{source}/{workflow_id}/indexing/embeddings"
+    embeddings_archived_path: "/scratch/pubtator/data/{source}/{workflow_id}/indexing/archived_embeddings"
+    static_html_path: "/scratch/pubtator/data/{source}/{workflow_id}/processed/bioc_html"
+    internal_docs_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/internal_docs"
+    internal_docs_html_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/internal_docs_html"
   s3:
-    jit_ingestion_path: "data/staging/jit_ingestion"
-    pmc_path: "data/staging/pmc_xml"
-    bioc_path: "data/staging/bioc_xml"
-    metadata_path: "data/articles_metadata/metadata"
-    aioner_path: "data/ner_processed/aioner_annotated"
-    gnorm2_path: "data/ner_processed/gnorm2_annotated"
-    nlmchem_path: "data/ner_processed/nlmchem_annotated"
-    taggerone_cellLine_path: "data/ner_processed/taggerone_cellLine_annotated"
-    taggerone_disease_path: "data/ner_processed/taggerone_disease_annotated"
-    tmvar_path: "data/ner_processed/tmvar_annotated"
-    annotations_merged_path: "data/ner_processed/all_in_one_annotated"
-    summary_path: "data/articles_metadata/summary"
-    chunks_path: "data/indexing/chunks"
-    embeddings_path: "data/indexing/embeddings"
-    embeddings_archived_path: "data/indexing/archived_embeddings"
-    static_html_path: "data/processed/bioc_html"
-    internal_docs_path: "data/staging/internal_docs"
-    internal_docs_html_path: "data/staging/internal_docs_html"
+    jit_ingestion_path: "data/{source}/staging/jit_ingestion"
+    ingestion_path: "data/{source}/staging/ingestion"
+    bioc_path: "data/{source}/staging/bioc_xml"
+    metadata_path: "data/{source}/articles_metadata/metadata"
+    aioner_path: "data/{source}/ner_processed/aioner_annotated"
+    gnorm2_path: "data/{source}/ner_processed/gnorm2_annotated"
+    nlmchem_path: "data/{source}/ner_processed/nlmchem_annotated"
+    taggerone_cellLine_path: "data/{source}/ner_processed/taggerone_cellLine_annotated"
+    taggerone_disease_path: "data/{source}/ner_processed/taggerone_disease_annotated"
+    tmvar_path: "data/{source}/ner_processed/tmvar_annotated"
+    annotations_merged_path: "data/{source}/ner_processed/all_in_one_annotated"
+    summary_path: "data/{source}/articles_metadata/summary"
+    chunks_path: "data/{source}/indexing/chunks"
+    embeddings_path: "data/{source}/indexing/embeddings"
+    embeddings_archived_path: "data/{source}/indexing/archived_embeddings"
+    static_html_path: "data/{source}/processed/bioc_html"
+    internal_docs_path: "data/{source}/staging/internal_docs"
+    internal_docs_html_path: "data/{source}/staging/internal_docs_html"
+
 workdir:
   base_path: "/code"
+
 model:
   embeddings_model:
     pubmedbert:
@@ -52,3 +55,25 @@ model:
   summarization_model:
     model_1:
       model_path: "/scratch/pubtator/models/summarization-model"
+
+ingestion_source:
+  pmc:
+    type: "API"  # "S3" or "API"
+    s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"
+    entrez_search_url: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+    entrez_fetch_url: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id={article_id}"
+  clinical_trials:
+    type: "S3"  # "S3" or "API"
+    s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"
+  preprints:
+    type: "S3"  # "S3" or "API"
+    s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"
+  rfd:
+    type: "S3"  # "S3" or "API"
+    s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"
+  eln:
+    type: "S3"  # "S3" or "API"
+    s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"
+  project_notes:
+    type: "S3"  # "S3" or "API"
+    s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"

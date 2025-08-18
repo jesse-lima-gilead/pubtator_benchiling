@@ -13,7 +13,11 @@ logger = logger_instance.get_logger()
 
 class BioCFileMerger:
     def __init__(
-        self, workflow_id: str, paths_config: dict[str, str], file_handler: FileHandler
+        self,
+        workflow_id: str,
+        source: str,
+        paths_config: dict[str, str],
+        file_handler: FileHandler,
     ):
         """
         Initialize the merger with input directories for normalizers and an output directory.
@@ -22,19 +26,23 @@ class BioCFileMerger:
         :param file_handler: A file handler object to do file operations.
         """
         self.input_dirs = {
-            "disease": paths_config["taggerone_disease_path"].replace(
-                "{workflow_id}", workflow_id
-            ),
-            "chemical": paths_config["nlmchem_path"].replace(
-                "{workflow_id}", workflow_id
-            ),
-            "cellline": paths_config["taggerone_cellLine_path"].replace(
-                "{workflow_id}", workflow_id
-            ),
-            "tmvar": paths_config["tmvar_path"].replace("{workflow_id}", workflow_id),
+            "disease": paths_config["taggerone_disease_path"]
+            .replace("{workflow_id}", workflow_id)
+            .replace("{source}", source),
+            "chemical": paths_config["nlmchem_path"]
+            .replace("{workflow_id}", workflow_id)
+            .replace("{source}", source),
+            "cellline": paths_config["taggerone_cellLine_path"]
+            .replace("{workflow_id}", workflow_id)
+            .replace("{source}", source),
+            "tmvar": paths_config["tmvar_path"]
+            .replace("{workflow_id}", workflow_id)
+            .replace("{source}", source),
         }
-        self.output_dir = paths_config["annotations_merged_path"].replace(
-            "{workflow_id}", workflow_id
+        self.output_dir = (
+            paths_config["annotations_merged_path"]
+            .replace("{workflow_id}", workflow_id)
+            .replace("{source}", source)
         )
         self.file_handler = file_handler
 
@@ -196,6 +204,13 @@ def main():
         help="Workflow ID of JIT pipeline run",
     )
 
+    parser.add_argument(
+        "--source",
+        "-src",
+        type=str,
+        help="Article source (e.g., pmc, ct, rfd etc.)",
+    )
+
     args = parser.parse_args()
 
     if not args.workflow_id:
@@ -208,6 +223,13 @@ def main():
     logger.info(
         f"Execution Started for BioC Merger pipeline for workflow_id: {workflow_id}"
     )
+
+    if not args.source:
+        logger.error("No source provided. Please provide a valid source.")
+        return
+    else:
+        source = args.source
+        logger.info(f"{source} registered as SOURCE for processing")
 
     # Initialize the config loader
     config_loader = YAMLConfigLoader()
@@ -223,7 +245,10 @@ def main():
     paths = paths_config["storage"][storage_type]
 
     merger = BioCFileMerger(
-        workflow_id=workflow_id, paths_config=paths, file_handler=file_handler
+        workflow_id=workflow_id,
+        source=source,
+        paths_config=paths,
+        file_handler=file_handler,
     )
     merger.merge_files()
 

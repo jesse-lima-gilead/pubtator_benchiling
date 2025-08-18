@@ -20,14 +20,27 @@ class PMCIngestor:
         workflow_id: str,
         file_handler: FileHandler,
         paths_config: dict[str, str],
+        source: str = "pmc",
     ):
-        self.pmc_path = paths_config["pmc_path"].replace("{workflow_id}", workflow_id)
-        self.bioc_path = paths_config["bioc_path"].replace("{workflow_id}", workflow_id)
-        self.article_metadata_path = paths_config["metadata_path"].replace(
-            "{workflow_id}", workflow_id
+        self.pmc_path = (
+            paths_config["ingestion_path"]
+            .replace("{workflow_id}", workflow_id)
+            .replace("{source}", source)
         )
-        self.summary_path = paths_config["summary_path"].replace(
-            "{workflow_id}", workflow_id
+        self.bioc_path = (
+            paths_config["bioc_path"]
+            .replace("{workflow_id}", workflow_id)
+            .replace("{source}", source)
+        )
+        self.article_metadata_path = (
+            paths_config["metadata_path"]
+            .replace("{workflow_id}", workflow_id)
+            .replace("{source}", source)
+        )
+        self.summary_path = (
+            paths_config["summary_path"]
+            .replace("{workflow_id}", workflow_id)
+            .replace("{source}", source)
         )
         self.file_handler = file_handler
         # self.s3_io_util = S3IOUtil()
@@ -147,8 +160,17 @@ def main():
 
     parser.add_argument(
         "--workflow_id",
-        "-i",
+        "-wid",
+        type=str,
         help="Workflow ID of JIT pipeline run",
+    )
+
+    parser.add_argument(
+        "--source",
+        "-src",
+        type=str,
+        help="Article source (e.g., pmc, ct, rfd etc.)",
+        default="pmc",
     )
 
     args = parser.parse_args()
@@ -159,6 +181,13 @@ def main():
     else:
         workflow_id = args.workflow_id
         logger.info(f"{workflow_id} Workflow Id registered for processing")
+
+    if not args.source:
+        logger.error("No source provided. Defaulting to 'pmc'.")
+        source = "pmc"
+    else:
+        source = args.source
+        logger.info(f"{source} registered as SOURCE for processing")
 
     # Read article IDs from the specified file
     article_ids_file_path = paths["jit_ingestion_path"].replace(
@@ -186,6 +215,7 @@ def main():
 
     pmc_ingestor = PMCIngestor(
         workflow_id=workflow_id,
+        source=source,
         file_handler=file_handler,
         paths_config=paths,
     )

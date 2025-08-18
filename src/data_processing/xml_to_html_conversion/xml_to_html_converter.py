@@ -12,6 +12,7 @@ class XmlToHtmlConverter:
     def __init__(
         self,
         workflow_id: str,
+        source: str,
         paths_config: dict[str, str],
         file_handler: FileHandler,
         xml_to_html_template_path: str,
@@ -26,11 +27,15 @@ class XmlToHtmlConverter:
         :param file_handler: FileHandler implementation for I/O operations
         :param xml_to_html_template_path: path to read template html file
         """
-        self.input_dir = paths_config["annotations_merged_path"].replace(
-            "{workflow_id}", workflow_id
+        self.input_dir = (
+            paths_config["annotations_merged_path"]
+            .replace("{workflow_id}", workflow_id)
+            .replace("{source}", source),
         )
-        self.output_dir = paths_config["static_html_path"].replace(
-            "{workflow_id}", workflow_id
+        self.output_dir = (
+            paths_config["static_html_path"]
+            .replace("{workflow_id}", workflow_id)
+            .replace("{source}", source),
         )
         self.file_handler = file_handler
         self.local_file_handler = FileHandlerFactory.get_handler("local")
