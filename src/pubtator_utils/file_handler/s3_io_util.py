@@ -61,22 +61,23 @@ class S3IOUtil:
             return False
         return True
 
-    def download_file(self, object_name, file_name=None):
+    def download_file(self, object_name, file_path=None):
         """Download a file from S3.
 
-        - If `file_name` is provided, save the file locally.
+        - If `file_path` is provided, save the file locally.
         - Otherwise, return the file content as a string.
         """
         try:
             obj = self.bucket.Object(object_name)
             response = obj.get()
 
-            if file_name:
+            if file_path:
                 # Save to local file
-                with open(file_name, "wb") as f:
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                with open(file_path, "wb") as f:
                     f.write(response["Body"].read())
                 logger.info(
-                    f"File {object_name} downloaded successfully to {file_name}."
+                    f"File {object_name} downloaded successfully to {file_path}."
                 )
                 return True
             else:

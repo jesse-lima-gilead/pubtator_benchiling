@@ -1,6 +1,9 @@
 import json
 import os
 import shutil
+import bioc
+import pandas as pd
+import csv
 from typing import Union, Any
 from xml.etree import ElementTree as ET
 from src.pubtator_utils.file_handler.base_handler import FileHandler
@@ -135,7 +138,7 @@ class LocalFileHandler(FileHandler):
         except OSError as e:
             raise OSError(f"Error reading JSON file {file_path}: {e}")
 
-    def write_file_as_bioc(self, file_path: str, bioc_document: ET.Element):
+    def write_file_as_bioc(self, file_path: str, bioc_document):
         """Writes a BioC XML document to a file.
 
         Args:
@@ -149,9 +152,18 @@ class LocalFileHandler(FileHandler):
             # Ensure the output directory exists
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-            # Create an ElementTree object and write the XML file
-            tree = ET.ElementTree(bioc_document)
-            tree.write(file_path, encoding="utf-8", xml_declaration=True)
+            if isinstance(bioc_document, bioc.BioCCollection):
+                raw_xml = bioc.dumps(bioc_document)
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(raw_xml)
+            elif isinstance(bioc_document, ET.Element):
+                # Create an ElementTree object and write the XML file
+                tree = ET.ElementTree(bioc_document)
+                tree.write(file_path, encoding="utf-8", xml_declaration=True)
+            else:
+                raise TypeError(
+                    f"Unsupported type for bioc_document: {type(bioc_document)}"
+                )
         except OSError as e:
             raise OSError(f"Error writing BioC file {file_path}: {e}")
 
@@ -225,3 +237,50 @@ class LocalFileHandler(FileHandler):
             raise PermissionError(f"Permission denied: {file_path}")
         except OSError as e:
             raise OSError(f"Error deleting file {file_path}: {e}")
+
+    def read_csv_file(
+        self, file_path: str, as_pandas: bool = False, encoding: str = "utf-8"
+    ):
+        """Reads a CSV file from the local filesystem.
+
+        By default (as_pandas=False) this returns a list of dictionaries (one per row) using
+        Python's csv.DictReader which preserves the header as dict keys. If as_pandas=True,
+        this method returns a pandas.DataFrame (pandas must be installed).
+
+        Args:
+            file_path (str): Path to the CSV file.
+            as_pandas (bool): If True, use pandas.read_csv and return a DataFrame. Defaults to False.
+            encoding (str): File encoding to use when reading the CSV. Defaults to 'utf-8'.
+
+        Returns:
+            list[dict] or pandas.DataFrame: Parsed CSV data.
+
+        Raises:
+            FileNotFoundError: If the CSV file does not exist.
+            PermissionError: If access is denied.
+            ImportError: If as_pandas=True but pandas is not installed.
+            csv.Error: If there is an error parsing the CSV when using the builtin csv module.
+            OSError: For other I/O related errors.
+        """
+        if not os.path.isfile(file_path):
+            raise FileNotFoundError(f"CSV file not found: {file_path}")
+
+        if as_pandas:
+            try:
+                return pd.read_csv(file_path)
+            except Exception as e:
+                # Let pandas raise its own exceptions (e.g., ParserError, EmptyDataError)
+                raise OSError(f"Error reading CSV with pandas: {e}")
+        else:
+            try:
+                with open(file_path, "r", encoding=encoding, newline="") as csvfile:
+                    reader = csv.DictReader(csvfile)
+                    return [row for row in reader]
+            except FileNotFoundError:
+                raise FileNotFoundError(f"CSV file not found: {file_path}")
+            except PermissionError:
+                raise PermissionError(f"Permission denied: {file_path}")
+            except csv.Error as e:
+                raise csv.Error(f"Error parsing CSV file {file_path}: {e}")
+            except OSError as e:
+                raise OSError(f"Error reading CSV file {file_path}: {e}")

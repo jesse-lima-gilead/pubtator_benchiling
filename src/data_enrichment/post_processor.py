@@ -194,7 +194,7 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Ingest articles",
-        epilog="Example: python3 -m src.data_enrichment.post_processor.py --workflow_id 123abc456def",
+        epilog="Example: python3 -m src.data_enrichment.post_processor --workflow_id workflow123 --source ct",
     )
 
     parser.add_argument(

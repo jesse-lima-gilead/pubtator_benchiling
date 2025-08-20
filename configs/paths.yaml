@@ -62,18 +62,18 @@ ingestion_source:
     s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"
     entrez_search_url: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
     entrez_fetch_url: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id={article_id}"
-  clinical_trials:
-    type: "S3"  # "S3" or "API"
+  ct: #clinical_trials
+    type: "s3"  # "S3" or "API"
     s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"
   preprints:
-    type: "S3"  # "S3" or "API"
+    type: "s3"  # "S3" or "API"
     s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"
   rfd:
-    type: "S3"  # "S3" or "API"
+    type: "s3"  # "S3" or "API"
     s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"
   eln:
-    type: "S3"  # "S3" or "API"
+    type: "s3"  # "S3" or "API"
     s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"
   project_notes:
-    type: "S3"  # "S3" or "API"
+    type: "s3"  # "S3" or "API"
     s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"

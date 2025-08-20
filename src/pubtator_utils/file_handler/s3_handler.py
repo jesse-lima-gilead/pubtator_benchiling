@@ -10,8 +10,8 @@ from src.pubtator_utils.file_handler.s3_io_util import S3IOUtil
 class S3FileHandler(FileHandler):
     """Handles file operations on AWS S3 using S3IOUtil."""
 
-    def __init__(self):
-        self.s3_util = S3IOUtil()
+    def __init__(self, platform_type: str):
+        self.s3_util = S3IOUtil(platform_type)
 
     def list_files(self, path):
         """List all file names in the specified S3 path."""
@@ -112,3 +112,6 @@ class S3FileHandler(FileHandler):
             self.s3_util.delete_file(object_name=file_path)
         except ClientError as e:
             raise Exception(f"Error Deleting file {file_path}: {e}")
+
+    def read_csv_file(self, file_path, as_pandas, encoding):
+        pass

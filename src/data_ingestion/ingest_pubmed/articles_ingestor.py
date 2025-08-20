@@ -154,8 +154,8 @@ def main():
     paths = paths_config["storage"][storage_type]
 
     parser = argparse.ArgumentParser(
-        description="Ingest articles",
-        epilog="Example: python3 -m src.data_ingestion.ingest_pubmed.articles_ingestor --workflow_id workflow123",
+        description="Ingest PMC articles",
+        epilog="Example: python3 -m src.data_ingestion.ingest_pubmed.articles_ingestor --workflow_id workflow123 --source pmc",
     )
 
     parser.add_argument(

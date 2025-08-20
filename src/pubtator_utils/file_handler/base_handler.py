@@ -47,3 +47,7 @@ class FileHandler(ABC):
     @abstractmethod
     def delete_file(self, file_path):
         pass
+
+    @abstractmethod
+    def read_csv_file(self, file_path, as_pandas, encoding):
+        pass
