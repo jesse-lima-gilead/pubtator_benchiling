@@ -90,6 +90,8 @@ def extract_pmc_articles(
     end_date: str,
     pmc_path: str,
     file_handler: FileHandler,
+    s3_pmc_path: str,
+    s3_file_handler: FileHandler,
     retmax=50,
 ):
     if len(article_ids) == 0 and query != "":
@@ -103,6 +105,9 @@ def extract_pmc_articles(
             logger.info(f"Fetching {file_name}")
             file_path = file_handler.get_file_path(pmc_path, file_name)
             file_handler.write_file(file_path, content)
+
+            s3_file_path = s3_file_handler.get_file_path(s3_pmc_path, file_name)
+            s3_file_handler.write_file(s3_file_path, content)
             # save_locally(article_id, content, pmc_local_path)
         else:
             missing_count += 1

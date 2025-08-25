@@ -18,6 +18,8 @@ class BioCFileMerger:
         source: str,
         paths_config: dict[str, str],
         file_handler: FileHandler,
+        s3_paths_config: dict[str, str],
+        s3_file_handler: FileHandler,
     ):
         """
         Initialize the merger with input directories for normalizers and an output directory.
@@ -45,6 +47,10 @@ class BioCFileMerger:
             .replace("{source}", source)
         )
         self.file_handler = file_handler
+        self.s3_annotations_merged_dir = s3_paths_config[
+            "annotations_merged_path"
+        ].replace("{source}", source)
+        self.s3_file_handler = s3_file_handler
 
     def merge_files(self):
         """
@@ -184,6 +190,12 @@ class BioCFileMerger:
         logger.info(f"Writing merged file to: {output_path}")
         self.file_handler.write_file_as_bioc(output_path, merged_document)
 
+        s3_output_path = self.s3_file_handler.get_file_path(
+            self.s3_annotations_merged_dir, file_name
+        )
+        logger.info(f"Writing merged file to S3: {s3_output_path}")
+        self.s3_file_handler.write_file_as_bioc(s3_output_path, merged_document)
+
 
 def main():
     """
@@ -244,11 +256,18 @@ def main():
     # Retrieve paths from config
     paths = paths_config["storage"][storage_type]
 
+    # Get S3 Paths and file handler for writing to S3
+    storage_type = "s3"
+    s3_paths = paths_config["storage"][storage_type]
+    s3_file_handler = FileHandlerFactory.get_handler(storage_type)
+
     merger = BioCFileMerger(
         workflow_id=workflow_id,
         source=source,
         paths_config=paths,
         file_handler=file_handler,
+        s3_paths_config=s3_paths,
+        s3_file_handler=s3_file_handler,
     )
     merger.merge_files()
 

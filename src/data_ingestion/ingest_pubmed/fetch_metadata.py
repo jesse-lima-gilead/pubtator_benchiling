@@ -23,10 +23,14 @@ class MetadataExtractor:
         file_path: str,
         metadata_path: str,
         file_handler: FileHandler,
+        s3_metadata_path: str,
+        s3_file_handler: FileHandler,
     ):
         self.file_path = file_path
         self.metadata_path = metadata_path
         self.file_handler = file_handler
+        self.s3_metadata_path = s3_metadata_path
+        self.s3_file_handler = s3_file_handler
         self.metadata = {}
 
     def parse_xml(self):
@@ -316,7 +320,10 @@ class MetadataExtractor:
         }
 
         self.file_handler.write_file_as_json(self.metadata_path, payload)
-        logger.info(f"Metadata saved as JSON")
+        logger.info(f"Metadata saved as JSON to {self.metadata_path}")
+
+        self.s3_file_handler.write_file_as_json(self.s3_metadata_path, payload)
+        logger.info(f"Metadata saved as JSON to S3 {self.s3_metadata_path}")
 
 
 if __name__ == "__main__":

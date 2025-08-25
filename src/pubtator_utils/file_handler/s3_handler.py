@@ -5,6 +5,7 @@ from botocore.exceptions import ClientError
 import xml.etree.ElementTree as ET
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.file_handler.s3_io_util import S3IOUtil
+import bioc
 
 
 class S3FileHandler(FileHandler):
@@ -72,19 +73,36 @@ class S3FileHandler(FileHandler):
         try:
             with BytesIO() as bio_buffer:
                 if isinstance(bioc_document, BioCCollection):
-                    bioc_document.write(
-                        bio_buffer
-                    )  # BioCCollection supports `.write()`
+                    xml_str = bioc.dumps(bioc_document)  # returns a str (BioC XML)
+                    content = xml_str.encode("utf-8")
                 elif isinstance(bioc_document, ET.Element):
                     tree = ET.ElementTree(bioc_document)
                     tree.write(bio_buffer, encoding="utf-8", xml_declaration=True)
+                    bio_buffer.seek(0)
+                    content = bio_buffer.getvalue()
                 else:
                     raise ValueError("Unsupported document type for BioC writing.")
 
-                bio_buffer.seek(0)
-                self.s3_util.upload_file(
-                    file_path=file_path, content=bio_buffer.getvalue()
-                )
+                self.upload_file(file_path=file_path, content=content)
+        except (ClientError, ValueError, ET.ParseError) as e:
+            raise Exception(f"Error writing BioC file: {e}")
+
+    def write_file_as_bioc(self, file_path, bioc_document):
+        """Writes a BioCCollection or an XML ElementTree as a BioC file in S3."""
+        try:
+            with BytesIO() as bio_buffer:
+                if isinstance(bioc_document, BioCCollection):
+                    xml_str = bioc.dumps(bioc_document)  # returns a str (BioC XML)
+                    content = xml_str.encode("utf-8")
+                elif isinstance(bioc_document, ET.Element):
+                    tree = ET.ElementTree(bioc_document)
+                    tree.write(bio_buffer, encoding="utf-8", xml_declaration=True)
+                    bio_buffer.seek(0)
+                    content = bio_buffer.getvalue()
+                else:
+                    raise ValueError("Unsupported document type for BioC writing.")
+
+                self.s3_util.upload_file(file_path=file_path, content=content)
         except (ClientError, ValueError, ET.ParseError) as e:
             raise Exception(f"Error writing BioC file: {e}")
 

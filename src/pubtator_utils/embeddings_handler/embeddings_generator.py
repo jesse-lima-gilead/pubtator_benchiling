@@ -137,7 +137,9 @@ def tensor_to_list(item):
         return item  # Return the item if it's already serializable
 
 
-def save_embeddings_details_to_json(embeddings_details_list, filename, file_handler):
+def save_embeddings_details_to_json(
+    embeddings_details_list, filename, file_handler, s3_filename, s3_file_handler
+):
     """Convert each item in the embeddings details list to JSON-serializable format and save to a JSON file."""
     # Ensure we process each dictionary in the list to make it JSON-serializable
     serializable_data = []
@@ -154,6 +156,7 @@ def save_embeddings_details_to_json(embeddings_details_list, filename, file_hand
     #     json.dump(serializable_data, f, indent=2)
 
     file_handler.write_file_as_json(filename, serializable_data)
+    s3_file_handler.write_file_as_json(s3_filename, serializable_data)
 
 
 def load_embeddings_details_from_json(filename):

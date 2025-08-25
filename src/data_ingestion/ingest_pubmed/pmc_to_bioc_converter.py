@@ -9,7 +9,13 @@ logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()
 
 
-def convert_pmc_to_bioc(pmc_file: str, bioc_output_dir: str, file_handler: FileHandler):
+def convert_pmc_to_bioc(
+    pmc_file: str,
+    bioc_output_dir: str,
+    file_handler: FileHandler,
+    s3_bioc_output_dir: str,
+    s3_file_handler: FileHandler,
+):
     # Parse the input PMC XML
     tree = file_handler.parse_xml_file(pmc_file)
     # tree = ET.parse(pmc_file)
@@ -54,7 +60,13 @@ def convert_pmc_to_bioc(pmc_file: str, bioc_output_dir: str, file_handler: FileH
         bioc_collection.add_document(bioc_document)
 
     # Write BioC documents to individual XML files
-    save_bioc_file(bioc_collection, bioc_output_dir, file_handler)
+    save_bioc_file(
+        bioc_collection,
+        bioc_output_dir,
+        file_handler,
+        s3_bioc_output_dir,
+        s3_file_handler,
+    )
 
 
 def extract_front_data(article_meta, bioc_document):
@@ -330,7 +342,13 @@ def clean_text(text):
     return cleaned_text
 
 
-def save_bioc_file(pubmed_collection, bioc_output_dir, file_handler):
+def save_bioc_file(
+    pubmed_collection,
+    bioc_output_dir,
+    file_handler,
+    s3_bioc_output_dir,
+    s3_file_handler,
+):
     for document in pubmed_collection.documents:
         # Create a new BioC collection for each document
         single_doc_collection = bioc.BioCCollection()
@@ -360,6 +378,11 @@ def save_bioc_file(pubmed_collection, bioc_output_dir, file_handler):
         #     f.write(bioc_xml)
 
         logger.info(f"BioC XML file saved to {file_path}")
+
+        # Write to S3
+        s3_file_path = s3_file_handler.get_file_path(s3_bioc_output_dir, bioc_file_name)
+        s3_file_handler.write_file(s3_file_path, bioc_xml)
+        logger.info(f"BioC XML file saved to S3: {s3_file_path}")
 
 
 # if __name__ == "__main__":

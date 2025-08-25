@@ -59,15 +59,25 @@ def create_bioc_from_row(row: pd.Series, date_today: str):
     return collection
 
 
-def convert_ct_csv_to_bioc(ct_df, bioc_path, file_handler: FileHandler):
+def convert_ct_csv_to_bioc(
+    ct_df,
+    bioc_path,
+    file_handler: FileHandler,
+    s3_bioc_path,
+    s3_file_handler: FileHandler,
+):
     today_str = datetime.now().strftime("%Y-%m-%d")
     for _, row in ct_df.iterrows():
         nct_id = str(row.get("nct_id", "record"))
         collection = create_bioc_from_row(row, today_str)
 
         filename = f"{nct_id}.xml"
+
         file_path = file_handler.get_file_path(bioc_path, filename)
-
         file_handler.write_file_as_bioc(file_path, collection)
-
         logger.info(f"For article_id {nct_id}, Saving BioC XML to {file_path}")
+
+        # Save to S3
+        s3_file_path = s3_file_handler.get_file_path(s3_bioc_path, filename)
+        s3_file_handler.write_file_as_bioc(s3_file_path, collection)
+        logger.info(f"For article_id {nct_id}, Saving BioC XML to S3: {s3_file_path}")

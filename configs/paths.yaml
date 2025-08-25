@@ -53,8 +53,8 @@ model:
       model_path: "/scratch/pubtator/models/chemberta-77m-mlm"
       token_limit: 512
   summarization_model:
-    model_1:
-      model_path: "/scratch/pubtator/models/summarization-model"
+    mistral_7b:
+      model_path: "/scratch/pubtator/models/mistral-7b-instruct-v0.3"
 
 ingestion_source:
   pmc:

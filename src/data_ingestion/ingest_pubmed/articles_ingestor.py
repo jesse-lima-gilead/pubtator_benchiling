@@ -20,6 +20,8 @@ class PMCIngestor:
         workflow_id: str,
         file_handler: FileHandler,
         paths_config: dict[str, str],
+        s3_paths_config: dict[str, str],
+        s3_file_handler: FileHandler,
         source: str = "pmc",
     ):
         self.pmc_path = (
@@ -43,6 +45,15 @@ class PMCIngestor:
             .replace("{source}", source)
         )
         self.file_handler = file_handler
+        self.s3_pmc_path = s3_paths_config["ingestion_path"].replace("{source}", source)
+        self.s3_bioc_path = s3_paths_config["bioc_path"].replace("{source}", source)
+        self.s3_article_metadata_path = s3_paths_config["metadata_path"].replace(
+            "{source}", source
+        )
+        self.s3_summary_path = s3_paths_config["summary_path"].replace(
+            "{source}", source
+        )
+        self.s3_file_handler = s3_file_handler
         # self.s3_io_util = S3IOUtil()
 
     def pmc_articles_extractor(
@@ -62,6 +73,8 @@ class PMCIngestor:
             end_date=end_date,
             pmc_path=self.pmc_path,
             file_handler=self.file_handler,
+            s3_pmc_path=self.s3_pmc_path,
+            s3_file_handler=self.s3_file_handler,
             retmax=retmax,
         )
         logger.info(f"{extracted_articles_count} PMC Articles Extracted Successfully!")
@@ -77,10 +90,15 @@ class PMCIngestor:
                 metadata_path = self.file_handler.get_file_path(
                     self.article_metadata_path, metadata_json_file_name
                 )
+                s3_metadata_path = self.s3_file_handler.get_file_path(
+                    self.s3_article_metadata_path, metadata_json_file_name
+                )
                 metadata_extractor = MetadataExtractor(
                     file_path=file_path,
                     metadata_path=metadata_path,
                     file_handler=self.file_handler,
+                    s3_metadata_path=s3_metadata_path,
+                    s3_file_handler=self.s3_file_handler,
                 )
                 if metadata_storage_type == "file":
                     metadata_extractor.save_metadata_as_json()
@@ -94,7 +112,13 @@ class PMCIngestor:
         for file in self.file_handler.list_files(self.pmc_path):
             if file.endswith(".xml"):
                 pmc_file_path = self.file_handler.get_file_path(self.pmc_path, file)
-                convert_pmc_to_bioc(pmc_file_path, self.bioc_path, self.file_handler)
+                convert_pmc_to_bioc(
+                    pmc_file_path,
+                    self.bioc_path,
+                    self.file_handler,
+                    self.s3_bioc_path,
+                    self.s3_file_handler,
+                )
 
     def prettify_bioc_xml(self):
         # Prettify the BioC XML files:
@@ -123,6 +147,13 @@ class PMCIngestor:
                 self.file_handler.write_file(summary_file_path, summary)
                 logger.info(f"Summary generated for: {file}")
 
+                # Save to S3
+                s3_summary_file_path = self.s3_file_handler.get_file_path(
+                    self.s3_summary_path, summary_file_name
+                )
+                self.s3_file_handler.write_file(s3_summary_file_path, summary)
+                logger.info(f"Summary saved to S3: {s3_summary_file_path}")
+
     # Runs the combined process
     def run(
         self,
@@ -132,7 +163,7 @@ class PMCIngestor:
         self.pmc_articles_extractor(article_ids=article_ids)
         self.articles_metadata_extractor(metadata_storage_type=metadata_storage_type)
         self.pmc_to_bioc_converter()
-        # self.articles_summarizer()
+        self.articles_summarizer()
 
 
 def main():
@@ -152,6 +183,11 @@ def main():
     file_handler = FileHandlerFactory.get_handler(storage_type)
     # Retrieve paths from config
     paths = paths_config["storage"][storage_type]
+
+    # Get S3 Paths and file handler for writing to S3
+    storage_type = "s3"
+    s3_paths = paths_config["storage"][storage_type]
+    s3_file_handler = FileHandlerFactory.get_handler(storage_type)
 
     parser = argparse.ArgumentParser(
         description="Ingest PMC articles",
@@ -218,6 +254,8 @@ def main():
         source=source,
         file_handler=file_handler,
         paths_config=paths,
+        s3_paths_config=s3_paths,
+        s3_file_handler=s3_file_handler,
     )
 
     pmc_ingestor.run(

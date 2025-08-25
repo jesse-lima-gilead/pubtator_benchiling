@@ -16,7 +16,13 @@ def split_date_parts(date_str):
     return {k: v for k, v in zip(keys, parts)}
 
 
-def articles_metadata_extractor(ct_df, metadata_path: str, file_handler: FileHandler):
+def articles_metadata_extractor(
+    ct_df,
+    metadata_path: str,
+    file_handler: FileHandler,
+    s3_metadata_path: str,
+    s3_file_handler: FileHandler,
+):
     # Fields to include in JSON
     required_fields = [
         "nct_id",
@@ -90,8 +96,12 @@ def articles_metadata_extractor(ct_df, metadata_path: str, file_handler: FileHan
                 output_data[field] = value
 
         filename = f"{nct_id}_metadata.json"
+
         file_path = file_handler.get_file_path(metadata_path, filename)
-
         file_handler.write_file_as_json(file_path, output_data)
-
         logger.info(f"For nct_id {nct_id}, Saving metadata to {file_path}")
+
+        # Write to S3
+        s3_file_path = s3_file_handler.get_file_path(s3_metadata_path, filename)
+        s3_file_handler.write_file_as_json(s3_file_path, output_data)
+        logger.info(f"For nct_id {nct_id}, Saving metadata to S3: {s3_file_path}")

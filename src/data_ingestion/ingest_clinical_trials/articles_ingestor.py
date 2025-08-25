@@ -30,6 +30,8 @@ class CTIngestor:
         file_handler: FileHandler,
         paths_config: dict[str, str],
         ct_source_config: dict[str, str],
+        s3_paths_config: dict[str, str],
+        s3_file_handler: FileHandler,
         source: str = "ct",
     ):
         self.ct_path = (
@@ -55,6 +57,14 @@ class CTIngestor:
         self.file_handler = file_handler
         self.ct_source_config = ct_source_config
         self.source = source
+        self.s3_bioc_path = s3_paths_config["bioc_path"].replace("{source}", source)
+        self.s3_article_metadata_path = s3_paths_config["metadata_path"].replace(
+            "{source}", source
+        )
+        self.s3_summary_path = s3_paths_config["summary_path"].replace(
+            "{source}", source
+        )
+        self.s3_file_handler = s3_file_handler
         # self.s3_io_util = S3IOUtil()
 
     def ct_articles_extractor(self):
@@ -88,16 +98,32 @@ class CTIngestor:
 
                 # fetch_metadata
                 articles_metadata_extractor(
-                    ct_df, self.article_metadata_path, self.file_handler
+                    ct_df,
+                    self.article_metadata_path,
+                    self.file_handler,
+                    self.s3_article_metadata_path,
+                    self.s3_file_handler,
                 )
                 logger.info(f"All Metadata extracted from {file_path}")
 
                 # Extract Summaries
-                articles_summarizer(ct_df, self.summary_path, self.file_handler)
+                articles_summarizer(
+                    ct_df,
+                    self.summary_path,
+                    self.file_handler,
+                    self.s3_summary_path,
+                    self.s3_file_handler,
+                )
                 logger.info(f"All Summary extracted from {file_path}")
 
                 # CSV record to BioC file format conversion
-                convert_ct_csv_to_bioc(ct_df, self.bioc_path, self.file_handler)
+                convert_ct_csv_to_bioc(
+                    ct_df,
+                    self.bioc_path,
+                    self.file_handler,
+                    self.s3_bioc_path,
+                    self.s3_file_handler,
+                )
                 logger.info(
                     f"All CT CSV files converted to BioC format from {file_path}"
                 )
@@ -127,6 +153,11 @@ def main():
     file_handler = FileHandlerFactory.get_handler(storage_type)
     # Retrieve paths from config
     paths = paths_config["storage"][storage_type]
+
+    # Get S3 Paths and file handler for writing to S3
+    storage_type = "s3"
+    s3_paths = paths_config["storage"][storage_type]
+    s3_file_handler = FileHandlerFactory.get_handler(storage_type)
 
     parser = argparse.ArgumentParser(
         description="Ingest CT articles",
@@ -172,6 +203,8 @@ def main():
         file_handler=file_handler,
         paths_config=paths,
         ct_source_config=ct_source_config,
+        s3_paths_config=s3_paths,
+        s3_file_handler=s3_file_handler,
     )
 
     ct_ingestor.run()

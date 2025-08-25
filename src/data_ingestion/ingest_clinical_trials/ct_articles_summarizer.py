@@ -7,7 +7,13 @@ logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()
 
 
-def articles_summarizer(ct_df, summary_path, file_handler: FileHandler):
+def articles_summarizer(
+    ct_df,
+    summary_path,
+    file_handler: FileHandler,
+    s3_summary_path,
+    s3_file_handler: FileHandler,
+):
     for _, row in ct_df.iterrows():
         nct_id = row.get("nct_id")
         brief_summary = row.get("brief_summary")
@@ -16,8 +22,12 @@ def articles_summarizer(ct_df, summary_path, file_handler: FileHandler):
             continue
 
         filename = f"{nct_id}.txt"
+
         file_path = file_handler.get_file_path(summary_path, filename)
-
         file_handler.write_file(file_path, brief_summary)
-
         logger.info(f"For nct_id {nct_id}, Saving Summary to {file_path}")
+
+        # Save to S3
+        s3_file_path = s3_file_handler.get_file_path(s3_summary_path, filename)
+        s3_file_handler.write_file(s3_file_path, brief_summary)
+        logger.info(f"For nct_id {nct_id}, Saving Summary to S3: {s3_file_path}")

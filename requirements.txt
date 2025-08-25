@@ -12,3 +12,6 @@ transformers==4.49.0
 torch==2.7.1
 scikit-learn==1.7.0
 pandas==2.2.3
+sentencepiece==0.2.1
+accelerate==1.10.0
+protobuf==6.32.0
