@@ -63,6 +63,7 @@ def convert_ct_csv_to_bioc(
     ct_df,
     bioc_path,
     file_handler: FileHandler,
+    write_to_s3: bool,
     s3_bioc_path,
     s3_file_handler: FileHandler,
 ):
@@ -77,7 +78,10 @@ def convert_ct_csv_to_bioc(
         file_handler.write_file_as_bioc(file_path, collection)
         logger.info(f"For article_id {nct_id}, Saving BioC XML to {file_path}")
 
-        # Save to S3
-        s3_file_path = s3_file_handler.get_file_path(s3_bioc_path, filename)
-        s3_file_handler.write_file_as_bioc(s3_file_path, collection)
-        logger.info(f"For article_id {nct_id}, Saving BioC XML to S3: {s3_file_path}")
+        if write_to_s3:
+            # Save to S3
+            s3_file_path = s3_file_handler.get_file_path(s3_bioc_path, filename)
+            s3_file_handler.write_file_as_bioc(s3_file_path, collection)
+            logger.info(
+                f"For article_id {nct_id}, Saving BioC XML to S3: {s3_file_path}"
+            )

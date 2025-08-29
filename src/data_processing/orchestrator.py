@@ -37,6 +37,7 @@ class ArticleProcessor:
         source: str,
         file_handler: FileHandler,
         paths_config: dict[str, str],
+        write_to_s3: bool,
         s3_file_handler: FileHandler,
         s3_paths_config: dict[str, str],
         aioner_model: str = "Bioformer",
@@ -50,38 +51,46 @@ class ArticleProcessor:
         self.embeddings_model = embeddings_model
         self.chunker = chunker
         self.merger = merger
+        self.source = source
+        self.workflow_id = workflow_id
         self.articles_input_dir = (
             paths_config["annotations_merged_path"]
             .replace("{workflow_id}", workflow_id)
-            .replace("{source}", source),
+            .replace("{source}", source)
         )
         self.articles_summary_dir = (
             paths_config["summary_path"]
             .replace("{workflow_id}", workflow_id)
-            .replace("{source}", source),
+            .replace("{source}", source)
         )
         self.chunks_output_dir = (
             paths_config["chunks_path"]
             .replace("{workflow_id}", workflow_id)
-            .replace("{source}", source),
+            .replace("{source}", source)
         )
         self.embeddings_output_dir = (
             paths_config["embeddings_path"]
             .replace("{workflow_id}", workflow_id)
-            .replace("{source}", source),
+            .replace("{source}", source)
         )
         self.articles_metadata_dir = (
             paths_config["metadata_path"]
             .replace("{workflow_id}", workflow_id)
-            .replace("{source}", source),
+            .replace("{source}", source)
         )
         self.file_handler = file_handler
-        self.s3_file_handler = s3_file_handler
-        self.s3_chunks_dir = s3_paths_config["chunks_path"].replace("{source}", source)
-        self.s3_embeddings_dir = s3_paths_config["embeddings_path"].replace(
-            "{source}", source
-        )
-        # self.s3_io_util = S3IOUtil()
+
+        self.write_to_s3 = write_to_s3
+        if self.write_to_s3:
+            self.s3_file_handler = s3_file_handler
+            self.s3_chunks_dir = s3_paths_config["chunks_path"].replace(
+                "{source}", source
+            )
+            self.s3_embeddings_dir = s3_paths_config["embeddings_path"].replace(
+                "{source}", source
+            )
+        else:
+            self.s3_file_handler = self.s3_chunks_dir = self.s3_embeddings_dir = None
 
     def get_article_summary(self, article_file):
         # ToDo: Put the article summariser in data ingestion orchestrator
@@ -90,13 +99,7 @@ class ArticleProcessor:
         article_file_summary_path = self.file_handler.get_file_path(
             self.articles_summary_dir, article_file_name
         )
-        # article_file_summary_path = (
-        #     f"{self.articles_summary_dir}/{article_file.split('.')[0]}.txt"
-        # )
-        # logger.info(f"Article summary file path: {article_file_summary_path}")
         article_summary = self.file_handler.read_file(article_file_summary_path)
-        # with open(article_file_summary_path, "r") as f:
-        #     return f.read()
         logger.info(f"Article summary: {article_summary}")
         return article_summary
 
@@ -288,8 +291,12 @@ class ArticleProcessor:
                 chunks_output_path = self.file_handler.get_file_path(
                     self.chunks_output_dir, chunk_output_file_name
                 )
-                s3_chunks_output_path = self.s3_file_handler.get_file_path(
-                    self.s3_chunks_dir, chunk_output_file_name
+                s3_chunks_output_path = (
+                    self.s3_file_handler.get_file_path(
+                        self.s3_chunks_dir, chunk_output_file_name
+                    )
+                    if self.write_to_s3
+                    else None
                 )
                 article_id = article_file.split(".")[0]
                 article_metadata_file_name = f"{article_id}_metadata.json"
@@ -419,11 +426,12 @@ class ArticleProcessor:
                 )
                 logger.info(f"Chunks file saved to {chunks_output_path}")
 
-                # Save Chunks to S3
-                self.s3_file_handler.write_file_as_json(
-                    s3_chunks_output_path, all_chunk_details
-                )
-                logger.info(f"Chunks file saved to S3: {s3_chunks_output_path}")
+                if self.write_to_s3:
+                    # Save Chunks to S3
+                    self.s3_file_handler.write_file_as_json(
+                        s3_chunks_output_path, all_chunk_details
+                    )
+                    logger.info(f"Chunks file saved to S3: {s3_chunks_output_path}")
 
     def get_chunks_embeddings_details(self, chunks: List[Dict], collection_type: str):
         try:
@@ -463,8 +471,12 @@ class ArticleProcessor:
         embeddings_file_path = self.file_handler.get_file_path(
             self.embeddings_output_dir, embeddings_filename
         )
-        s3_embeddings_file_path = self.s3_file_handler.get_file_path(
-            self.s3_embeddings_dir, embeddings_filename
+        s3_embeddings_file_path = (
+            self.s3_file_handler.get_file_path(
+                self.s3_embeddings_dir, embeddings_filename
+            )
+            if self.write_to_s3
+            else None
         )
         logger.info(f"Saving embeddings to file: {embeddings_file_path}")
         # embeddings_file_path = f"{self.embeddings_output_dir}/{embeddings_filename}"
@@ -472,6 +484,7 @@ class ArticleProcessor:
             embeddings_details_list=embeddings_details,
             filename=embeddings_file_path,
             file_handler=self.file_handler,
+            write_to_s3=self.write_to_s3,
             s3_filename=s3_embeddings_file_path,
             s3_file_handler=self.s3_file_handler,
         )
@@ -544,10 +557,14 @@ def run_chunking_and_embedding(
     # Retrieve paths from config
     paths = paths_config["storage"][storage_type]
 
-    # Get S3 Paths and file handler for writing to S3
-    storage_type = "s3"
-    s3_paths = paths_config["storage"][storage_type]
-    s3_file_handler = FileHandlerFactory.get_handler(storage_type)
+    write_to_s3 = True
+    s3_paths = {}
+    s3_file_handler = None
+    if write_to_s3:
+        # Get S3 Paths and file handler for writing to S3
+        storage_type = "s3"
+        s3_paths = paths_config["storage"][storage_type]
+        s3_file_handler = FileHandlerFactory.get_handler(storage_type)
 
     article_processor = ArticleProcessor(
         workflow_id=workflow_id,
@@ -557,6 +574,7 @@ def run_chunking_and_embedding(
         merger=merger,
         file_handler=file_handler,
         paths_config=paths,
+        write_to_s3=write_to_s3,
         s3_file_handler=s3_file_handler,
         s3_paths_config=s3_paths,
     )
@@ -592,10 +610,14 @@ def run_xml_to_html_conversion(workflow_id: str, source: str):
     # Retrieve paths from config
     paths = paths_config["storage"][storage_type]
 
-    # Get S3 Paths and file handler for writing to S3
-    storage_type = "s3"
-    s3_paths = paths_config["storage"][storage_type]
-    s3_file_handler = FileHandlerFactory.get_handler(storage_type)
+    write_to_s3 = True
+    s3_paths = {}
+    s3_file_handler = None
+    if write_to_s3:
+        # Get S3 Paths and file handler for writing to S3
+        storage_type = "s3"
+        s3_paths = paths_config["storage"][storage_type]
+        s3_file_handler = FileHandlerFactory.get_handler(storage_type)
 
     html_converter = XmlToHtmlConverter(
         workflow_id,
@@ -603,6 +625,7 @@ def run_xml_to_html_conversion(workflow_id: str, source: str):
         paths,
         file_handler,
         xml_to_html_template_path,
+        write_to_s3,
         s3_paths,
         s3_file_handler,
     )
@@ -641,7 +664,7 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Ingest articles",
-        epilog="Example: python3 -m src.data_processing.orchestrator --workflow_id workflow123",
+        epilog="Example: python3 -m src.data_processing.orchestrator --workflow_id workflow123 --source ct",
     )
 
     parser.add_argument(

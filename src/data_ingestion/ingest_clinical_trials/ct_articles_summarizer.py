@@ -11,6 +11,7 @@ def articles_summarizer(
     ct_df,
     summary_path,
     file_handler: FileHandler,
+    write_to_s3: bool,
     s3_summary_path,
     s3_file_handler: FileHandler,
 ):
@@ -27,7 +28,8 @@ def articles_summarizer(
         file_handler.write_file(file_path, brief_summary)
         logger.info(f"For nct_id {nct_id}, Saving Summary to {file_path}")
 
-        # Save to S3
-        s3_file_path = s3_file_handler.get_file_path(s3_summary_path, filename)
-        s3_file_handler.write_file(s3_file_path, brief_summary)
-        logger.info(f"For nct_id {nct_id}, Saving Summary to S3: {s3_file_path}")
+        if write_to_s3:
+            # Save to S3
+            s3_file_path = s3_file_handler.get_file_path(s3_summary_path, filename)
+            s3_file_handler.write_file(s3_file_path, brief_summary)
+            logger.info(f"For nct_id {nct_id}, Saving Summary to S3: {s3_file_path}")

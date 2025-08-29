@@ -17,6 +17,7 @@ from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
+from typing import Any, Dict, Optional, List
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -30,9 +31,9 @@ class CTIngestor:
         file_handler: FileHandler,
         paths_config: dict[str, str],
         ct_source_config: dict[str, str],
-        s3_paths_config: dict[str, str],
-        s3_file_handler: FileHandler,
+        write_to_s3: bool,
         source: str = "ct",
+        **kwargs: Any,  # optional extras (e.g. s3 settings)
     ):
         self.ct_path = (
             paths_config["ingestion_path"]
@@ -57,15 +58,29 @@ class CTIngestor:
         self.file_handler = file_handler
         self.ct_source_config = ct_source_config
         self.source = source
-        self.s3_bioc_path = s3_paths_config["bioc_path"].replace("{source}", source)
-        self.s3_article_metadata_path = s3_paths_config["metadata_path"].replace(
-            "{source}", source
+
+        # Pop known keys (consumes them from kwargs)
+        self.write_to_s3 = write_to_s3
+        self.s3_file_handler: Optional[FileHandler] = kwargs.pop(
+            "s3_file_handler", None
         )
-        self.s3_summary_path = s3_paths_config["summary_path"].replace(
-            "{source}", source
-        )
-        self.s3_file_handler = s3_file_handler
-        # self.s3_io_util = S3IOUtil()
+        self.s3_paths_config: Dict[str, str] = kwargs.pop("s3_paths_config", {}) or {}
+
+        # Build S3 paths only if enabled
+        if self.write_to_s3:
+            self.s3_bioc_path = self.s3_paths_config.get("bioc_path", "").replace(
+                "{source}", source
+            )
+            self.s3_article_metadata_path = self.s3_paths_config.get(
+                "metadata_path", ""
+            ).replace("{source}", source)
+            self.s3_summary_path = self.s3_paths_config.get("summary_path", "").replace(
+                "{source}", source
+            )
+        else:
+            self.s3_pmc_path = (
+                self.s3_bioc_path
+            ) = self.s3_article_metadata_path = self.s3_summary_path = None
 
     def ct_articles_extractor(self):
         # Extract the CSV full clinical trials:
@@ -101,6 +116,7 @@ class CTIngestor:
                     ct_df,
                     self.article_metadata_path,
                     self.file_handler,
+                    self.write_to_s3,
                     self.s3_article_metadata_path,
                     self.s3_file_handler,
                 )
@@ -111,6 +127,7 @@ class CTIngestor:
                     ct_df,
                     self.summary_path,
                     self.file_handler,
+                    self.write_to_s3,
                     self.s3_summary_path,
                     self.s3_file_handler,
                 )
@@ -121,6 +138,7 @@ class CTIngestor:
                     ct_df,
                     self.bioc_path,
                     self.file_handler,
+                    self.write_to_s3,
                     self.s3_bioc_path,
                     self.s3_file_handler,
                 )
@@ -132,7 +150,7 @@ class CTIngestor:
     def run(
         self,
     ):
-        self.ct_articles_extractor()
+        # self.ct_articles_extractor()
         self.ct_articles_processor()
 
 
@@ -154,10 +172,14 @@ def main():
     # Retrieve paths from config
     paths = paths_config["storage"][storage_type]
 
-    # Get S3 Paths and file handler for writing to S3
-    storage_type = "s3"
-    s3_paths = paths_config["storage"][storage_type]
-    s3_file_handler = FileHandlerFactory.get_handler(storage_type)
+    write_to_s3 = True
+    s3_paths = {}
+    s3_file_handler = None
+    if write_to_s3:
+        # Get S3 Paths and file handler for writing to S3
+        storage_type = "s3"
+        s3_paths = paths_config["storage"][storage_type]
+        s3_file_handler = FileHandlerFactory.get_handler(storage_type)
 
     parser = argparse.ArgumentParser(
         description="Ingest CT articles",
@@ -203,6 +225,7 @@ def main():
         file_handler=file_handler,
         paths_config=paths,
         ct_source_config=ct_source_config,
+        write_to_s3=write_to_s3,
         s3_paths_config=s3_paths,
         s3_file_handler=s3_file_handler,
     )

@@ -20,6 +20,7 @@ def articles_metadata_extractor(
     ct_df,
     metadata_path: str,
     file_handler: FileHandler,
+    write_to_s3: bool,
     s3_metadata_path: str,
     s3_file_handler: FileHandler,
 ):
@@ -101,7 +102,8 @@ def articles_metadata_extractor(
         file_handler.write_file_as_json(file_path, output_data)
         logger.info(f"For nct_id {nct_id}, Saving metadata to {file_path}")
 
-        # Write to S3
-        s3_file_path = s3_file_handler.get_file_path(s3_metadata_path, filename)
-        s3_file_handler.write_file_as_json(s3_file_path, output_data)
-        logger.info(f"For nct_id {nct_id}, Saving metadata to S3: {s3_file_path}")
+        if write_to_s3:
+            # Write to S3
+            s3_file_path = s3_file_handler.get_file_path(s3_metadata_path, filename)
+            s3_file_handler.write_file_as_json(s3_file_path, output_data)
+            logger.info(f"For nct_id {nct_id}, Saving metadata to S3: {s3_file_path}")

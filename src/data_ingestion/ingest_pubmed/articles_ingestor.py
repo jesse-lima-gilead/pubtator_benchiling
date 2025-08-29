@@ -8,6 +8,7 @@ from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
+from typing import Any, Dict, Optional, List
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -20,9 +21,9 @@ class PMCIngestor:
         workflow_id: str,
         file_handler: FileHandler,
         paths_config: dict[str, str],
-        s3_paths_config: dict[str, str],
-        s3_file_handler: FileHandler,
+        write_to_s3: bool,
         source: str = "pmc",
+        **kwargs: Any,  # optional extras (e.g. s3 settings)
     ):
         self.pmc_path = (
             paths_config["ingestion_path"]
@@ -45,16 +46,32 @@ class PMCIngestor:
             .replace("{source}", source)
         )
         self.file_handler = file_handler
-        self.s3_pmc_path = s3_paths_config["ingestion_path"].replace("{source}", source)
-        self.s3_bioc_path = s3_paths_config["bioc_path"].replace("{source}", source)
-        self.s3_article_metadata_path = s3_paths_config["metadata_path"].replace(
-            "{source}", source
+
+        # Pop known keys (consumes them from kwargs)
+        self.write_to_s3 = write_to_s3
+        self.s3_file_handler: Optional[FileHandler] = kwargs.pop(
+            "s3_file_handler", None
         )
-        self.s3_summary_path = s3_paths_config["summary_path"].replace(
-            "{source}", source
-        )
-        self.s3_file_handler = s3_file_handler
-        # self.s3_io_util = S3IOUtil()
+        self.s3_paths_config: Dict[str, str] = kwargs.pop("s3_paths_config", {}) or {}
+
+        # Build S3 paths only if enabled
+        if self.write_to_s3:
+            self.s3_pmc_path = self.s3_paths_config.get("ingestion_path", "").replace(
+                "{source}", source
+            )
+            self.s3_bioc_path = self.s3_paths_config.get("bioc_path", "").replace(
+                "{source}", source
+            )
+            self.s3_article_metadata_path = self.s3_paths_config.get(
+                "metadata_path", ""
+            ).replace("{source}", source)
+            self.s3_summary_path = self.s3_paths_config.get("summary_path", "").replace(
+                "{source}", source
+            )
+        else:
+            self.s3_pmc_path = (
+                self.s3_bioc_path
+            ) = self.s3_article_metadata_path = self.s3_summary_path = None
 
     def pmc_articles_extractor(
         self,
@@ -75,6 +92,7 @@ class PMCIngestor:
             file_handler=self.file_handler,
             s3_pmc_path=self.s3_pmc_path,
             s3_file_handler=self.s3_file_handler,
+            write_to_s3=self.write_to_s3,
             retmax=retmax,
         )
         logger.info(f"{extracted_articles_count} PMC Articles Extracted Successfully!")
@@ -90,8 +108,12 @@ class PMCIngestor:
                 metadata_path = self.file_handler.get_file_path(
                     self.article_metadata_path, metadata_json_file_name
                 )
-                s3_metadata_path = self.s3_file_handler.get_file_path(
-                    self.s3_article_metadata_path, metadata_json_file_name
+                s3_metadata_path = (
+                    self.s3_file_handler.get_file_path(
+                        self.s3_article_metadata_path, metadata_json_file_name
+                    )
+                    if self.write_to_s3
+                    else None
                 )
                 metadata_extractor = MetadataExtractor(
                     file_path=file_path,
@@ -99,6 +121,7 @@ class PMCIngestor:
                     file_handler=self.file_handler,
                     s3_metadata_path=s3_metadata_path,
                     s3_file_handler=self.s3_file_handler,
+                    write_to_s3=self.write_to_s3,
                 )
                 if metadata_storage_type == "file":
                     metadata_extractor.save_metadata_as_json()
@@ -118,6 +141,7 @@ class PMCIngestor:
                     self.file_handler,
                     self.s3_bioc_path,
                     self.s3_file_handler,
+                    self.write_to_s3,
                 )
 
     def prettify_bioc_xml(self):
@@ -147,12 +171,13 @@ class PMCIngestor:
                 self.file_handler.write_file(summary_file_path, summary)
                 logger.info(f"Summary generated for: {file}")
 
-                # Save to S3
-                s3_summary_file_path = self.s3_file_handler.get_file_path(
-                    self.s3_summary_path, summary_file_name
-                )
-                self.s3_file_handler.write_file(s3_summary_file_path, summary)
-                logger.info(f"Summary saved to S3: {s3_summary_file_path}")
+                if self.write_to_s3:
+                    # Save to S3
+                    s3_summary_file_path = self.s3_file_handler.get_file_path(
+                        self.s3_summary_path, summary_file_name
+                    )
+                    self.s3_file_handler.write_file(s3_summary_file_path, summary)
+                    logger.info(f"Summary saved to S3: {s3_summary_file_path}")
 
     # Runs the combined process
     def run(
@@ -184,10 +209,14 @@ def main():
     # Retrieve paths from config
     paths = paths_config["storage"][storage_type]
 
-    # Get S3 Paths and file handler for writing to S3
-    storage_type = "s3"
-    s3_paths = paths_config["storage"][storage_type]
-    s3_file_handler = FileHandlerFactory.get_handler(storage_type)
+    write_to_s3 = True
+    s3_paths = {}
+    s3_file_handler = None
+    if write_to_s3:
+        # Get S3 Paths and file handler for writing to S3
+        storage_type = "s3"
+        s3_paths = paths_config["storage"][storage_type]
+        s3_file_handler = FileHandlerFactory.get_handler(storage_type)
 
     parser = argparse.ArgumentParser(
         description="Ingest PMC articles",
@@ -226,8 +255,10 @@ def main():
         logger.info(f"{source} registered as SOURCE for processing")
 
     # Read article IDs from the specified file
-    article_ids_file_path = paths["jit_ingestion_path"].replace(
-        "{workflow_id}", workflow_id
+    article_ids_file_path = (
+        paths["jit_ingestion_path"]
+        .replace("{workflow_id}", workflow_id)
+        .replace("{source}", source)
     )
     article_ids = []
     try:
@@ -254,6 +285,7 @@ def main():
         source=source,
         file_handler=file_handler,
         paths_config=paths,
+        write_to_s3=write_to_s3,
         s3_paths_config=s3_paths,
         s3_file_handler=s3_file_handler,
     )

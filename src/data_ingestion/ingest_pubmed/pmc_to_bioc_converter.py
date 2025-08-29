@@ -15,6 +15,7 @@ def convert_pmc_to_bioc(
     file_handler: FileHandler,
     s3_bioc_output_dir: str,
     s3_file_handler: FileHandler,
+    write_to_s3: bool,
 ):
     # Parse the input PMC XML
     tree = file_handler.parse_xml_file(pmc_file)
@@ -66,6 +67,7 @@ def convert_pmc_to_bioc(
         file_handler,
         s3_bioc_output_dir,
         s3_file_handler,
+        write_to_s3,
     )
 
 
@@ -348,6 +350,7 @@ def save_bioc_file(
     file_handler,
     s3_bioc_output_dir,
     s3_file_handler,
+    write_to_s3,
 ):
     for document in pubmed_collection.documents:
         # Create a new BioC collection for each document
@@ -379,10 +382,13 @@ def save_bioc_file(
 
         logger.info(f"BioC XML file saved to {file_path}")
 
-        # Write to S3
-        s3_file_path = s3_file_handler.get_file_path(s3_bioc_output_dir, bioc_file_name)
-        s3_file_handler.write_file(s3_file_path, bioc_xml)
-        logger.info(f"BioC XML file saved to S3: {s3_file_path}")
+        if write_to_s3:
+            # Write to S3
+            s3_file_path = s3_file_handler.get_file_path(
+                s3_bioc_output_dir, bioc_file_name
+            )
+            s3_file_handler.write_file(s3_file_path, bioc_xml)
+            logger.info(f"BioC XML file saved to S3: {s3_file_path}")
 
 
 # if __name__ == "__main__":

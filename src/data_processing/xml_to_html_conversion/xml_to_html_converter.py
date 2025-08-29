@@ -16,6 +16,7 @@ class XmlToHtmlConverter:
         paths_config: dict[str, str],
         file_handler: FileHandler,
         xml_to_html_template_path: str,
+        write_to_s3: bool,
         s3_paths_config: dict[str, str],
         s3_file_handler: FileHandler,
     ):
@@ -32,20 +33,25 @@ class XmlToHtmlConverter:
         self.input_dir = (
             paths_config["annotations_merged_path"]
             .replace("{workflow_id}", workflow_id)
-            .replace("{source}", source),
+            .replace("{source}", source)
         )
         self.output_dir = (
             paths_config["static_html_path"]
             .replace("{workflow_id}", workflow_id)
-            .replace("{source}", source),
+            .replace("{source}", source)
         )
         self.file_handler = file_handler
         self.local_file_handler = FileHandlerFactory.get_handler("local")
         self.html_template_path = xml_to_html_template_path
-        self.s3_static_html_dir = s3_paths_config["static_html_path"].replace(
-            "{source}", source
-        )
-        self.s3_file_handler = s3_file_handler
+
+        self.write_to_s3 = write_to_s3
+        if self.write_to_s3:
+            self.s3_static_html_dir = s3_paths_config["static_html_path"].replace(
+                "{source}", source
+            )
+            self.s3_file_handler = s3_file_handler
+        else:
+            self.s3_static_html_dir = self.s3_file_handler = None
 
     def xml_html_converter(self):
         """
@@ -95,11 +101,12 @@ class XmlToHtmlConverter:
         logger.info(f"Writing merged file to: {output_path}")
         self.file_handler.write_file(output_path, html_content)
 
-        s3_output_path = self.s3_file_handler.get_file_path(
-            self.s3_static_html_dir, file_name
-        )
-        logger.info(f"Writing merged file to S3: {s3_output_path}")
-        self.s3_file_handler.write_file(s3_output_path, html_content)
+        if self.write_to_s3:
+            s3_output_path = self.s3_file_handler.get_file_path(
+                self.s3_static_html_dir, file_name
+            )
+            logger.info(f"Writing merged file to S3: {s3_output_path}")
+            self.s3_file_handler.write_file(s3_output_path, html_content)
 
 
 # Example usage
