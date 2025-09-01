@@ -1,4 +1,5 @@
 import argparse
+import os
 import xml.etree.ElementTree as ET
 
 from src.pubtator_utils.file_handler.base_handler import FileHandler
@@ -41,6 +42,9 @@ class BioCFileMerger:
             "tmvar": paths_config["tmvar_path"]
             .replace("{workflow_id}", workflow_id)
             .replace("{source}", source),
+            "gnorm2": paths_config["gnorm2_path"]
+            .replace("{workflow_id}", workflow_id)
+            .replace("{source}", source),
         }
         self.output_dir = (
             paths_config["annotations_merged_path"]
@@ -68,15 +72,44 @@ class BioCFileMerger:
             if not file_name.endswith(".xml"):
                 continue
             logger.info(f"Processing file: {file_name}")
-            documents = [
-                self._parse_bioc_file(
-                    self.file_handler.get_file_path(
+            # documents = [
+            #     self._parse_bioc_file(
+            #         self.file_handler.get_file_path(
+            #             self.input_dirs[normalizer], file_name
+            #         )
+            #     )
+            #     for normalizer in self.input_dirs
+            # ]
+            ###if tmvar file is not found fall back to gnorm2 file
+            documents = []
+            input_dirs_considered = []
+            for normalizer in self.input_dirs:
+                if normalizer == "tmvar":
+                    tmvar_path = self.file_handler.get_file_path(
+                        self.input_dirs["tmvar"], file_name
+                    )
+                    if os.path.exists(tmvar_path):
+                        documents.append(self._parse_bioc_file(tmvar_path))
+                        input_dirs_considered.append(normalizer)
+                    else:
+                        # fallback to gnorm2
+                        gnorm2_path = self.file_handler.get_file_path(
+                            self.input_dirs["gnorm2"], file_name
+                        )
+                        documents.append(self._parse_bioc_file(gnorm2_path))
+                        input_dirs_considered.append("gnorm2")
+                        logger.info(
+                            f"tmvar file not found for {file_name} so falling back to gnorm2 output"
+                        )
+                elif normalizer == "gnorm2":  # no need for gnorm2
+                    continue
+                else:
+                    path = self.file_handler.get_file_path(
                         self.input_dirs[normalizer], file_name
                     )
-                )
-                for normalizer in self.input_dirs
-            ]
-            merged_document = self._merge_documents(documents)
+                    documents.append(self._parse_bioc_file(path))
+                    input_dirs_considered.append(normalizer)
+            merged_document = self._merge_documents(documents, input_dirs_considered)
             self._write_merged_file(file_name, merged_document)
             logger.info(f"Merged file written: {file_name}")
 
@@ -91,7 +124,7 @@ class BioCFileMerger:
         tree = self.file_handler.parse_xml_file(file_path)
         return tree.getroot()
 
-    def _merge_documents(self, documents):
+    def _merge_documents(self, documents, input_dirs_considered):
         """
         Merge multiple BioC documents into one with sequential annotation IDs.
 
@@ -101,7 +134,7 @@ class BioCFileMerger:
         merged_root = ET.Element("collection")
 
         # Step 1: Process first document
-        normalizer_name = list(self.input_dirs.keys())[0]
+        normalizer_name = input_dirs_considered[0]
         annotation_id = 0
         annotation_id = self._process_annotations(
             documents[0], normalizer_name, annotation_id, True
@@ -112,7 +145,7 @@ class BioCFileMerger:
 
         # Step 2: Merge remaining documents
         for doc_idx, document in enumerate(documents[1:], start=1):
-            normalizer_name = list(self.input_dirs.keys())[doc_idx]
+            normalizer_name = input_dirs_considered[doc_idx]
             logger.info(f"Merging document from normalizer {normalizer_name}...")
             annotation_id = self._process_annotations(
                 document, normalizer_name, annotation_id, False, merged_root
@@ -179,6 +212,12 @@ class BioCFileMerger:
         elif normalizer_name == "cellline" and annotation_type == "CellLine":
             return True
         elif normalizer_name == "tmvar" and annotation_type not in {
+            "Chemical",
+            "Disease",
+            "CellLine",
+        }:
+            return True
+        elif normalizer_name == "gnorm2" and annotation_type not in {
             "Chemical",
             "Disease",
             "CellLine",
