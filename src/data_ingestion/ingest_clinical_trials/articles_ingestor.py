@@ -150,7 +150,7 @@ class CTIngestor:
     def run(
         self,
     ):
-        # self.ct_articles_extractor()
+        self.ct_articles_extractor()
         self.ct_articles_processor()
 
 
