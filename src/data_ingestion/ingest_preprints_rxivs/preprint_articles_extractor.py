@@ -43,20 +43,20 @@ def extract_from_s3(
     return ingested_articles_cnt
 
 
-def extract_ct_articles(
-    ct_path: str,
+def extract_preprints_articles(
+    preprints_path: str,
     file_handler: FileHandler,
-    ct_source_config: dict,
+    preprints_source_config: dict,
     source: str,
 ):
-    source_type = ct_source_config["type"]
+    source_type = preprints_source_config["type"]
 
     if source_type == "s3":
         # call the S3 extractor
-        ingested_ct_articles_cnt = extract_from_s3(
-            ct_path, file_handler, source, source_type
+        ingested_preprints_articles_cnt = extract_from_s3(
+            preprints_path, file_handler, source, source_type
         )
-        return ingested_ct_articles_cnt
+        return ingested_preprints_articles_cnt
     elif source_type == "API":
         pass
     else:

@@ -1,6 +1,9 @@
 import argparse
 
 from src.data_ingestion.ingest_clinical_trials.articles_ingestor import CTIngestor
+from src.data_ingestion.ingest_preprints_rxivs.articles_ingestor import (
+    PrePrintsIngestor,
+)
 from src.data_ingestion.ingest_pubmed.articles_ingestor import PMCIngestor
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
@@ -27,8 +30,8 @@ def parse_args():
         "-src",
         type=str,
         required=True,
-        choices=["pmc", "ct", "preprints", "rfd", "apollo"],
-        help="Article source (allowed values: pmc, ct, preprints, rfd, apollo)",
+        choices=["pmc", "ct", "preprint", "rfd", "apollo"],
+        help="Article source (allowed values: pmc, ct, preprint, rfd, apollo)",
     )
     return parser.parse_args()
 
@@ -103,6 +106,21 @@ def run_ingestion(
             s3_file_handler=s3_file_handler,
         )
         ct_ingestor.run()
+
+    elif source == "preprint":
+        preprints_source_config = paths_config["ingestion_source"][source]
+        preprints_ingestor = PrePrintsIngestor(
+            workflow_id=workflow_id,
+            source=source,
+            file_handler=file_handler,
+            paths_config=paths,
+            preprints_source_config=preprints_source_config,
+            write_to_s3=write_to_s3,
+            s3_paths_config=s3_paths,
+            s3_file_handler=s3_file_handler,
+        )
+        preprints_ingestor.run()
+
     else:
         raise ValueError(f"Unsupported source: {source}")
 

@@ -131,8 +131,10 @@ class ArticleProcessor:
             words_left = math.floor(tokens_left_with_buffer * 0.75)
             window_size = 2 * words_left
 
+            logger.info(f"{summary_tokens}: summary_tokens")
             # For Baseline Processing
             # window_size = 512
+            window_size = 512 if window_size <= 50 else window_size
             logger.info(f"Dynamic Window Size for chunking: {window_size}")
 
             chunks = chunk_annotated_articles(

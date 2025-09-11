@@ -7,6 +7,44 @@ logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()
 
 
+def _shorten_summary_by_sentences(brief_summary: str, max_words: int = 100) -> str:
+    """Return a shortened summary following the rules described."""
+    if not brief_summary or not isinstance(brief_summary, str):
+        return brief_summary
+
+    words = brief_summary.split()
+    if len(words) <= max_words:
+        return brief_summary
+
+    # Split by '.' and strip whitespace; ignore empty fragments
+    lines = [s.strip() for s in brief_summary.split(".") if s.strip()]
+
+    selected_lines = []
+    current_word_count = 0
+
+    for line in lines:
+        line_words = line.split()
+        lw = len(line_words)
+        selected_lines.append(line)
+        current_word_count += lw
+        if current_word_count >= max_words:
+            break
+        # if current_word_count + lw <= max_words:
+        #     selected_lines.append(line)
+        #     current_word_count += lw
+        # else:
+        #     break
+
+    # If we selected fewer than 2 lines but there are at least 2 lines available,
+    # pick the first 2 lines as per your rule.
+    if len(selected_lines) < 2 and len(lines) >= 2:
+        selected_lines = lines[:2]
+
+    logger.info(f"CT Summary shortened to {current_word_count}")
+
+    return ". ".join(selected_lines).strip()
+
+
 def articles_summarizer(
     ct_df,
     summary_path,
@@ -17,7 +55,7 @@ def articles_summarizer(
 ):
     for _, row in ct_df.iterrows():
         nct_id = row.get("nct_id")
-        brief_summary = row.get("brief_summary")
+        brief_summary = _shorten_summary_by_sentences(row.get("brief_summary"))
 
         if pd.isna(nct_id) or pd.isna(brief_summary):
             continue
