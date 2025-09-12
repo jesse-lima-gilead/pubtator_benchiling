@@ -26,6 +26,13 @@ class S3FileHandler(FileHandler):
         """Constructs the full file path for an S3 object."""
         return f"{base_path}/{file_name}"
 
+    def copy_file_local_to_s3(self, local_path, s3_path):
+        """Copy a local file to an S3 path."""
+        try:
+            self.s3_util.upload_file(file_path=local_path, object_name=s3_path)
+        except Exception as e:
+            raise Exception(f"Error writing file {s3_path}: {e}")
+
     def write_file(self, file_path, content):
         """Writes raw content to an S3 file."""
         try:

@@ -38,6 +38,9 @@ class LocalFileHandler(FileHandler):
         """Constructs a full file path from a base directory and file name."""
         return os.path.join(base_path, file_name)
 
+    def copy_file_local_to_s3(self, local_path, s3_path):
+        pass
+
     def write_file(self, file_path: str, content: Union[str, bytes]) -> None:
         """Writes content to a local file.
 

@@ -13,6 +13,10 @@ class FileHandler(ABC):
         pass
 
     @abstractmethod
+    def copy_file_local_to_s3(self, local_path, s3_path):
+        pass
+
+    @abstractmethod
     def write_file(self, file_path, content):
         pass
 
