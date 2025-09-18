@@ -5,6 +5,7 @@ from src.data_ingestion.ingest_preprints_rxivs.articles_ingestor import (
     PrePrintsIngestor,
 )
 from src.data_ingestion.ingest_pubmed.articles_ingestor import PMCIngestor
+from src.data_ingestion.ingest_rfd.articles_ingestor import RFDIngestor
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
@@ -120,6 +121,20 @@ def run_ingestion(
             s3_file_handler=s3_file_handler,
         )
         preprints_ingestor.run()
+
+    elif source == "rfd":
+        rfd_source_config = paths_config["ingestion_source"][source]
+        rfd_ingestor = RFDIngestor(
+            workflow_id=workflow_id,
+            source=source,
+            file_handler=file_handler,
+            paths_config=paths,
+            rfd_source_config=rfd_source_config,
+            write_to_s3=write_to_s3,
+            s3_paths_config=s3_paths,
+            s3_file_handler=s3_file_handler,
+        )
+        rfd_ingestor.run()
 
     else:
         raise ValueError(f"Unsupported source: {source}")
