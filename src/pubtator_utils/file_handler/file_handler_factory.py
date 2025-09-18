@@ -13,7 +13,11 @@ aws_platform_type = config_loader.get_config("aws")["aws"]["platform_type"]
 class FileHandlerFactory:
     """Factory class to create and return the appropriate file handler based on storage type."""
 
-    _handlers = {"local": LocalFileHandler, "s3": S3FileHandler}
+    _handlers = {
+        "local": LocalFileHandler,
+        "test": LocalFileHandler,
+        "s3": S3FileHandler,
+    }
 
     @staticmethod
     def get_handler(storage_type: str, platform_type: str = None) -> FileHandler:
@@ -32,6 +36,8 @@ class FileHandlerFactory:
             raise ValueError(f"Unsupported storage type: {storage_type}")
 
         if storage_type == "local":
+            return FileHandlerFactory._handlers[storage_type]()
+        elif storage_type == "test":
             return FileHandlerFactory._handlers[storage_type]()
         else:
             if platform_type is None:

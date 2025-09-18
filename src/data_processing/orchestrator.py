@@ -385,6 +385,7 @@ class ArticleProcessor:
                             "article_summary": article_summary,
                             "source": self.source,
                             "workflow_id": self.workflow_id,
+                            "chunk_type": "article_chunk",
                             "processing_ts": datetime.now().isoformat(),
                         },
                     }

@@ -1,11 +1,31 @@
 xml_to_html_template_path: "./src/data_processing/xml_to_html_conversion/xml_to_html_template.html"
 storage:
-  type: "local"  # "local" for HPC or "s3" for S3
-  # "source" is "pubmed"/"clinical_trials"/"rfd"/"preprints"/"etc"
+  type: "local"  # "local" for HPC or "s3" for S3 "test" for local testing
+  # "source" is "pubmed"/"clinical_trials"/"rfd"/"preprint"/"etc"
+  test:
+    jit_ingestion_path: "./data/{source}/{workflow_id}/staging/jit_ingestion/articles_ids.txt"
+    ingestion_path: "./data/{source}/{workflow_id}/staging/ingestion"
+    ingestion_interim_path: "./data/{source}/{workflow_id}/staging/ingestion_interim"
+    bioc_path: "./data/{source}/{workflow_id}/staging/bioc_xml"
+    summary_path: "./data/{source}/{workflow_id}/articles_metadata/summary"
+    metadata_path: "./data/{source}/{workflow_id}/articles_metadata/metadata"
+    aioner_path: "./data/{source}/{workflow_id}/ner_processed/aioner_annotated"
+    gnorm2_path: "./data/{source}/{workflow_id}/ner_processed/gnorm2_annotated"
+    nlmchem_path: "./data/{source}/{workflow_id}/ner_processed/nlmchem_annotated"
+    taggerone_cellLine_path: "./data/{source}/{workflow_id}/ner_processed/taggerone_cellLine_annotated"
+    taggerone_disease_path: "./data/{source}/{workflow_id}/ner_processed/taggerone_disease_annotated"
+    tmvar_path: "./data/{source}/{workflow_id}/ner_processed/tmvar_annotated"
+    annotations_merged_path: "./data/{source}/{workflow_id}/ner_processed/all_in_one_annotated"
+    chunks_path: "./data/{source}/{workflow_id}/indexing/chunks"
+    embeddings_path: "./data/{source}/{workflow_id}/indexing/embeddings"
+    embeddings_archived_path: "./data/{source}/{workflow_id}/indexing/archived_embeddings"
+    static_html_path: "./data/{source}/{workflow_id}/processed/bioc_html"
   local:
     jit_ingestion_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/jit_ingestion/articles_ids.txt"
     ingestion_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/ingestion"
+    ingestion_interim_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/ingestion_interim"
     bioc_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/bioc_xml"
+    summary_path: "/scratch/pubtator/data/{source}/{workflow_id}/articles_metadata/summary"
     metadata_path: "/scratch/pubtator/data/{source}/{workflow_id}/articles_metadata/metadata"
     aioner_path: "/scratch/pubtator/data/{source}/{workflow_id}/ner_processed/aioner_annotated"
     gnorm2_path: "/scratch/pubtator/data/{source}/{workflow_id}/ner_processed/gnorm2_annotated"
@@ -14,17 +34,16 @@ storage:
     taggerone_disease_path: "/scratch/pubtator/data/{source}/{workflow_id}/ner_processed/taggerone_disease_annotated"
     tmvar_path: "/scratch/pubtator/data/{source}/{workflow_id}/ner_processed/tmvar_annotated"
     annotations_merged_path: "/scratch/pubtator/data/{source}/{workflow_id}/ner_processed/all_in_one_annotated"
-    summary_path: "/scratch/pubtator/data/{source}/{workflow_id}/articles_metadata/summary"
     chunks_path: "/scratch/pubtator/data/{source}/{workflow_id}/indexing/chunks"
     embeddings_path: "/scratch/pubtator/data/{source}/{workflow_id}/indexing/embeddings"
     embeddings_archived_path: "/scratch/pubtator/data/{source}/{workflow_id}/indexing/archived_embeddings"
     static_html_path: "/scratch/pubtator/data/{source}/{workflow_id}/processed/bioc_html"
-    internal_docs_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/internal_docs"
-    internal_docs_html_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/internal_docs_html"
   s3:
     jit_ingestion_path: "data/{source}/staging/jit_ingestion"
     ingestion_path: "data/{source}/staging/ingestion"
+    ingestion_interim_path: "data/{source}/{workflow_id}/staging/ingestion_interim"
     bioc_path: "data/{source}/staging/bioc_xml"
+    summary_path: "data/{source}/articles_metadata/summary"
     metadata_path: "data/{source}/articles_metadata/metadata"
     aioner_path: "data/{source}/ner_processed/aioner_annotated"
     gnorm2_path: "data/{source}/ner_processed/gnorm2_annotated"
@@ -33,13 +52,10 @@ storage:
     taggerone_disease_path: "data/{source}/ner_processed/taggerone_disease_annotated"
     tmvar_path: "data/{source}/ner_processed/tmvar_annotated"
     annotations_merged_path: "data/{source}/ner_processed/all_in_one_annotated"
-    summary_path: "data/{source}/articles_metadata/summary"
     chunks_path: "data/{source}/indexing/chunks"
     embeddings_path: "data/{source}/indexing/embeddings"
     embeddings_archived_path: "data/{source}/indexing/archived_embeddings"
     static_html_path: "data/{source}/processed/bioc_html"
-    internal_docs_path: "data/{source}/staging/internal_docs"
-    internal_docs_html_path: "data/{source}/staging/internal_docs_html"
 
 workdir:
   base_path: "/code"
@@ -47,14 +63,14 @@ workdir:
 model:
   embeddings_model:
     pubmedbert:
-      model_path: "/scratch/pubtator/models/pubmedbert-base-embeddings"
+      model_path: "./models/pubmedbert-base-embeddings"
       token_limit: 512
     chemberta:
-      model_path: "/scratch/pubtator/models/chemberta-77m-mlm"
+      model_path: "./models/chemberta-77m-mlm"
       token_limit: 512
   summarization_model:
     mistral_7b:
-      model_path: "/scratch/pubtator/models/mistral-7b-instruct-v0.3"
+      model_path: "./models/mistral-7b-instruct-v0.3"
 
 ingestion_source:
   pmc:

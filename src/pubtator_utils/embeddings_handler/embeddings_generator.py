@@ -27,7 +27,6 @@ def get_model_info(model_name: str):
     try:
         model_path = model_path_config[model_name]["model_path"]
         token_limit = model_path_config[model_name]["token_limit"]
-        logger.info(f"Model Loaded from {model_path}")
         return model_path, token_limit
     except Exception as e:
         raise ValueError(f"Error loading model {model_name}: {e}")
