@@ -38,6 +38,7 @@ class RFDIngestor:
         rfd_source_config: dict[str, str],
         write_to_s3: bool,
         source: str = "rfd",
+        summarization_pipe=None,
         **kwargs: Any,  # optional extras (e.g. s3 settings)
     ):
         self.rfd_path = (
@@ -74,6 +75,7 @@ class RFDIngestor:
         self.rfd_source_config = rfd_source_config
         self.source = source
         self.pandoc_processor = PandocProcessor(pandoc_executable="pandoc")
+        self.summarization_pipe = summarization_pipe
 
         # Pop known keys (consumes them from kwargs)
         self.write_to_s3 = write_to_s3
@@ -107,16 +109,16 @@ class RFDIngestor:
                 self.s3_bioc_path
             ) = self.s3_article_metadata_path = self.s3_summary_path = None
 
-    def rfd_articles_extractor(self):
-        # Extract the RFD Articles:
-        logger.info("Extracting RFD Articles...")
-        extracted_articles_count = extract_rfd_articles(
-            rfd_path=self.rfd_path,
-            file_handler=self.file_handler,
-            rfd_source_config=self.rfd_source_config,
-            source=self.source,
-        )
-        logger.info(f"{extracted_articles_count} RFD Articles Extracted Successfully!")
+    # def rfd_articles_extractor(self):
+    #     # Extract the RFD Articles:
+    #     logger.info("Extracting RFD Articles...")
+    #     extracted_articles_count = extract_rfd_articles(
+    #         rfd_path=self.rfd_path,
+    #         file_handler=self.file_handler,
+    #         rfd_source_config=self.rfd_source_config,
+    #         source=self.source,
+    #     )
+    #     logger.info(f"{extracted_articles_count} RFD Articles Extracted Successfully!")
 
     def rfd_safe_filenames_generator(self):
         # Generate Safe file name for the extracted articles
@@ -172,6 +174,7 @@ class RFDIngestor:
             bioc_path=self.bioc_path,
             summary_path=self.summary_path,
             file_handler=self.file_handler,
+            summarization_pipe=self.summarization_pipe,
         )
         logger.info(f"Summary generated for {rfd_summaries_count} RFD Articles!")
 
@@ -201,7 +204,7 @@ class RFDIngestor:
     def run(
         self,
     ):
-        self.rfd_articles_extractor()
+        # self.rfd_articles_extractor()
         self.rfd_safe_filenames_generator()
         self.metadata_extractor()
         self.rfd_articles_preprocessor()

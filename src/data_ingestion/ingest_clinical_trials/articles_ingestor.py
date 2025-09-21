@@ -82,17 +82,17 @@ class CTIngestor:
                 self.s3_bioc_path
             ) = self.s3_article_metadata_path = self.s3_summary_path = None
 
-    def ct_articles_extractor(self):
-        # Extract the CSV full clinical trials:
-        logger.info("Extracting CT Articles...")
-        extracted_articles_count = extract_ct_articles(
-            ct_path=self.ct_path,
-            file_handler=self.file_handler,
-            ct_source_config=self.ct_source_config,
-            source=self.source,
-        )
-        logger.info(f"{extracted_articles_count} CT Articles Extracted Successfully!")
-        return extracted_articles_count
+    # def ct_articles_extractor(self):
+    #     # Extract the CSV full clinical trials:
+    #     logger.info("Extracting CT Articles...")
+    #     extracted_articles_count = extract_ct_articles(
+    #         ct_path=self.ct_path,
+    #         file_handler=self.file_handler,
+    #         ct_source_config=self.ct_source_config,
+    #         source=self.source,
+    #     )
+    #     logger.info(f"{extracted_articles_count} CT Articles Extracted Successfully!")
+    #     return extracted_articles_count
 
     def ct_articles_processor(self):
         logger.info("Processing CT Articles...")
@@ -150,7 +150,7 @@ class CTIngestor:
     def run(
         self,
     ):
-        self.ct_articles_extractor()
+        # self.ct_articles_extractor()
         self.ct_articles_processor()
 
 

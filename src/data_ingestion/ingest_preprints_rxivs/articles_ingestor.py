@@ -32,6 +32,7 @@ class PrePrintsIngestor:
         preprints_source_config: dict[str, str],
         write_to_s3: bool,
         source: str = "preprint",
+        summarization_pipe=None,
         **kwargs: Any,  # optional extras (e.g. s3 settings)
     ):
         self.preprints_path = (
@@ -57,6 +58,7 @@ class PrePrintsIngestor:
         self.file_handler = file_handler
         self.preprints_source_config = preprints_source_config
         self.source = source
+        self.summarization_pipe = summarization_pipe
 
         # Pop known keys (consumes them from kwargs)
         self.write_to_s3 = write_to_s3
@@ -81,19 +83,19 @@ class PrePrintsIngestor:
                 self.s3_bioc_path
             ) = self.s3_article_metadata_path = self.s3_summary_path = None
 
-    def preprints_articles_extractor(self):
-        # Extract the preprints_bioarxiv pdfs:
-        logger.info("Extracting Preprints Bioarxiv Articles...")
-        extracted_articles_count = extract_preprints_articles(
-            preprints_path=self.preprints_path,
-            file_handler=self.file_handler,
-            preprints_source_config=self.preprints_source_config,
-            source=self.source,
-        )
-        logger.info(
-            f"{extracted_articles_count} Preprint Articles Extracted Successfully!"
-        )
-        return extracted_articles_count
+    # def preprints_articles_extractor(self):
+    #     # Extract the preprints_bioarxiv pdfs:
+    #     logger.info("Extracting Preprints Bioarxiv Articles...")
+    #     extracted_articles_count = extract_preprints_articles(
+    #         preprints_path=self.preprints_path,
+    #         file_handler=self.file_handler,
+    #         preprints_source_config=self.preprints_source_config,
+    #         source=self.source,
+    #     )
+    #     logger.info(
+    #         f"{extracted_articles_count} Preprint Articles Extracted Successfully!"
+    #     )
+    #     return extracted_articles_count
 
     def preprints_processor(self):
         logger.info("Processing Preprints Bioarxiv Articles...")
@@ -137,13 +139,14 @@ class PrePrintsIngestor:
                     self.write_to_s3,
                     self.s3_summary_path,
                     self.s3_file_handler,
+                    self.summarization_pipe,
                 )
 
     # Runs the combined process
     def run(
         self,
     ):
-        self.preprints_articles_extractor()
+        # self.preprints_articles_extractor()
         self.preprints_processor()
 
 

@@ -62,6 +62,7 @@ def run_ingestion(
     write_to_s3,
     s3_paths,
     s3_file_handler,
+    summarization_pipe,
 ):
     if source == "pmc":
         # Fetch article IDs
@@ -91,6 +92,7 @@ def run_ingestion(
             write_to_s3=write_to_s3,
             s3_paths_config=s3_paths,
             s3_file_handler=s3_file_handler,
+            summarization_pipe=summarization_pipe,
         )
         pmc_ingestor.run(article_ids=article_ids, metadata_storage_type="file")
 
@@ -119,6 +121,7 @@ def run_ingestion(
             write_to_s3=write_to_s3,
             s3_paths_config=s3_paths,
             s3_file_handler=s3_file_handler,
+            summarization_pipe=summarization_pipe,
         )
         preprints_ingestor.run()
 
@@ -133,11 +136,30 @@ def run_ingestion(
             write_to_s3=write_to_s3,
             s3_paths_config=s3_paths,
             s3_file_handler=s3_file_handler,
+            summarization_pipe=summarization_pipe,
         )
         rfd_ingestor.run()
 
     else:
         raise ValueError(f"Unsupported source: {source}")
+
+
+def _load_summarization_model():
+    from transformers import pipeline
+    import torch
+
+    config_loader = YAMLConfigLoader()
+    model_path_config = config_loader.get_config("paths")["model"][
+        "summarization_model"
+    ]
+    model_name = "mistral_7b"
+    model_path = model_path_config[model_name]["model_path"]
+    device = 0 if torch.cuda.is_available() else -1
+    logger.info(f"Using device: {device}")
+    summarization_pipe = pipeline(
+        "text-generation", model=model_path, device_map="auto", max_new_tokens=1000
+    )
+    return summarization_pipe
 
 
 def main():
@@ -153,18 +175,31 @@ def main():
         write_to_s3
     )
 
-    run_ingestion(
-        workflow_id,
-        source,
-        paths_config,
-        paths,
-        file_handler,
-        write_to_s3,
-        s3_paths,
-        s3_file_handler,
-    )
+    try:
+        summarization_pipe = _load_summarization_model()
+        if summarization_pipe:
+            logger.info("Summarization model loaded successfully at startup.")
+        else:
+            logger.error(
+                "Failed to load the summarization model at startup. Will be loaded at run-time"
+            )
 
-    logger.info("Execution Completed! Articles Ingested!")
+        logger.info(f"Starting ingestion of {workflow_id} workflow")
+        run_ingestion(
+            workflow_id,
+            source,
+            paths_config,
+            paths,
+            file_handler,
+            write_to_s3,
+            s3_paths,
+            s3_file_handler,
+            summarization_pipe,
+        )
+
+        logger.info("Execution Completed! Articles Ingested!")
+    except Exception as e:
+        logger.error(f"Ingestion for workflow id {workflow_id} failed due to {e}")
 
 
 if __name__ == "__main__":

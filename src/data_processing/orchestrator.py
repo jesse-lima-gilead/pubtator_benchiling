@@ -436,7 +436,9 @@ class ArticleProcessor:
                     )
                     logger.info(f"Chunks file saved to S3: {s3_chunks_output_path}")
 
-    def get_chunks_embeddings_details(self, chunks: List[Dict], collection_type: str):
+    def get_chunks_embeddings_details(
+        self, chunks: List[Dict], collection_type: str, model=None, tokenizer=None
+    ):
         try:
             logger.info("Generating embeddings for the chunks")
             chunk_texts = []
@@ -450,6 +452,8 @@ class ArticleProcessor:
             embeddings = get_embeddings(
                 model_name=self.embeddings_model,
                 texts=chunk_texts,
+                model=model,
+                tokenizer=tokenizer,
             )
 
             chunk_embedding_payload = []
@@ -497,7 +501,9 @@ class ArticleProcessor:
         self,
         # embeddings_output_dir: str,
         collection_type: str,
-        store_embeddings_as_file,
+        model=None,
+        tokenizer=None,
+        store_embeddings_as_file=True,
     ):
         # Load the chunks file:
         for chunks_file in self.file_handler.list_files(self.chunks_output_dir):
@@ -510,7 +516,10 @@ class ArticleProcessor:
                 chunks = self.file_handler.read_json_file(chunk_file_path)
                 if store_embeddings_as_file:
                     embeddings_details = self.get_chunks_embeddings_details(
-                        chunks=chunks, collection_type=collection_type
+                        chunks=chunks,
+                        collection_type=collection_type,
+                        model=model,
+                        tokenizer=tokenizer,
                     )
                     # print(f"Embedding details in process_embeddings(): {embeddings_details}")
                     self.store_embeddings_details_in_file(
@@ -521,6 +530,8 @@ class ArticleProcessor:
     def process(
         self,
         collection_type: str,
+        model=None,
+        tokenizer=None,
         store_embeddings_as_file: bool = True,
     ):
         logger.info("Creating Chunks...")
@@ -532,6 +543,8 @@ class ArticleProcessor:
         self.process_embeddings(
             # embeddings_output_dir=self.embeddings_output_dir,
             collection_type=collection_type,
+            model=model,
+            tokenizer=tokenizer,
             store_embeddings_as_file=store_embeddings_as_file,
         )
         logger.info("Embeddings stored successfully")
@@ -541,6 +554,8 @@ def run_chunking_and_embedding(
     workflow_id: str,
     source: str,
     run_type: str = "all",
+    model=None,
+    tokenizer=None,
     collection_type: str = "processed_pubmedbert",
     store_embeddings_as_file: bool = True,
 ):
@@ -585,6 +600,8 @@ def run_chunking_and_embedding(
     if run_type == "all":
         article_processor.process(
             collection_type=collection_type,
+            model=model,
+            tokenizer=tokenizer,
             store_embeddings_as_file=True,
         )
     elif run_type == "chunks":
@@ -593,6 +610,8 @@ def run_chunking_and_embedding(
         if store_embeddings_as_file:
             article_processor.process_embeddings(
                 collection_type=collection_type,
+                model=model,
+                tokenizer=tokenizer,
                 store_embeddings_as_file=store_embeddings_as_file,
             )
     else:
@@ -635,14 +654,39 @@ def run_xml_to_html_conversion(workflow_id: str, source: str):
     html_converter.xml_html_converter()
 
 
+def _load_embeddings_models(model_name: str = "pubmedbert"):
+    try:
+        from src.pubtator_utils.embeddings_handler.embeddings_generator import (
+            load_embeddings_model,
+        )
+
+        model, tokenizer = load_embeddings_model(model_name=model_name)
+        logger.info("Embeddings Model and Tokenizer loaded successfully at startup.")
+        return model, tokenizer
+    except Exception as e:
+        logger.warn(f"Failed to load embeddings model due to {e}.")
+        return None, None
+
+
 def _safe_run_chunking_and_embedding(
     workflow_id, source, run_type, collection_type, store_embeddings_as_file
 ):
+    # Pre-load the embeddings model and tokenizer at startup
+    try:
+        model, tokenizer = _load_embeddings_models(model_name="pubmedbert")
+    except Exception as e:
+        logger.warn(
+            f"Failed to load embeddings model due to {e}. It will be loaded at runtime."
+        )
+        model = tokenizer = None
+
     try:
         run_chunking_and_embedding(
             workflow_id=workflow_id,
             run_type=run_type,
             source=source,
+            model=model,
+            tokenizer=tokenizer,
             collection_type=collection_type,
             store_embeddings_as_file=store_embeddings_as_file,
         )

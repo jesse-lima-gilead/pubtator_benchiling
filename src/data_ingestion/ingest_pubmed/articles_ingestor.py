@@ -23,6 +23,7 @@ class PMCIngestor:
         paths_config: dict[str, str],
         write_to_s3: bool,
         source: str = "pmc",
+        summarization_pipe=None,
         **kwargs: Any,  # optional extras (e.g. s3 settings)
     ):
         self.pmc_path = (
@@ -46,6 +47,7 @@ class PMCIngestor:
             .replace("{source}", source)
         )
         self.file_handler = file_handler
+        self.summarization_pipe = summarization_pipe
 
         # Pop known keys (consumes them from kwargs)
         self.write_to_s3 = write_to_s3
@@ -161,7 +163,9 @@ class PMCIngestor:
                 file_path = self.file_handler.get_file_path(self.bioc_path, file)
                 # file_path = os.path.join(self.bioc_local_path, file)
                 summarizer = SummarizeArticle(
-                    input_file_path=file_path, file_handler=self.file_handler
+                    input_file_path=file_path,
+                    file_handler=self.file_handler,
+                    summarization_pipe=self.summarization_pipe,
                 )
                 summary = summarizer.summarize()
                 summary_file_name = file.replace(".xml", ".txt")

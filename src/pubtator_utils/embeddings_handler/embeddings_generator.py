@@ -32,6 +32,15 @@ def get_model_info(model_name: str):
         raise ValueError(f"Error loading model {model_name}: {e}")
 
 
+def load_embeddings_model(model_name: str = "pubmedbert"):
+    """Load model and tokenizer once at startup"""
+    model_path, token_limit = get_model_info(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    model = AutoModel.from_pretrained(model_path)
+    logger.info(f"Model and tokenizer loaded from {model_path}")
+    return model, tokenizer
+
+
 def masked_mean_pooling(token_embeddings, attention_mask):
     input_mask_expanded = (
         attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
@@ -42,11 +51,18 @@ def masked_mean_pooling(token_embeddings, attention_mask):
     return mean_embeddings
 
 
-def get_embeddings(model_name, texts: List[str], stride=None):
-    model_path, token_limit = get_model_info(model_name)
-    logger.info(f"Model Path: {model_path} Model Token Limit: {token_limit}")
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
-    model = AutoModel.from_pretrained(model_path)
+def get_embeddings(
+    model_name, texts: List[str], model=None, tokenizer=None, stride=None
+):
+    if model is None or tokenizer is None:
+        # Fallback: load at runtime (not recommended for production)
+        model_path, token_limit = get_model_info(model_name)
+        tokenizer = AutoTokenizer.from_pretrained(model_path)
+        model = AutoModel.from_pretrained(model_path)
+        logger.warning("Model loaded at runtime - consider using startup loading")
+    else:
+        logger.info(f"Model and tokenizer already loaded at startup")
+        _, token_limit = get_model_info(model_name)
 
     max_length = token_limit
     stride = stride or max_length // 2

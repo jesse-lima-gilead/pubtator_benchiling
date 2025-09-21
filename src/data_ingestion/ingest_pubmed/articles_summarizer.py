@@ -24,6 +24,7 @@ class SummarizeArticle:
         input_file_path: str,
         file_handler: FileHandler,
         model_name: str = "mistral_7b",
+        summarization_pipe=None,
     ):
         self.input_file_path = input_file_path
         self.file_handler = file_handler
@@ -34,15 +35,21 @@ class SummarizeArticle:
             "Enclose the summary exactly in <<< and >>>, with no other text."
         )
         self.max_retries = 3
-        model_path = self._get_model_info(model_name=model_name)
 
-        # Use GPU if available, else CPU
-        device = 0 if torch.cuda.is_available() else -1
-        logger.info(f"Using device: {device}")
-        # self.pipe = pipeline("text-generation", model=model_path, device=device, max_new_tokens=1000)
-        self.pipe = pipeline(
-            "text-generation", model=model_path, device_map="auto", max_new_tokens=1000
-        )
+        if summarization_pipe:
+            self.pipe = summarization_pipe
+        else:
+            logger.warn("Loading summarization model at runtime...")
+            model_path = self._get_model_info(model_name=model_name)
+            # Use GPU if available, else CPU
+            device = 0 if torch.cuda.is_available() else -1
+            logger.info(f"Using device: {device}")
+            self.pipe = pipeline(
+                "text-generation",
+                model=model_path,
+                device_map="auto",
+                max_new_tokens=1000,
+            )
 
     def _extract_summary(self, text):
         match = re.search(r"<<<(.*?)>>>", text, re.DOTALL)
