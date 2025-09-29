@@ -175,14 +175,14 @@ def summarizer_rfd(
     bioc_path: str,
     summary_path: str,
     file_handler: FileHandler,
-    summarizer_pipe=None,
+    summarization_pipe=None,
 ):
     try:
         logger.info(f"Summarizing {rfd_file_name}...")
         article_summarizer = SummarizeArticle(
             input_file_path=bioc_path,
             file_handler=file_handler,
-            summarizer_pipe=summarizer_pipe,
+            summarization_pipe=summarization_pipe,
         )
 
         # For Testing:
@@ -207,7 +207,10 @@ def summarizer_rfd(
 
 
 def rfd_summarizer(
-    bioc_path: str, summary_path: str, file_handler: FileHandler, summarizer_pipe=None
+    bioc_path: str,
+    summary_path: str,
+    file_handler: FileHandler,
+    summarization_pipe=None,
 ):
     try:
         summary_cnt = 0
@@ -221,7 +224,7 @@ def rfd_summarizer(
                     bioc_path=bioc_file_path,
                     summary_path=summary_path,
                     file_handler=file_handler,
-                    summarizer_pipe=summarizer_pipe,
+                    summarization_pipe=summarization_pipe,
                 )
                 if is_summary_generated:
                     summary_cnt += 1
