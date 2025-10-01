@@ -50,16 +50,16 @@ if __name__ == "__main__":
     # article_ids = dataset_config["golden_dataset_article_ids"]
     # print(article_ids)
 
-    # Convert relative path to absolute path
-    model = "pubmedbert"
-    embeddings_model_path_config = config_loader.get_config("paths")["model"][
-        "embeddings_model"
-    ]
-    model_base_location = embeddings_model_path_config["base_location"]
-    model_path = embeddings_model_path_config[model][model_base_location]["model_path"]
-
-    model_abs_path = os.path.abspath(model_path)
-    print(model_abs_path)
+    # # Convert relative path to absolute path
+    # model = "pubmedbert"
+    # embeddings_model_path_config = config_loader.get_config("paths")["model"][
+    #     "embeddings_model"
+    # ]
+    # model_base_location = embeddings_model_path_config["base_location"]
+    # model_path = embeddings_model_path_config[model][model_base_location]["model_path"]
+    #
+    # model_abs_path = os.path.abspath(model_path)
+    # print(model_abs_path)
 
     # Get specific config by name
     # configs = config_loader.get_config('vectordb')['qdrant']

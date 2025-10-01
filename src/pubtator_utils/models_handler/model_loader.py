@@ -51,7 +51,8 @@ if __name__ == "__main__":
     # Example usage
     model_type = "embeddings_model"
     model_name = "pubmedbert"
-    model_path_config = config_loader.get_config("paths")["model"][model_type][
+    model_path_type = config_loader.get_config("paths")["model"]["type"]
+    model_path_config = config_loader.get_config("paths")["model"][model_path_type][
         model_name
     ]
     s3_bucket = model_path_config["s3"]["bucket"]

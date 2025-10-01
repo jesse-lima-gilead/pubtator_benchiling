@@ -33,6 +33,10 @@ class FileHandler(ABC):
         pass
 
     @abstractmethod
+    def read_file_bytes(self, file_path):
+        pass
+
+    @abstractmethod
     def read_json_file(self, file_path):
         pass
 

@@ -13,7 +13,6 @@ from src.pubtator_utils.logs_handler.logger import SingletonLogger
 
 # Initialize the config loader
 config_loader = YAMLConfigLoader()
-model_path_config = config_loader.get_config("paths")["model"]["embeddings_model"]
 
 # Getting the current dir path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -24,6 +23,10 @@ logger = logger_instance.get_logger()
 
 
 def get_model_info(model_name: str):
+    model_path_type = config_loader.get_config("paths")["model"]["type"]
+    model_path_config = config_loader.get_config("paths")["model"][model_path_type][
+        "embeddings_model"
+    ]
     try:
         model_path = model_path_config[model_name]["model_path"]
         token_limit = model_path_config[model_name]["token_limit"]

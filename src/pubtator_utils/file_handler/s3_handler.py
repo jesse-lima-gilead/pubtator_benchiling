@@ -51,7 +51,7 @@ class S3FileHandler(FileHandler):
     def parse_xml_file(self, file_path):
         """Parses an XML file from S3 and returns an ElementTree."""
         try:
-            xml_content = self.s3_util.download_file(file_path)
+            xml_content = self.s3_util.download_file(object_name=file_path)
             if not xml_content:
                 raise ValueError("Empty XML content or failed download.")
 
@@ -63,7 +63,15 @@ class S3FileHandler(FileHandler):
     def read_file(self, file_path):  # check
         """Reads the content of a file from S3."""
         try:
-            return self.s3_util.download_file(file_path)
+            return self.s3_util.download_file(object_name=file_path)
+        except ClientError as e:
+            raise Exception(f"Error reading file {file_path}: {e}")
+
+    def read_file_bytes(self, file_path):  # check
+        """Reads the content of a file from S3 and returns it as bytes."""
+        try:
+            content = self.s3_util.download_file(object_name=file_path, as_binary=True)
+            return content if content else None
         except ClientError as e:
             raise Exception(f"Error reading file {file_path}: {e}")
 

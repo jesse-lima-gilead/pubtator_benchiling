@@ -45,10 +45,18 @@ class ArticleProcessor:
         embeddings_model: str = "pubmedbert",
         chunker: str = "sliding_window",
         merger: str = "prepend",
+        pubmed_model=None,
+        pubmed_tokenizer=None,
+        chemberta_model=None,
+        chemberta_tokenizer=None,
     ):
         self.aioner_model = aioner_model
         self.gnorm2_model = gnorm2_model
         self.embeddings_model = embeddings_model
+        self.pubmed_model=pubmed_model
+        self.pubmed_tokenizer = pubmed_tokenizer
+        self.chemberta_model=chemberta_model
+        self.chemberta_tokenizer = chemberta_tokenizer
         self.chunker = chunker
         self.merger = merger
         self.source = source
@@ -437,32 +445,38 @@ class ArticleProcessor:
                     logger.info(f"Chunks file saved to S3: {s3_chunks_output_path}")
 
     def get_chunks_embeddings_details(
-        self, chunks: List[Dict], collection_type: str, model=None, tokenizer=None
+        self, chunks: List[Dict], collection_type: str, model=None, tokenizer=None, tag_name: str = "merged_text",
     ):
         try:
             logger.info("Generating embeddings for the chunks")
             chunk_texts = []
+            skip_embedding = None
+            embeddings=None
+
             for chunk in chunks:
                 chunk_texts.append(
-                    chunk["merged_text"]
+                    #chunk["merged_text"]
+                    chunk[tag_name]
                     if collection_type == "processed_pubmedbert"
                     else chunk["payload"]["chunk_text"]
                 )
+                skip_embedding = True if tag_name == "smile" and chunk[tag_name] is None and skip_embedding != False else False
 
-            embeddings = get_embeddings(
-                model_name=self.embeddings_model,
-                texts=chunk_texts,
-                model=model,
-                tokenizer=tokenizer,
-            )
+            if not skip_embedding:
+                embeddings = get_embeddings(
+                    model_name=self.embeddings_model,
+                    texts=chunk_texts,
+                    model=model,
+                    tokenizer=tokenizer,
+                )
 
             chunk_embedding_payload = []
             for idx, chunk in enumerate(chunks):
                 cur_chunk_dic = {}
                 chunk_payload = chunk["payload"]
-                chunk_payload["merged_text"] = chunk["merged_text"]
+                chunk_payload[tag_name] = chunk[tag_name]
                 cur_chunk_dic["payload"] = chunk_payload
-                cur_chunk_dic["embeddings"] = embeddings[idx].tolist()
+                cur_chunk_dic["embeddings"] = embeddings[idx].tolist() if not skip_embedding else []
                 chunk_embedding_payload.append(cur_chunk_dic)
 
             return chunk_embedding_payload
@@ -501,8 +515,6 @@ class ArticleProcessor:
         self,
         # embeddings_output_dir: str,
         collection_type: str,
-        model=None,
-        tokenizer=None,
         store_embeddings_as_file=True,
     ):
         # Load the chunks file:
@@ -514,13 +526,25 @@ class ArticleProcessor:
                 )
                 # chunk_file_path = f"{self.chunks_output_dir}/{chunks_file}"
                 chunks = self.file_handler.read_json_file(chunk_file_path)
+
                 if store_embeddings_as_file:
-                    embeddings_details = self.get_chunks_embeddings_details(
-                        chunks=chunks,
-                        collection_type=collection_type,
-                        model=model,
-                        tokenizer=tokenizer,
-                    )
+                    if "smile" in chunks[0].keys():
+                        self.embeddings_model = "chemberta"
+                        embeddings_details = self.get_chunks_embeddings_details(
+                            chunks=chunks,
+                            collection_type=collection_type,
+                            model=self.chemberta_model,
+                            tokenizer=self.chemberta_tokenizer,
+                            tag_name="smile",
+                        )
+                    else:
+                        self.embeddings_model = "pubmedbert"
+                        embeddings_details = self.get_chunks_embeddings_details(
+                            chunks=chunks,
+                            collection_type=collection_type,
+                            model=self.pubmed_model,
+                            tokenizer=self.pubmed_tokenizer,
+                        )
                     # print(f"Embedding details in process_embeddings(): {embeddings_details}")
                     self.store_embeddings_details_in_file(
                         embeddings_details=embeddings_details,
@@ -530,8 +554,6 @@ class ArticleProcessor:
     def process(
         self,
         collection_type: str,
-        model=None,
-        tokenizer=None,
         store_embeddings_as_file: bool = True,
     ):
         logger.info("Creating Chunks...")
@@ -543,8 +565,6 @@ class ArticleProcessor:
         self.process_embeddings(
             # embeddings_output_dir=self.embeddings_output_dir,
             collection_type=collection_type,
-            model=model,
-            tokenizer=tokenizer,
             store_embeddings_as_file=store_embeddings_as_file,
         )
         logger.info("Embeddings stored successfully")
@@ -554,8 +574,10 @@ def run_chunking_and_embedding(
     workflow_id: str,
     source: str,
     run_type: str = "all",
-    model=None,
-    tokenizer=None,
+    pubmed_model=None,
+    pubmed_tokenizer= None,
+    chemberta_model=None,
+    chemberta_tokenizer=None,
     collection_type: str = "processed_pubmedbert",
     store_embeddings_as_file: bool = True,
 ):
@@ -595,13 +617,15 @@ def run_chunking_and_embedding(
         write_to_s3=write_to_s3,
         s3_file_handler=s3_file_handler,
         s3_paths_config=s3_paths,
+        pubmed_model=pubmed_model,
+        pubmed_tokenizer=pubmed_tokenizer,
+        chemberta_model=chemberta_model,
+        chemberta_tokenizer=chemberta_tokenizer,
     )
 
     if run_type == "all":
         article_processor.process(
             collection_type=collection_type,
-            model=model,
-            tokenizer=tokenizer,
             store_embeddings_as_file=True,
         )
     elif run_type == "chunks":
@@ -610,8 +634,6 @@ def run_chunking_and_embedding(
         if store_embeddings_as_file:
             article_processor.process_embeddings(
                 collection_type=collection_type,
-                model=model,
-                tokenizer=tokenizer,
                 store_embeddings_as_file=store_embeddings_as_file,
             )
     else:
@@ -672,8 +694,11 @@ def _safe_run_chunking_and_embedding(
     workflow_id, source, run_type, collection_type, store_embeddings_as_file
 ):
     # Pre-load the embeddings model and tokenizer at startup
+    pubmed_model, pubmed_tokenizer = None, None
+    chemberta_model, chemberta_tokenizer = None, None
     try:
-        model, tokenizer = _load_embeddings_models(model_name="pubmedbert")
+        pubmed_model, pubmed_tokenizer = _load_embeddings_models(model_name="pubmedbert")
+        chemberta_model, chemberta_tokenizer = _load_embeddings_models(model_name="chemberta")
     except Exception as e:
         logger.warn(
             f"Failed to load embeddings model due to {e}. It will be loaded at runtime."
@@ -685,8 +710,10 @@ def _safe_run_chunking_and_embedding(
             workflow_id=workflow_id,
             run_type=run_type,
             source=source,
-            model=model,
-            tokenizer=tokenizer,
+            pubmed_model=pubmed_model,
+            pubmed_tokenizer=pubmed_tokenizer,
+            chemberta_model=chemberta_model,
+            chemberta_tokenizer=chemberta_tokenizer,
             collection_type=collection_type,
             store_embeddings_as_file=store_embeddings_as_file,
         )

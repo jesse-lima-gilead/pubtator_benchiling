@@ -103,6 +103,10 @@ class LocalFileHandler(FileHandler):
         except OSError as e:
             raise OSError(f"Error reading file {file_path}: {e}")
 
+    def read_file_bytes(self, file_path):
+        """Reads a file and returns its content as bytes."""
+        return self.read_file(file_path, as_binary=True)
+
     def parse_xml_file(self, file_path: str) -> ET.ElementTree:
         """Parses an XML file and returns an ElementTree object."""
         try:

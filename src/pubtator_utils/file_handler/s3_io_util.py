@@ -61,7 +61,7 @@ class S3IOUtil:
             return False
         return True
 
-    def download_file(self, object_name, file_path=None):
+    def download_file(self, object_name, file_path=None, as_binary: bool = False):
         """Download a file from S3.
 
         - If `file_path` is provided, save the file locally.
@@ -80,6 +80,11 @@ class S3IOUtil:
                     f"File {object_name} downloaded successfully to {file_path}."
                 )
                 return True
+            elif as_binary:
+                # Return file content as bytes
+                content = response["Body"].read()
+                logger.info(f"File {object_name} downloaded successfully as binary.")
+                return content
             else:
                 # Return file content as a string
                 content = response["Body"].read().decode("utf-8")

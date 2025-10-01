@@ -149,7 +149,8 @@ def _load_summarization_model():
     import torch
 
     config_loader = YAMLConfigLoader()
-    model_path_config = config_loader.get_config("paths")["model"][
+    model_path_type = config_loader.get_config("paths")["model"]["type"]
+    model_path_config = config_loader.get_config("paths")["model"][model_path_type][
         "summarization_model"
     ]
     model_name = "mistral_7b"

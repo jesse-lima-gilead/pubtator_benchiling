@@ -19,7 +19,10 @@ logger = logger_instance.get_logger()
 
 # Initialize the config loader
 config_loader = YAMLConfigLoader()
-model_path_config = config_loader.get_config("paths")["model"]["summarization_model"]
+model_path_type = config_loader.get_config("paths")["model"]["type"]
+model_path_config = config_loader.get_config("paths")["model"][model_path_type][
+    "summarization_model"
+]
 
 
 def _clean_abstract_text(s: str) -> str:

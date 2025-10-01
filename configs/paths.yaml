@@ -6,6 +6,7 @@ storage:
     jit_ingestion_path: "./data/{source}/{workflow_id}/staging/jit_ingestion/articles_ids.txt"
     extraction_path: "./data/{source}/extraction/{timestamp}"
     ingestion_path: "./data/{source}/{workflow_id}/staging/ingestion"
+    failed_ingestion_path: "./data/{source}/{workflow_id}/staging/failed_ingestion"
     ingestion_interim_path: "./data/{source}/{workflow_id}/staging/ingestion_interim"
     bioc_path: "./data/{source}/{workflow_id}/staging/bioc_xml"
     summary_path: "./data/{source}/{workflow_id}/articles_metadata/summary"
@@ -25,6 +26,7 @@ storage:
     jit_ingestion_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/jit_ingestion/articles_ids.txt"
     extraction_path: "/scratch/pubtator/data/{source}/extraction/{timestamp}"
     ingestion_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/ingestion"
+    failed_ingestion_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/failed_ingestion"
     ingestion_interim_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/ingestion_interim"
     bioc_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/bioc_xml"
     summary_path: "/scratch/pubtator/data/{source}/{workflow_id}/articles_metadata/summary"
@@ -43,6 +45,7 @@ storage:
   s3:
     jit_ingestion_path: "data/{source}/staging/jit_ingestion"
     ingestion_path: "data/{source}/staging/ingestion"
+    failed_ingestion_path: "data/{source}/staging/failed_ingestion"
     ingestion_interim_path: "data/{source}/{workflow_id}/staging/ingestion_interim"
     bioc_path: "data/{source}/staging/bioc_xml"
     summary_path: "data/{source}/articles_metadata/summary"
@@ -63,16 +66,32 @@ workdir:
   base_path: "/code"
 
 model:
-  embeddings_model:
-    pubmedbert:
-      model_path: "/scratch/pubtator/models/pubmedbert-base-embeddings"
-      token_limit: 512
-    chemberta:
-      model_path: "/scratch/pubtator/models/chemberta-77m-mlm"
-      token_limit: 512
-  summarization_model:
-    mistral_7b:
-      model_path: "/scratch/pubtator/models/mistral-7b-instruct-v0.3"
+  type: "local"  # "local" for HPC or "s3" for S3 "test" for local testing
+  test:
+    embeddings_model:
+      pubmedbert:
+        model_path: "./models/pubmedbert-base-embeddings"
+        token_limit: 512
+      chemberta:
+        model_path: "./models/chemberta-77m-mlm"
+        token_limit: 512
+    summarization_model:
+      mistral_7b:
+        model_path: "./models/mistral-7b-instruct-v0.3"
+        token_limit: 2048
+  local:
+    embeddings_model:
+      pubmedbert:
+        model_path: "/scratch/pubtator/models/pubmedbert-base-embeddings"
+        token_limit: 512
+      chemberta:
+        model_path: "/scratch/pubtator/models/chemberta-77m-mlm"
+        token_limit: 512
+    summarization_model:
+      mistral_7b:
+        model_path: "/scratch/pubtator/models/mistral-7b-instruct-v0.3"
+        token_limit: 2048
+
 
 ingestion_source:
   pmc:
