@@ -106,8 +106,11 @@ class ELNIngestor:
             self.s3_summary_path = self.s3_paths_config.get("summary_path", "").replace(
                 "{source}", source
             )
-            self.s3_embeddings_path = self.s3_paths_config.get(
-                "embeddings_path", ""
+            self.s3_chunks_path = self.s3_paths_config.get("chunks_path", "").replace(
+                "{source}", source
+            )
+            self.s3_failed_ingestion_path = self.s3_paths_config.get(
+                "failed_ingestion_path", ""
             ).replace("{source}", source)
         else:
             self.s3_pmc_path = (
@@ -181,10 +184,10 @@ class ELNIngestor:
             s3_interim_path=self.s3_interim_path,
             metadata_path=self.article_metadata_path,
             s3_article_metadata_path=self.s3_article_metadata_path,
-            summary_path=self.summary_path,
-            s3_summary_path=self.s3_summary_path,
-            embeddings_path=self.embeddings_path,
-            s3_embeddings_path=self.s3_embeddings_path,
+            failed_ingestion_path=self.failed_ingestion_path,
+            s3_failed_ingestion_path=self.s3_failed_ingestion_path,
+            chunks_path=self.chunks_path,
+            s3_chunks_path=self.s3_chunks_path,
             file_handler=self.file_handler,
             s3_file_handler=self.s3_file_handler,
         )
@@ -202,7 +205,7 @@ class ELNIngestor:
         self.eln_articles_preprocessor()
         # self.eln_html_to_bioc_converter()
         # self.generate_summary()
-        # self.upload_to_s3()
+        self.upload_to_s3()
 
 
 def main():

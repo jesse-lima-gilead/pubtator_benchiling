@@ -2,6 +2,7 @@ import argparse
 from src.data_ingestion.ingest_clinical_trials.ct_articles_extractor import (
     extract_ct_articles,
 )
+from src.data_ingestion.ingest_eln.eln_articles_extractor import extract_eln_articles
 from src.data_ingestion.ingest_preprints_rxivs.preprint_articles_extractor import (
     extract_preprints_articles,
 )
@@ -89,6 +90,14 @@ def run_extraction(
             source=source,
         )
         logger.info(f"{extracted_articles_count} RFD Articles Extracted Successfully!")
+    elif source == "eln":
+        extracted_articles_count = extract_eln_articles(
+            eln_path=extraction_path,
+            file_handler=file_handler,
+            eln_source_config=source_config,
+            source=source,
+        )
+        logger.info(f"{extracted_articles_count} ELN Articles Extracted Successfully!")
     else:
         raise ValueError(f"Unsupported source: {source}")
 
