@@ -45,17 +45,17 @@ class ArticleProcessor:
         embeddings_model: str = "pubmedbert",
         chunker: str = "sliding_window",
         merger: str = "prepend",
-        pubmed_model=None,
-        pubmed_tokenizer=None,
+        pubmedbert_model=None,
+        pubmedbert_tokenizer=None,
         chemberta_model=None,
         chemberta_tokenizer=None,
     ):
         self.aioner_model = aioner_model
         self.gnorm2_model = gnorm2_model
         self.embeddings_model = embeddings_model
-        self.pubmed_model=pubmed_model
-        self.pubmed_tokenizer = pubmed_tokenizer
-        self.chemberta_model=chemberta_model
+        self.pubmedbert_model = pubmedbert_model
+        self.pubmedbert_tokenizer = pubmedbert_tokenizer
+        self.chemberta_model = chemberta_model
         self.chemberta_tokenizer = chemberta_tokenizer
         self.chunker = chunker
         self.merger = merger
@@ -445,22 +445,33 @@ class ArticleProcessor:
                     logger.info(f"Chunks file saved to S3: {s3_chunks_output_path}")
 
     def get_chunks_embeddings_details(
-        self, chunks: List[Dict], collection_type: str, model=None, tokenizer=None, tag_name: str = "merged_text",
+        self,
+        chunks: List[Dict],
+        collection_type: str,
+        model=None,
+        tokenizer=None,
+        tag_name: str = "merged_text",
     ):
         try:
             logger.info("Generating embeddings for the chunks")
             chunk_texts = []
             skip_embedding = None
-            embeddings=None
+            embeddings = None
 
             for chunk in chunks:
                 chunk_texts.append(
-                    #chunk["merged_text"]
+                    # chunk["merged_text"]
                     chunk[tag_name]
                     if collection_type == "processed_pubmedbert"
                     else chunk["payload"]["chunk_text"]
                 )
-                skip_embedding = True if tag_name == "smile" and chunk[tag_name] is None and skip_embedding != False else False
+                skip_embedding = (
+                    True
+                    if tag_name == "smile"
+                    and chunk[tag_name] is None
+                    and skip_embedding != False
+                    else False
+                )
 
             if not skip_embedding:
                 embeddings = get_embeddings(
@@ -476,7 +487,9 @@ class ArticleProcessor:
                 chunk_payload = chunk["payload"]
                 chunk_payload[tag_name] = chunk[tag_name]
                 cur_chunk_dic["payload"] = chunk_payload
-                cur_chunk_dic["embeddings"] = embeddings[idx].tolist() if not skip_embedding else []
+                cur_chunk_dic["embeddings"] = (
+                    embeddings[idx].tolist() if not skip_embedding else []
+                )
                 chunk_embedding_payload.append(cur_chunk_dic)
 
             return chunk_embedding_payload
@@ -542,8 +555,8 @@ class ArticleProcessor:
                         embeddings_details = self.get_chunks_embeddings_details(
                             chunks=chunks,
                             collection_type=collection_type,
-                            model=self.pubmed_model,
-                            tokenizer=self.pubmed_tokenizer,
+                            model=self.pubmedbert_model,
+                            tokenizer=self.pubmedbert_tokenizer,
                         )
                     # print(f"Embedding details in process_embeddings(): {embeddings_details}")
                     self.store_embeddings_details_in_file(
@@ -573,9 +586,10 @@ class ArticleProcessor:
 def run_chunking_and_embedding(
     workflow_id: str,
     source: str,
+    write_to_s3: bool = True,
     run_type: str = "all",
-    pubmed_model=None,
-    pubmed_tokenizer= None,
+    pubmedbert_model=None,
+    pubmedbert_tokenizer=None,
     chemberta_model=None,
     chemberta_tokenizer=None,
     collection_type: str = "processed_pubmedbert",
@@ -597,7 +611,6 @@ def run_chunking_and_embedding(
     # Retrieve paths from config
     paths = paths_config["storage"][storage_type]
 
-    write_to_s3 = True
     s3_paths = {}
     s3_file_handler = None
     if write_to_s3:
@@ -617,8 +630,8 @@ def run_chunking_and_embedding(
         write_to_s3=write_to_s3,
         s3_file_handler=s3_file_handler,
         s3_paths_config=s3_paths,
-        pubmed_model=pubmed_model,
-        pubmed_tokenizer=pubmed_tokenizer,
+        pubmedbert_model=pubmedbert_model,
+        pubmedbert_tokenizer=pubmedbert_tokenizer,
         chemberta_model=chemberta_model,
         chemberta_tokenizer=chemberta_tokenizer,
     )
@@ -640,7 +653,15 @@ def run_chunking_and_embedding(
         logger.error(f"Invalid run type: {run_type}")
 
 
-def run_xml_to_html_conversion(workflow_id: str, source: str):
+def run_xml_to_html_conversion(workflow_id: str, source: str, write_to_s3: bool = True):
+    """
+    Run XML to HTML conversion for the given workflow ID and source.
+    This function converts Annotated BioCXML files to HTML files using a specified template to generated Pubtator-Style Annotated Articles View.
+    :param workflow_id:
+    :param source:
+    :param write_to_s3:
+    :return:
+    """
     # Initialize the config loader
     config_loader = YAMLConfigLoader()
 
@@ -654,7 +675,6 @@ def run_xml_to_html_conversion(workflow_id: str, source: str):
     # Retrieve paths from config
     paths = paths_config["storage"][storage_type]
 
-    write_to_s3 = True
     s3_paths = {}
     s3_file_handler = None
     if write_to_s3:
@@ -691,27 +711,36 @@ def _load_embeddings_models(model_name: str = "pubmedbert"):
 
 
 def _safe_run_chunking_and_embedding(
-    workflow_id, source, run_type, collection_type, store_embeddings_as_file
+    workflow_id,
+    source,
+    write_to_s3,
+    run_type,
+    collection_type,
+    store_embeddings_as_file,
 ):
     # Pre-load the embeddings model and tokenizer at startup
-    pubmed_model, pubmed_tokenizer = None, None
-    chemberta_model, chemberta_tokenizer = None, None
     try:
-        pubmed_model, pubmed_tokenizer = _load_embeddings_models(model_name="pubmedbert")
-        chemberta_model, chemberta_tokenizer = _load_embeddings_models(model_name="chemberta")
+        pubmedbert_model, pubmedbert_tokenizer = _load_embeddings_models(
+            model_name="pubmedbert"
+        )
+        chemberta_model, chemberta_tokenizer = _load_embeddings_models(
+            model_name="chemberta"
+        )
     except Exception as e:
         logger.warn(
             f"Failed to load embeddings model due to {e}. It will be loaded at runtime."
         )
-        model = tokenizer = None
+        pubmedbert_model, pubmedbert_tokenizer = None, None
+        chemberta_model, chemberta_tokenizer = None, None
 
     try:
         run_chunking_and_embedding(
             workflow_id=workflow_id,
             run_type=run_type,
             source=source,
-            pubmed_model=pubmed_model,
-            pubmed_tokenizer=pubmed_tokenizer,
+            write_to_s3=write_to_s3,
+            pubmedbert_model=pubmedbert_model,
+            pubmedbert_tokenizer=pubmedbert_tokenizer,
             chemberta_model=chemberta_model,
             chemberta_tokenizer=chemberta_tokenizer,
             collection_type=collection_type,
@@ -722,9 +751,13 @@ def _safe_run_chunking_and_embedding(
         logger.exception("Chunking & embedding failed")
 
 
-def _safe_run_xml_to_html_conversion(workflow_id: str, source: str):
+def _safe_run_xml_to_html_conversion(
+    workflow_id: str, source: str, write_to_s3: bool = True
+):
     try:
-        run_xml_to_html_conversion(workflow_id=workflow_id, source=source)
+        run_xml_to_html_conversion(
+            workflow_id=workflow_id, source=source, write_to_s3=write_to_s3
+        )
         logger.info("XML→HTML conversion finished successfully.")
     except Exception:
         logger.exception("XML→HTML conversion failed")
@@ -745,6 +778,7 @@ def main():
         "--workflow_id",
         "-wid",
         type=str,
+        required=True,
         help="Workflow ID of JIT pipeline run",
     )
 
@@ -752,7 +786,17 @@ def main():
         "--source",
         "-src",
         type=str,
-        help="Article source (e.g., pmc, ct, rfd etc.)",
+        required=True,
+        choices=["pmc", "ct", "preprint", "rfd", "eln", "apollo", "ss"],
+        help="Article source (allowed values: pmc, ct, preprint, rfd, eln, apollo, ss)",
+    )
+
+    parser.add_argument(
+        "--write_to_s3",
+        "-s3",
+        type=str,
+        default=True,
+        help="Whether to write ingested data to S3 (default: True)",
     )
 
     parser.add_argument(
@@ -792,6 +836,15 @@ def main():
         source = args.source
         logger.info(f"{source} registered as SOURCE for processing")
 
+    if not args.write_to_s3:
+        logger.warning("No write_to_s3 flag provided. Defaulting to True.")
+        write_to_s3 = True
+    else:
+        write_to_s3 = (
+            True if args.write_to_s3.lower() in ("true", "1", "yes") else False
+        )
+        logger.info(f"write_to_s3 set to {write_to_s3}")
+
     if not args.collection_type:
         logger.info(
             "No collection_type provided. Using default: `processed_pubmedbert` "
@@ -825,13 +878,21 @@ def main():
     # set up two separate processes
     p1 = multiprocessing.Process(
         target=_safe_run_chunking_and_embedding,
-        args=(workflow_id, source, run_type, collection_type, store_embeddings_as_file),
+        args=(
+            workflow_id,
+            source,
+            write_to_s3,
+            run_type,
+            collection_type,
+            store_embeddings_as_file,
+        ),
     )
     p2 = multiprocessing.Process(
         target=_safe_run_xml_to_html_conversion,
         args=(
             workflow_id,
             source,
+            write_to_s3,
         ),
     )
 

@@ -164,15 +164,6 @@ class ELNIngestor:
         )
         logger.info(f"ELN Articles Preprocessed Successfully!")
 
-    def generate_smiles(self):
-        logger.info(f"Generating Smiles from {self.ingestion_interim_path}...")
-        # eln_summaries_count = eln_summarizer(
-        #     bioc_path=self.bioc_path,
-        #     summary_path=self.summary_path,
-        #     file_handler=self.file_handler,
-        # )
-        # logger.info(f"Summary generated for {eln_summaries_count} eln Articles!")
-
     def upload_to_s3(self):
         logger.info(f"Uploading {self.bioc_path} to S3...")
         uploaded_articles_count = upload_eln_articles(
@@ -199,12 +190,9 @@ class ELNIngestor:
     def run(
         self,
     ):
-        # self.eln_articles_extractor()
         self.eln_safe_filenames_generator()
         self.eln_formatter()
         self.eln_articles_preprocessor()
-        # self.eln_html_to_bioc_converter()
-        # self.generate_summary()
         self.upload_to_s3()
 
 

@@ -73,7 +73,7 @@ model:
         model_path: "./models/pubmedbert-base-embeddings"
         token_limit: 512
       chemberta:
-        model_path: "./models/chemberta-77m-mlm"
+        model_path: "./models/chemberta-77m-mtr"
         token_limit: 512
     summarization_model:
       mistral_7b:
@@ -85,7 +85,7 @@ model:
         model_path: "/scratch/pubtator/models/pubmedbert-base-embeddings"
         token_limit: 512
       chemberta:
-        model_path: "/scratch/pubtator/models/chemberta-77m-mlm"
+        model_path: "/scratch/pubtator/models/chemberta-77m-mtr"
         token_limit: 512
     summarization_model:
       mistral_7b:

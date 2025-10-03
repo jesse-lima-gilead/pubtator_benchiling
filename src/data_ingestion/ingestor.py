@@ -18,7 +18,7 @@ logger = SingletonLogger().get_logger()
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Ingest articles",
-        epilog="Example: python3 -m src.data_ingestion.ingestor --workflow_id workflow123 --source pmc",
+        epilog="Example: python3 -m src.data_ingestion.ingestor --workflow_id workflow123 --source pmc --write_to_s3 True",
     )
     parser.add_argument(
         "--workflow_id",
@@ -32,13 +32,21 @@ def parse_args():
         "-src",
         type=str,
         required=True,
-        choices=["pmc", "ct", "preprint", "rfd", "apollo"],
-        help="Article source (allowed values: pmc, ct, preprint, rfd, apollo)",
+        choices=["pmc", "ct", "preprint", "rfd", "eln", "apollo", "ss"],
+        help="Article source (allowed values: pmc, ct, preprint, rfd, eln, apollo, ss)",
     )
+    parser.add_argument(
+        "--write_to_s3",
+        "-s3",
+        type=str,
+        default=True,
+        help="Whether to write ingested data to S3 (default: True)",
+    )
+
     return parser.parse_args()
 
 
-def setup_environment(write_to_s3=True):
+def setup_environment(write_to_s3: bool = True):
     config_loader = YAMLConfigLoader()
     paths_config = config_loader.get_config("paths")
 
@@ -182,16 +190,36 @@ def main():
     logger.info("Execution Started")
 
     args = parse_args()
-    workflow_id, source = args.workflow_id, args.source
-    logger.info(f"{workflow_id} Workflow ID registered for processing")
-    logger.info(f"{source} registered as SOURCE for processing")
 
-    write_to_s3 = True
+    if not args.workflow_id:
+        logger.error("No workflow_id provided.")
+        return
+    else:
+        workflow_id = args.workflow_id
+        logger.info(f"{workflow_id} Workflow Id registered for processing")
+
+    if not args.source:
+        logger.error("No source provided. Please provide a valid source.")
+        return
+    else:
+        source = args.source
+        logger.info(f"{source} registered as SOURCE for processing")
+
+    if not args.write_to_s3:
+        logger.warning("No write_to_s3 flag provided. Defaulting to True.")
+        write_to_s3 = True
+    else:
+        write_to_s3 = (
+            True if args.write_to_s3.lower() in ("true", "1", "yes") else False
+        )
+        logger.info(f"write_to_s3 set to {write_to_s3}")
+
     paths_config, paths, file_handler, s3_paths, s3_file_handler = setup_environment(
         write_to_s3
     )
 
     try:
+        # summarization_pipe = None
         summarization_pipe = _load_summarization_model()
         if summarization_pipe:
             logger.info("Summarization model loaded successfully at startup.")
