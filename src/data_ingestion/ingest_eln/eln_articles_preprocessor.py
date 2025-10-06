@@ -3,6 +3,7 @@ import re
 import os
 import uuid
 import zipfile
+from datetime import datetime
 from pathlib import Path
 from rdkit import Chem
 from typing import List, Dict, Optional, Union, Any
@@ -365,7 +366,7 @@ def extract_smiles_from_sdf(
                     props = {k: mol.GetProp(k) for k in mol.GetPropNames()}
 
                 mol_record = {
-                    "mol_grsar_id": str(uuid.uuid4()),
+                    "id": str(uuid.uuid4()),
                     "mol_index": idx,
                     "smile": smile,
                     "fragments": fragments,
@@ -381,7 +382,7 @@ def extract_smiles_from_sdf(
                     "Failed to process molecule at index %d in %s", idx, p.name
                 )
                 mol_record = {
-                    "mol_grsar_id": str(uuid.uuid4()),
+                    "id": str(uuid.uuid4()),
                     "mol_index": idx,
                     "smile": "",
                     "fragments": [],
@@ -423,10 +424,13 @@ def preprocess_eln_files(
     eln_metadata_path: str,
     eln_chunks_path: str,
     file_handler: FileHandler,
+    source: str,
+    workflow_id: str,
 ):
     for eln in file_handler.list_files(eln_path):
         logger.info(f"Processing ELN file: {eln}")
         input_eln_path = Path(eln_path) / eln
+        article_id = eln.split(".")[0]
         if eln.endswith(".json"):
             with open(input_eln_path, "r", encoding="utf-8") as f:
                 eln_json = json.load(f)
@@ -438,6 +442,7 @@ def preprocess_eln_files(
                 logger.info(f"ELN JSON file found: {eln}. Extracting content...")
                 eln_data = dict(eln_json)
                 eln_data = {k.lower(): v for k, v in eln_data.items()}
+                eln_data["eln_id"] = eln_data.pop("id")
 
                 # Extracting the Chemical Structures from the ELN JSON
                 ascii_content = str(eln_data.pop("ASCIICONTENT".lower()))
@@ -445,7 +450,7 @@ def preprocess_eln_files(
                 file_handler.write_file(sdf_file_path, ascii_content)
                 logger.info(f"SDF file written: {sdf_file_path}")
 
-                # Convert molecules in SDF file to SMILES and fragments
+                # Convert molecules in an SDF file to SMILES and fragments
                 smiles = extract_smiles_from_sdf(
                     sdf_file_path=sdf_file_path,
                     use_forward_supplier=False,
@@ -467,7 +472,7 @@ def preprocess_eln_files(
 
                 # Save the modified ELN JSON without ASCIICONTENT as Metadata File
                 eln_data["article_type"] = "ELN"
-                eln_data["eln_content"] = content_without_mol
+                eln_data["chunk_text"] = content_without_mol
                 logger.info("Extracting ELN Metadata...")
                 metadata_filename = eln.replace(".json", "_metadata.json")
                 metadata_file_path = Path(eln_metadata_path) / metadata_filename
@@ -482,12 +487,20 @@ def preprocess_eln_files(
                             "chunk_sequence": mol["mol_index"],
                             "smile": mol["smile"],
                             "payload": {
-                                "mol_grsar_id": mol["mol_grsar_id"],
+                                "id": mol["id"],
+                                "chunk_processing_date": datetime.now()
+                                .date()
+                                .isoformat(),
                                 "smile": mol["smile"],
                                 "fragments": mol["fragments"],
                                 "properties": mol["properties"],
                                 "processed": mol["processed"],
                                 **eln_data,
+                                "article_id": article_id,
+                                "source": source,
+                                "workflow_id": workflow_id,
+                                "chunk_type": "smiles_chunk",
+                                "processing_ts": datetime.now().isoformat(),
                             },
                         }
                         chunks.append(chunk)
@@ -498,7 +511,16 @@ def preprocess_eln_files(
                     chunk = {
                         "chunk_sequence": 1,
                         "smile": None,
-                        "payload": {**eln_data}
+                        "payload": {
+                            "id": str(uuid.uuid4()),
+                            "chunk_processing_date": datetime.now().date().isoformat(),
+                            **eln_data,
+                            "article_id": article_id,
+                            "source": source,
+                            "workflow_id": workflow_id,
+                            "chunk_type": "eln_chunk",
+                            "processing_ts": datetime.now().isoformat(),
+                        },
                     }
                     chunks.append(chunk)
                     logger.warn(

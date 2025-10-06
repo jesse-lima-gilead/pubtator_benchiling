@@ -219,7 +219,10 @@ def main():
     )
 
     try:
+        # For local run, set a summarization model to None if required
         # summarization_pipe = None
+
+        # Set up the summarization model for HPC run
         summarization_pipe = _load_summarization_model()
         if summarization_pipe:
             logger.info("Summarization model loaded successfully at startup.")

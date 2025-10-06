@@ -487,9 +487,8 @@ class ArticleProcessor:
                 chunk_payload = chunk["payload"]
                 chunk_payload[tag_name] = chunk[tag_name]
                 cur_chunk_dic["payload"] = chunk_payload
-                cur_chunk_dic["embeddings"] = (
-                    embeddings[idx].tolist() if not skip_embedding else []
-                )
+                if not skip_embedding:
+                    cur_chunk_dic["embeddings"] = embeddings[idx].tolist()
                 chunk_embedding_payload.append(cur_chunk_dic)
 
             return chunk_embedding_payload

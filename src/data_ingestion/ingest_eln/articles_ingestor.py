@@ -37,6 +37,8 @@ class ELNIngestor:
         source: str = "eln",
         **kwargs: Any,  # optional extras (e.g. s3 settings)
     ):
+        self.source = source
+        self.workflow_id = workflow_id
         self.eln_path = (
             paths_config["ingestion_path"]
             .replace("{workflow_id}", workflow_id)
@@ -79,7 +81,6 @@ class ELNIngestor:
         )
         self.file_handler = file_handler
         self.eln_source_config = eln_source_config
-        self.source = source
         self.pandoc_processor = PandocProcessor(pandoc_executable="pandoc")
 
         # Pop known keys (consumes them from kwargs)
@@ -161,6 +162,8 @@ class ELNIngestor:
             eln_metadata_path=self.article_metadata_path,
             eln_chunks_path=self.chunks_path,
             file_handler=self.file_handler,
+            source=self.source,
+            workflow_id=self.workflow_id,
         )
         logger.info(f"ELN Articles Preprocessed Successfully!")
 
