@@ -1,4 +1,11 @@
 import argparse
+from src.data_ingestion.ingest_apollo.apollo_articles_extractor import (
+    extract_apollo_articles,
+    apollo_generate_safe_filename,
+)
+from src.data_ingestion.ingest_apollo.extract_metadata import (
+    apollo_articles_metadata_extractor,
+)
 from src.data_ingestion.ingest_clinical_trials.ct_articles_extractor import (
     extract_ct_articles,
 )
@@ -90,6 +97,29 @@ def run_extraction(
             source=source,
         )
         logger.info(f"{extracted_articles_count} RFD Articles Extracted Successfully!")
+    elif source == "apollo":
+        extracted_articles_count = extract_apollo_articles(
+            apollo_path=extraction_path,
+            file_handler=file_handler,
+            apollo_source_config=source_config,
+            source=source,
+        )
+        logger.info(
+            f"{extracted_articles_count} Apollo Articles Extracted Successfully!"
+        )
+
+        apollo_generate_safe_filename(
+            apollo_path=extraction_path,
+            file_handler=file_handler,
+            source=source,
+        )
+        logger.info(f"Generated Safe file names for Apollo Articles Successfully!")
+
+        apollo_articles_metadata_extractor(
+            apollo_source_config=source_config,
+            source=source,
+        )
+        logger.info(f"Generated Metadata files for Apollo Articles Successfully!")
     elif source == "eln":
         extracted_articles_count = extract_eln_articles(
             eln_path=extraction_path,

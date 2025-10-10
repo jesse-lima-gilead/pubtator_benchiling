@@ -7,6 +7,7 @@ storage:
     extraction_path: "./data/{source}/extraction/{timestamp}"
     ingestion_path: "./data/{source}/{workflow_id}/staging/ingestion"
     failed_ingestion_path: "./data/{source}/{workflow_id}/staging/failed_ingestion"
+    ingestion_archived_path: "./data/{source}/{workflow_id}/staging/ingestion_archive"
     ingestion_interim_path: "./data/{source}/{workflow_id}/staging/ingestion_interim"
     bioc_path: "./data/{source}/{workflow_id}/staging/bioc_xml"
     summary_path: "./data/{source}/{workflow_id}/articles_metadata/summary"
@@ -27,6 +28,7 @@ storage:
     extraction_path: "/scratch/pubtator/data/{source}/extraction/{timestamp}"
     ingestion_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/ingestion"
     failed_ingestion_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/failed_ingestion"
+    ingestion_archived_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/ingestion_archive"
     ingestion_interim_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/ingestion_interim"
     bioc_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/bioc_xml"
     summary_path: "/scratch/pubtator/data/{source}/{workflow_id}/articles_metadata/summary"
@@ -46,6 +48,7 @@ storage:
     jit_ingestion_path: "data/{source}/staging/jit_ingestion"
     ingestion_path: "data/{source}/staging/ingestion"
     failed_ingestion_path: "data/{source}/staging/failed_ingestion"
+    ingestion_archived_path: "data/{source}/{workflow_id}/staging/ingestion_archive"
     ingestion_interim_path: "data/{source}/{workflow_id}/staging/ingestion_interim"
     bioc_path: "data/{source}/staging/bioc_xml"
     summary_path: "data/{source}/articles_metadata/summary"
@@ -111,6 +114,7 @@ ingestion_source:
   eln:
     type: "s3"  # "S3" or "API"
     s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"
-  project_notes:
+  apollo:
     type: "s3"  # "S3" or "API"
     s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"
+    s3_src_path: "Apollo"

@@ -1,0 +1,104 @@
+import os
+from pathlib import Path
+from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
+from src.pubtator_utils.file_handler.base_handler import FileHandler
+from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
+from src.pubtator_utils.logs_handler.logger import SingletonLogger
+from src.data_ingestion.ingestion_utils.s3_extractor import extract_from_s3
+from src.data_ingestion.ingestion_utils.pandoc_processor import PandocProcessor
+from src.data_ingestion.ingest_apollo.ingest_docx.apollo_tables_processor import (
+    process_tables,
+)
+
+
+# Initialize the logger
+logger_instance = SingletonLogger()
+logger = logger_instance.get_logger()
+
+# Initialize the config loader
+config_loader = YAMLConfigLoader()
+
+# Retrieve paths config
+paths = config_loader.get_config("paths")
+storage_type = paths["storage"]["type"]
+
+# Get file handler instance from factory
+file_handler = FileHandlerFactory.get_handler(storage_type)
+# Retrieve paths from config
+paths_config = paths["storage"][storage_type]
+
+
+def convert_apollo_to_html(
+    apollo_path: str,
+    apollo_interim_path: str,
+    input_doc_type: str = "docx",  # ["docx","doc"],
+    output_doc_type: str = "html",
+):
+    pandoc_processor = PandocProcessor(pandoc_executable="pandoc")
+
+    for apollo_doc in file_handler.list_files(apollo_path):
+        if apollo_doc.endswith(".docx") and not apollo_doc.startswith("~$"):
+            logger.info(f"Started file format conversion for doc: {apollo_doc}")
+
+            input_doc_path = Path(apollo_path) / apollo_doc
+
+            # Create an output directory for this docx
+            apollo_dir_name = apollo_doc.replace(".docx", "")
+            apollo_output_dir = Path(apollo_interim_path) / apollo_dir_name
+            apollo_output_dir.mkdir(parents=True, exist_ok=True)
+            output_doc_path = Path(apollo_output_dir) / apollo_doc.replace(
+                f".{input_doc_type}", f".{output_doc_type}"
+            )
+            media_dir = Path(apollo_output_dir)
+            logger.info(f"Converting {input_doc_path} to {output_doc_path}")
+
+            pandoc_processor.convert(
+                input_path=input_doc_path,
+                output_path=output_doc_path,
+                input_format=input_doc_type,
+                output_format=output_doc_type,
+                extract_media_dir=media_dir,
+            )
+
+
+def extract_tables_from_apollo_html(
+    apollo_interim_path: str,
+    apollo_metadata_path: str,
+    apollo_embeddings_path: str,
+):
+    for apollo_html_dir in os.listdir(apollo_interim_path):
+        logger.info(f"Processing Apollo HTML file: {apollo_html_dir}")
+        apollo_html_dir_path = Path(apollo_interim_path) / apollo_html_dir
+        apollo_html_file_path = apollo_html_dir_path / (apollo_html_dir + ".html")
+        apollo_html_file_name = apollo_html_dir + ".html"
+        if os.path.exists(apollo_html_file_path):
+            logger.info(
+                f"HTML file found: {apollo_html_file_name}. Extracting Tables..."
+            )
+
+            # Read the HTML content
+            html_content = file_handler.read_file(apollo_html_file_path)
+
+            # Process tables in Apollo HTML
+            html_with_flat_tables, table_details = process_tables(
+                html_str=html_content,
+                source_filename=apollo_html_file_name,
+                output_tables_path=apollo_html_dir_path,
+                article_metadata_path=apollo_metadata_path,
+                table_state="remove",
+            )
+            with open(
+                Path(apollo_embeddings_path) / f"{apollo_html_dir}_tables.json",
+                "w",
+                encoding="utf-8",
+            ) as summary_f:
+                import json
+
+                json.dump(table_details, summary_f, default=str, indent=2)
+
+            # Write back modified HTML with flat table text
+            file_handler.write_file(apollo_html_file_path, html_with_flat_tables)
+
+            logger.info(
+                f"Extracted {len(table_details)} tables from {apollo_html_file_name}"
+            )

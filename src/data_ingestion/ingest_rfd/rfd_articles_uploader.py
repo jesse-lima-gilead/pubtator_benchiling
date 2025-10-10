@@ -30,24 +30,24 @@ def upload_rfd_articles(
 ):
     file_upload_counter = 0
 
-    # Re-Write the Original RFD Files with Safe File Names to S3
-    logger.info(f"Uploading RFD Files with Safe File Names to S3")
-    rfd_doc_upload_counter = 0
-    for rfd_doc in file_handler.list_files(rfd_path):
-        if rfd_doc.endswith(".json") and not rfd_doc.startswith("~$"):
-            local_file_path = file_handler.get_file_path(rfd_path, rfd_doc)
-            s3_file_path = file_handler.get_file_path(s3_rfd_path, rfd_doc)
-            logger.info(f"Uploading file {local_file_path} to S3 path {s3_file_path}")
-            upload_to_s3(
-                local_path=local_file_path,
-                s3_path=s3_file_path,
-                file_handler=s3_file_handler,
-            )
-            rfd_doc_upload_counter += 1
-        else:
-            logger.warning(f"Skipping file: {rfd_doc} for S3 upload")
-    logger.info(f"Total RFD Files uploaded to S3: {rfd_doc_upload_counter}")
-    file_upload_counter += rfd_doc_upload_counter
+    # # Re-Write the Original RFD Files with Safe File Names to S3
+    # logger.info(f"Uploading RFD Files with Safe File Names to S3")
+    # rfd_doc_upload_counter = 0
+    # for rfd_doc in file_handler.list_files(rfd_path):
+    #     if rfd_doc.endswith(".json") and not rfd_doc.startswith("~$"):
+    #         local_file_path = file_handler.get_file_path(rfd_path, rfd_doc)
+    #         s3_file_path = file_handler.get_file_path(s3_rfd_path, rfd_doc)
+    #         logger.info(f"Uploading file {local_file_path} to S3 path {s3_file_path}")
+    #         upload_to_s3(
+    #             local_path=local_file_path,
+    #             s3_path=s3_file_path,
+    #             s3_file_handler=s3_file_handler,
+    #         )
+    #         rfd_doc_upload_counter += 1
+    #     else:
+    #         logger.warning(f"Skipping file: {rfd_doc} for S3 upload")
+    # logger.info(f"Total RFD Files uploaded to S3: {rfd_doc_upload_counter}")
+    # file_upload_counter += rfd_doc_upload_counter
 
     # Upload the BioC XML Files to S3
     logger.info(f"Uploading BioC XML Files to S3")
@@ -60,7 +60,7 @@ def upload_rfd_articles(
             upload_to_s3(
                 local_path=local_file_path,
                 s3_path=s3_file_path,
-                file_handler=s3_file_handler,
+                s3_file_handler=s3_file_handler,
             )
             rfd_bioc_upload_counter += 1
         else:
@@ -71,10 +71,10 @@ def upload_rfd_articles(
     # Upload the Interim HTML Files to S3
     logger.info(f"Uploading Interim Files to S3")
     rfd_interim_file_upload_counter = 0
-    for rfd_dir in file_handler.list_files(interim_path):
-        logger.info(f"Processing RFD dir: {rfd_dir}")
+    for rfd_dir in os.listdir(interim_path):
+        logger.info(f"Processing rfd dir: {rfd_dir}")
         rfd_dir_path = Path(interim_path) / rfd_dir
-        for rfd_interim_file in file_handler.list_files(rfd_dir_path):
+        for rfd_interim_file in os.listdir(rfd_dir_path):
             rfd_interim_file_path = file_handler.get_file_path(
                 rfd_dir_path, rfd_interim_file
             )
@@ -83,16 +83,15 @@ def upload_rfd_articles(
             if os.path.isfile(
                 rfd_interim_file_path
             ) and not rfd_interim_file.startswith("~$"):
-                s3_file_path = file_handler.get_file_path(
-                    s3_interim_path, rfd_dir_path, rfd_interim_file_path
-                )
+                s3_path = str(rfd_dir) + "/" + str(rfd_interim_file)
+                s3_file_path = s3_file_handler.get_file_path(s3_interim_path, s3_path)
                 logger.info(
                     f"Uploading file {rfd_interim_file_path} to S3 path {s3_file_path}"
                 )
                 upload_to_s3(
-                    local_path=local_file_path,
+                    local_path=rfd_interim_file_path,
                     s3_path=s3_file_path,
-                    file_handler=s3_file_handler,
+                    s3_file_handler=s3_file_handler,
                 )
                 rfd_interim_file_upload_counter += 1
 
@@ -105,11 +104,15 @@ def upload_rfd_articles(
                     if os.path.isfile(image_file_path) and not image_file.startswith(
                         "~$"
                     ):
-                        s3_file_path = file_handler.get_file_path(
-                            s3_interim_path,
-                            rfd_dir_path,
-                            rfd_interim_file_path,
-                            image_file,
+                        s3_path = (
+                            str(rfd_dir)
+                            + "/"
+                            + str(rfd_interim_file)
+                            + "/"
+                            + str(image_file)
+                        )
+                        s3_file_path = s3_file_handler.get_file_path(
+                            s3_interim_path, s3_path
                         )
                         logger.info(
                             f"Uploading file {image_file_path} to S3 path {s3_file_path}"
@@ -117,13 +120,14 @@ def upload_rfd_articles(
                         upload_to_s3(
                             local_path=image_file_path,
                             s3_path=s3_file_path,
-                            file_handler=s3_file_handler,
+                            s3_file_handler=s3_file_handler,
                         )
                         rfd_interim_file_upload_counter += 1
                     else:
                         logger.warning(f"Skipping file: {image_file} for S3 upload")
             else:
                 logger.warning(f"Skipping file: {rfd_interim_file} for S3 upload")
+
     logger.info(
         f"Total Interim Files uploaded to S3: {rfd_interim_file_upload_counter}"
     )
@@ -144,7 +148,7 @@ def upload_rfd_articles(
             upload_to_s3(
                 local_path=local_file_path,
                 s3_path=s3_file_path,
-                file_handler=s3_file_handler,
+                s3_file_handler=s3_file_handler,
             )
             rfd_metadata_file_upload_counter += 1
         else:
@@ -165,7 +169,7 @@ def upload_rfd_articles(
             upload_to_s3(
                 local_path=local_file_path,
                 s3_path=s3_file_path,
-                file_handler=s3_file_handler,
+                s3_file_handler=s3_file_handler,
             )
             rfd_summary_file_upload_counter += 1
         else:
@@ -186,7 +190,7 @@ def upload_rfd_articles(
             upload_to_s3(
                 local_path=local_file_path,
                 s3_path=s3_file_path,
-                file_handler=s3_file_handler,
+                s3_file_handler=s3_file_handler,
             )
             rfd_tables_file_upload_counter += 1
         else:

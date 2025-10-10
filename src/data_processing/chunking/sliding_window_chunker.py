@@ -95,6 +95,25 @@ class SlidingWindowChunker:
             "annotations": [],
         }
 
+        # Find the infon with key="section_title" which has the slide_ids in apollo-pptx
+        section_title_infon = passage.find(".//infon[@key='section_title']")
+
+        parts = None
+        slide_numbers = None
+        if section_title_infon is not None:
+            section_title_value = section_title_infon.text.strip()
+            parts = [s.strip() for s in section_title_value.split("|")]
+
+            # Only keep numbers if all parts are digits
+            if all(p.isdigit() for p in parts):
+                slide_numbers = [int(p) for p in parts]
+
+        if slide_numbers is not None:
+            passage_dict["slide_ids"] = slide_numbers
+
+        if parts is not None:
+            passage_dict["section_title"] = parts
+
         for annotation in passage.findall("annotation"):
             id = annotation.get("id")
             type = annotation.findtext('infon[@key="type"]')
@@ -162,6 +181,12 @@ class SlidingWindowChunker:
             "infons": passage_dict["infons"],
             "annotations": [],
         }
+
+        if "slide_ids" in passage_dict:
+            chunk["slide_ids"] = passage_dict["slide_ids"]
+
+        if "section_title" in passage_dict:
+            chunk["section_title"] = passage_dict["section_title"]
 
         # Include relevant annotations that fall within the chunk
         for ann in passage_dict["annotations"]:

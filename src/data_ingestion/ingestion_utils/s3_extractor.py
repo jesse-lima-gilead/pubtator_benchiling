@@ -1,3 +1,7 @@
+import re
+import unicodedata
+from pathlib import PurePosixPath
+
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
@@ -41,3 +45,84 @@ def extract_from_s3(
     ingested_articles_cnt = len(src_files)
 
     return ingested_articles_cnt
+
+
+def extract_from_s3_apollo(
+    path: str,
+    file_handler: FileHandler,
+    source: str,
+    storage_type: str = "s3",
+    s3_src_path: str = "Apollo",
+):
+    # Get file handler instance from factory
+    s3_file_handler = FileHandlerFactory.get_handler(storage_type)
+
+    src_files = s3_file_handler.s3_util.list_files(s3_src_path)  # to get full path
+
+    # Filter out unwanted files
+    filtered_files = []
+    for file_path in src_files:
+        s_clean = clean_path_str(file_path)
+        p = PurePosixPath(s_clean)
+        filename = p.name
+        extension = p.suffix.lower()
+        is_temp = (
+            filename.startswith("~$")
+            or any(pref in s_clean for pref in TEMP_PREFIXES)
+            or extension in TEMP_EXTS
+        )
+        if is_temp:
+            continue
+        filtered_files.append(file_path)
+
+    for cur_s3_full_path in filtered_files:
+        # path where the files are going to be written to in the ingestion directory of HPC
+        cur_src_file = cur_s3_full_path.split("/")[-1]
+        cur_staging_path = file_handler.get_file_path(path, cur_src_file)
+        # Download to local HPC path
+        s3_file_handler.s3_util.download_file(cur_s3_full_path, cur_staging_path)
+
+        logger.info(
+            f"File downloaded from S3: {cur_s3_full_path} to local: {cur_staging_path}"
+        )
+
+    ingested_articles_cnt = len(src_files)
+
+    return ingested_articles_cnt
+
+
+TEMP_PREFIXES = (r"~\$", r"\.DS_Store", r"Thumbs.db")
+TEMP_EXTS = {".tmp", ".db", ".lnk"}
+
+
+# ---------------------
+# Cleaning helpers
+# ---------------------
+
+
+def clean_path_str(s: str) -> str:
+    """
+    Normalize unicode and remove invisible / nuisance characters that often break regexes.
+    Also normalise common single-quote/apostrophe characters to hyphen so ID forms like
+    "GS'9598" or "GS’9598" become "GS-9598" and are detected as IDs (not dates).
+    """
+    if not isinstance(s, str):
+        return s
+
+    s = unicodedata.normalize("NFKC", s)
+
+    # remove invisible nuisance characters
+    for ch in ("\u00AD", "\u200B", "\u200C", "\uFEFF", "\u00A0"):
+        s = s.replace(ch, "")
+
+    # various dashes -> hyphen
+    s = re.sub(r"[\u2010\u2011\u2012\u2013\u2014\u2015]", "-", s)
+
+    # normalize curly quotes and straight apostrophes to hyphen (so GS'9598 -> GS-9598)
+    s = re.sub(r"[’‘`']", "-", s)
+
+    # collapse repeated whitespace around slashes and hyphens to single space where helpful
+    s = re.sub(r"\s*[/\\]\s*", "/", s)
+    s = re.sub(r"\s*-\s*", "-", s)
+
+    return s

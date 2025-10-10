@@ -1,6 +1,7 @@
 import math
 import argparse
 import multiprocessing
+import os
 import uuid
 from datetime import datetime
 from typing import Dict, List
@@ -107,11 +108,16 @@ class ArticleProcessor:
         article_file_summary_path = self.file_handler.get_file_path(
             self.articles_summary_dir, article_file_name
         )
-        article_summary = self.file_handler.read_file(article_file_summary_path)
-        logger.info(f"Article summary: {article_summary}")
-        return article_summary
+        if os.path.exists(article_file_summary_path):
+            article_summary = self.file_handler.read_file(article_file_summary_path)
+            logger.info(f"Article summary: {article_summary}")
+            return article_summary
+        logger.info(f"No Article summary: {article_file}")
+        return None
 
     def get_token_count(self, chunk_text: str):
+        if chunk_text is None or len(chunk_text) == 0:
+            return 0
         model_info = get_model_info(self.embeddings_model)
         model_path = model_info[0]
         tokenizer = AutoTokenizer.from_pretrained(model_path)
@@ -186,15 +192,18 @@ class ArticleProcessor:
             input_file_path=input_file_path, article_file=article_file
         )
         chunks_with_summary = []
-        logger.info("Adding article summary to chunks")
-        for i, chunk in enumerate(chunks):
-            chunk["summary"] = summary
-            chunk[
-                "merged_text_with_summary"
-            ] = f"Summary:\n{summary}\n{chunk['merged_text']}"
-            chunks_with_summary.append(chunk)
 
-        return chunks_with_summary
+        if summary:
+            logger.info("Adding article summary to chunks")
+            for i, chunk in enumerate(chunks):
+                chunk["summary"] = summary
+                chunk[
+                    "merged_text_with_summary"
+                ] = f"Summary:\n{summary}\n{chunk['merged_text']}"
+                chunks_with_summary.append(chunk)
+            return chunks_with_summary
+
+        return chunks
 
     def calculate_annotations_per_bioconcept(
         self, chunk_annotations: List[Dict]
@@ -326,11 +335,13 @@ class ArticleProcessor:
                     chunk_id = str(uuid.uuid4())
                     chunk_sequence = f"{i + 1}"
                     chunk_name = f"{article_id}_chunk_{chunk_sequence}"
-                    article_summary = chunk["summary"]
+                    article_summary = chunk.get("summary", None)
                     article_id = article_id
                     chunk_text = chunk["text"]
                     merged_text = chunk["merged_text"]
-                    merged_text_with_summary = chunk["merged_text_with_summary"]
+                    merged_text_with_summary = chunk.get(
+                        "merged_text_with_summary", None
+                    )
                     chunk_annotations = chunk["annotations"]
                     annotations_per_bioconcept = (
                         self.calculate_annotations_per_bioconcept(chunk_annotations)
@@ -351,10 +362,14 @@ class ArticleProcessor:
                     embeddings_model = self.embeddings_model
                     aioner_model = self.aioner_model
                     gnorm2_model = self.gnorm2_model
+                    slide_ids = chunk.get("slide_ids", None)
+                    section_title = chunk.get("section_title", None)
 
                     chunk_details = {
                         "chunk_sequence": chunk_sequence,
-                        "merged_text": merged_text_with_summary,
+                        "merged_text": merged_text_with_summary
+                        if article_summary
+                        else merged_text,
                         "payload": {
                             "chunk_id": chunk_id,
                             "chunk_processing_date": datetime.now().date().isoformat(),
@@ -390,13 +405,21 @@ class ArticleProcessor:
                             # "aioner_model": aioner_model,
                             # "gnorm2_model": gnorm2_model,
                             "article_id": article_id,
-                            "article_summary": article_summary,
                             "source": self.source,
                             "workflow_id": self.workflow_id,
                             "chunk_type": "article_chunk",
                             "processing_ts": datetime.now().isoformat(),
                         },
                     }
+                    # Cause for now Apollo has no summary
+                    if article_summary is not None:
+                        chunk_details["payload"]["article_summary"] = article_summary
+                    # Add slide_ids if present, for now apollo pptx has
+                    if slide_ids is not None:
+                        chunk_details["payload"]["slide_ids"] = slide_ids
+                    # Add section_title if present, for now docx has
+                    if section_title is not None:
+                        chunk_details["payload"]["section_title"] = section_title
 
                     # Add metadata to the payload
                     for key, value in article_metadata_json.items():
