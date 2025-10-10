@@ -99,18 +99,17 @@ def extract_tables_from_rfd_html(
                 article_metadata_path=rfd_metadata_path,
                 table_state="remove",
             )
-            with open(
-                Path(rfd_embeddings_path) / f"{rfd_html_dir}_tables.json",
-                "w",
-                encoding="utf-8",
-            ) as summary_f:
-                import json
 
-                json.dump(table_details, summary_f, default=str, indent=2)
+            # Make sure rfd_embeddings_path exists
+            Path(rfd_embeddings_path).mkdir(parents=True, exist_ok=True)
+            # Save table details as JSON
+            logger.info(f"Saving extracted table details to JSON...")
+            file_path = f"{rfd_embeddings_path}/{rfd_html_dir}_tables.json"
+            file_handler.write_file_as_json(file_path=file_path, data=table_details)
+            logger.info(f"Table details saved to {file_path}")
 
             # Write back modified HTML with flat table text
             file_handler.write_file(rfd_html_file_path, html_with_flat_tables)
-
             logger.info(
                 f"Extracted {len(table_details)} tables from {rfd_html_file_name}"
             )

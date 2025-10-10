@@ -1001,6 +1001,11 @@ def html_to_bioc_file(
         prefer_merge_with_next=True,
     )
 
+    # Make sure the output directory exists
+    os.makedirs(os.path.dirname(xml_path), exist_ok=True)
+
+    # ToDo: Use the file_handler to write the file instead of direct open/write
+
     # Attempt to dump with bioc.dump (common API)
     try:
         with open(xml_path, "w", encoding="utf-8") as outf:
