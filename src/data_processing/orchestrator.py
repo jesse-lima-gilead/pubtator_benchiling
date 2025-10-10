@@ -862,9 +862,7 @@ def main():
         logger.warning("No write_to_s3 flag provided. Defaulting to True.")
         write_to_s3 = True
     else:
-        write_to_s3 = (
-            True if args.write_to_s3.lower() in ("true", "1", "yes") else False
-        )
+        write_to_s3 = args.write_to_s3
         logger.info(f"write_to_s3 set to {write_to_s3}")
 
     if not args.collection_type:
