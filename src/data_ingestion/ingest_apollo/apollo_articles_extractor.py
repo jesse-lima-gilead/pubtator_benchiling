@@ -24,10 +24,10 @@ def extract_apollo_articles(
     if source_type == "s3":
         s3_src_path = apollo_source_config["s3_src_path"]
         # call the S3 extractor
-        ingested_articles_cnt = extract_from_s3_apollo(
+        extracted_files_to_uuid_map = extract_from_s3_apollo(
             apollo_path, file_handler, source, source_type, s3_src_path
         )
-        return ingested_articles_cnt
+        return extracted_files_to_uuid_map
     elif source_type == "API":
         pass
     else:

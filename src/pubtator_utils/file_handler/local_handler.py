@@ -215,8 +215,8 @@ class LocalFileHandler(FileHandler):
         """
         if not os.path.isfile(src_path):
             raise FileNotFoundError(f"Source file not found: {src_path}")
-        if os.path.exists(dest_path):
-            raise FileExistsError(f"Destination file already exists: {dest_path}")
+        # if os.path.exists(dest_path):
+        #     raise FileExistsError(f"Destination file already exists: {dest_path}")
         try:
             os.makedirs(os.path.dirname(dest_path), exist_ok=True)
             shutil.move(src_path, dest_path)

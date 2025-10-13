@@ -39,7 +39,7 @@ CATEGORY_MAP = {
     "Misc": {".asc"},
 }
 
-TEMP_PREFIXES = (r"~\$", r"\.DS_Store", r"Thumbs.db")
+TEMP_PREFIXES = ("~$", ".DS_Store", "Thumbs.db")
 TEMP_EXTS = {".tmp", ".db", ".lnk"}
 
 
@@ -651,7 +651,7 @@ def file_category_from_ext(ext, is_temp):
 # ---------------------
 
 
-def extract_metadata_from_path(full_path):
+def extract_metadata_from_path(full_path, file_uuid):
     s_clean = clean_path_str(full_path)
     p = PurePosixPath(s_clean)
     filename = p.name
@@ -738,6 +738,7 @@ def extract_metadata_from_path(full_path):
     category = file_category_from_ext(extension, is_temp)
 
     return {
+        "article_id": file_uuid,
         "original_filename": filename,
         "safe_fileName": safe_filename,
         "title": full_path,
@@ -745,7 +746,7 @@ def extract_metadata_from_path(full_path):
         "full_path": full_path,
         "team": project,
         "sub_team": functional_area,
-        "sub_context": sub_context,
+        "sub_context": sub_context.lower() if isinstance(sub_context, str) else None,
         "experiment_id_all": exp_ids,
         "compound_id_all": compound_ids,
         "species": species,
@@ -772,7 +773,9 @@ def extract_metadata_from_path(full_path):
 
 
 def apollo_articles_metadata_extractor(
-    apollo_source_config: dict, source: str = "apollo"
+    apollo_source_config: dict,
+    extracted_files_to_uuid_map: dict,
+    source: str = "apollo",
 ):
     storage_type = apollo_source_config["type"]  # will be s3
     src_data_path = apollo_source_config["s3_src_path"]
@@ -780,24 +783,24 @@ def apollo_articles_metadata_extractor(
     # Get file handler instance from factory
     s3_file_handler = FileHandlerFactory.get_handler(storage_type)
 
-    src_files = s3_file_handler.s3_util.list_files(src_data_path)  # to get full path
-
-    # Filter out unwanted files
-    filtered_files = []
-    for file_path in src_files:
-        s_clean = clean_path_str(file_path)
-        p = PurePosixPath(s_clean)
-        filename = p.name
-        extension = p.suffix.lower()
-        is_temp = (
-            filename.startswith("~$")
-            or any(pref in s_clean for pref in TEMP_PREFIXES)
-            or extension in TEMP_EXTS
-        )
-        if is_temp:
-            continue
-        filtered_files.append(file_path)
-
+    # src_files = s3_file_handler.s3_util.list_files(src_data_path)  # to get full path
+    #
+    # # Filter out unwanted files
+    # filtered_files = []
+    # for file_path in src_files:
+    #     s_clean = clean_path_str(file_path)
+    #     p = PurePosixPath(s_clean)
+    #     filename = p.name
+    #     extension = p.suffix.lower()
+    #     is_temp = (
+    #         filename.startswith("~$")
+    #         or any(pref in s_clean for pref in TEMP_PREFIXES)
+    #         or extension in TEMP_EXTS
+    #     )
+    #     if is_temp:
+    #         continue
+    #     filtered_files.append(file_path)
+    #
     # Getting S3 path for writing metadata directly to S3
     # Initialize the config loader
     config_loader = YAMLConfigLoader()
@@ -807,10 +810,10 @@ def apollo_articles_metadata_extractor(
     s3_paths = paths_config["storage"][storage_type]
     s3_metadata_path = s3_paths["metadata_path"].replace("{source}", source)
 
-    for file_path in filtered_files:
+    for file_path, file_uuid in extracted_files_to_uuid_map.items():
         logger.info(f"Extracting metadata from {file_path}")
-        metadata_json = extract_metadata_from_path(file_path)
-        file_name = f"{file_path.split('/')[-1].split('.')[0]}_metadata.json"
+        metadata_json = extract_metadata_from_path(file_path, file_uuid)
+        file_name = f"{file_uuid}_metadata.json"
         s3_full_metadata_path = s3_file_handler.get_file_path(
             s3_metadata_path, file_name
         )

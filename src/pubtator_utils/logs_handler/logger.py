@@ -10,7 +10,7 @@ class SingletonLogger:
             cls._instance.logger = logging.getLogger(__name__)
             logging.basicConfig(
                 level=logging.INFO,
-                format="%(asctime)s - %(levelname)s - %(filename)s - %(message)s",
+                format="%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s",
             )
         return cls._instance
 

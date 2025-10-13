@@ -16,17 +16,22 @@ def metadata_extractor(
     s3_article_metadata_path: str,
     s3_file_handler: FileHandler,
 ):
+    metadata_file_name = f"{file.split('.')[0]}_metadata.json"
     local_metadata_full_path = local_file_handler.get_file_path(
-        article_metadata_path, file
+        article_metadata_path, metadata_file_name
     )
-    s3_metadata_path = s3_file_handler.get_file_path(s3_article_metadata_path, file)
+    s3_metadata_path = s3_file_handler.get_file_path(
+        s3_article_metadata_path, metadata_file_name
+    )
 
     # read the metadata file from S3
     metadata_fields = s3_file_handler.read_json_file(s3_metadata_path)
 
     # write the metadata file to local
     local_file_handler.write_file_as_json(local_metadata_full_path, metadata_fields)
-    logger.info(f"Copied metadata from S3: {file} to local: {local_metadata_full_path}")
+    logger.info(
+        f"Copied metadata from S3: {s3_metadata_path} to local: {local_metadata_full_path}"
+    )
 
     bioc_metadata_fields = {
         "created_date": metadata_fields.get("created_date", None),

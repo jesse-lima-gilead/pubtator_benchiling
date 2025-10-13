@@ -88,6 +88,8 @@ class PptxTableExtractor:
             else:
                 if len(candidate.split()) <= 15:
                     table_name = candidate.strip()
+
+        table_name = re.sub(r"[^A-Za-z0-9]", "_", table_name)
         return table_id, table_name
 
     def _process_table(

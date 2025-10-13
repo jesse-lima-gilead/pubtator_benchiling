@@ -98,25 +98,26 @@ def run_extraction(
         )
         logger.info(f"{extracted_articles_count} RFD Articles Extracted Successfully!")
     elif source == "apollo":
-        extracted_articles_count = extract_apollo_articles(
+        extracted_files_to_uuid_map = extract_apollo_articles(
             apollo_path=extraction_path,
             file_handler=file_handler,
             apollo_source_config=source_config,
             source=source,
         )
         logger.info(
-            f"{extracted_articles_count} Apollo Articles Extracted Successfully!"
+            f"{len(extracted_files_to_uuid_map)} Apollo Articles Extracted Successfully!"
         )
 
-        apollo_generate_safe_filename(
-            apollo_path=extraction_path,
-            file_handler=file_handler,
-            source=source,
-        )
-        logger.info(f"Generated Safe file names for Apollo Articles Successfully!")
+        # apollo_generate_safe_filename(
+        #     apollo_path=extraction_path,
+        #     file_handler=file_handler,
+        #     source=source,
+        # )
+        # logger.info(f"Generated Safe file names for Apollo Articles Successfully!")
 
         apollo_articles_metadata_extractor(
             apollo_source_config=source_config,
+            extracted_files_to_uuid_map=extracted_files_to_uuid_map,
             source=source,
         )
         logger.info(f"Generated Metadata files for Apollo Articles Successfully!")

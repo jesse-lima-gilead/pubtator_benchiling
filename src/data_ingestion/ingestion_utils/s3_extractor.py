@@ -1,5 +1,6 @@
 import re
 import unicodedata
+import uuid
 from pathlib import PurePosixPath
 
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
@@ -75,23 +76,30 @@ def extract_from_s3_apollo(
             continue
         filtered_files.append(file_path)
 
+    files_to_uuid_map = {}
+
     for cur_s3_full_path in filtered_files:
         # path where the files are going to be written to in the ingestion directory of HPC
-        cur_src_file = cur_s3_full_path.split("/")[-1]
+        file_extension = cur_s3_full_path.split("/")[-1].split(".")[-1]
+        file_uuid = str(uuid.uuid4())
+        cur_src_file = f"{file_uuid}.{file_extension}"
         cur_staging_path = file_handler.get_file_path(path, cur_src_file)
         # Download to local HPC path
         s3_file_handler.s3_util.download_file(cur_s3_full_path, cur_staging_path)
 
+        # map which has filename to uuid which will be utilised in extract_metadata
+        files_to_uuid_map[cur_s3_full_path] = file_uuid
         logger.info(
             f"File downloaded from S3: {cur_s3_full_path} to local: {cur_staging_path}"
         )
 
     ingested_articles_cnt = len(src_files)
+    logger.info(f"Files downloaded from S3: {ingested_articles_cnt}")
 
-    return ingested_articles_cnt
+    return files_to_uuid_map
 
 
-TEMP_PREFIXES = (r"~\$", r"\.DS_Store", r"Thumbs.db")
+TEMP_PREFIXES = ("~$", ".DS_Store", "Thumbs.db")
 TEMP_EXTS = {".tmp", ".db", ".lnk"}
 
 
