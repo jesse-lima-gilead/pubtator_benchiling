@@ -90,6 +90,13 @@ class PptxTableExtractor:
                     table_name = candidate.strip()
 
         table_name = re.sub(r"[^A-Za-z0-9]", "_", table_name)
+        # Maximum length for table_name in the filename
+        max_table_name_len = 25
+
+        # Truncate table_name if it's too long
+        if len(table_name) > max_table_name_len:
+            table_name = table_name[:max_table_name_len]
+
         return table_id, table_name
 
     def _process_table(
@@ -175,7 +182,7 @@ class PptxTableExtractor:
                                 self.tables_data.append(tdata)
                                 tbl_counter += 1
 
-        if self.write_to_s3:
+        if self.write_to_s3 and tbl_counter > 1:
             pptx_interim_file_upload_counter = 0
             ingestion_interim_path = self.file_handler.get_file_path(
                 self.interim_path, self.source_filename
@@ -211,15 +218,16 @@ class PptxTableExtractor:
         if not self.tables_data:
             return None
         json_list = [{"payload": t} for t in self.tables_data]
+        file_name = f"{self.source_filename}_tables.json"
         json_file = self.file_handler.get_file_path(
-            self.embeddings_output_dir, f"{self.source_filename}_tables.json"
+            self.embeddings_output_dir, file_name
         )
         self.file_handler.write_file_as_json(json_file, json_list)
         logger.info(f"Written {self.source_filename} table embeddings to {json_file}")
 
         if self.write_to_s3:
             s3_file_path = self.s3_file_handler.get_file_path(
-                self.s3_embeddings_path, json_file
+                self.s3_embeddings_path, file_name
             )
             self.s3_file_handler.write_file_as_json(s3_file_path, json_list)
             logger.info(f"Saving table embeddings to S3: {s3_file_path}")

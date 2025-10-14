@@ -1,12 +1,17 @@
-import subprocess
+import subprocess, os
 from pathlib import Path
 from typing import Union, Optional
 
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
+from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
+from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
 
 # Initialize the logger
 logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()
+
+# Initialize the config loader
+config_loader = YAMLConfigLoader()
 
 
 class PandocProcessor:
@@ -16,6 +21,12 @@ class PandocProcessor:
 
     def __init__(self, pandoc_executable: str = "pandoc"):
         self.pandoc_executable = pandoc_executable
+        # Retrieve paths config
+        paths = config_loader.get_config("paths")
+        storage_type = paths["storage"]["type"]
+
+        # Get file handler instance from factory
+        self.file_handler = FileHandlerFactory.get_handler(storage_type)
 
     def convert(
         self,
@@ -23,6 +34,7 @@ class PandocProcessor:
         output_path,
         input_format: str,
         output_format: str,
+        failed_ingestion_path: str,
         template_path=None,
         extract_media_dir: Optional[str | Path] = None,
         extra_args: Optional[list[str]] = None,
@@ -57,4 +69,9 @@ class PandocProcessor:
             subprocess.run(cmd, check=True)
             logger.info(f"Converted {input_path} → {output_path}")
         except Exception as e:
+            failed_file_path = (
+                f"{Path(failed_ingestion_path)}/{os.path.basename(input_path)}"
+            )
+            self.file_handler.move_file(str(input_path), failed_file_path)
+            logger.info(f"Moved Failed File {input_path} to {failed_ingestion_path}")
             logger.error(f"Failed Pandoc Conversion for {input_path}: {e}")

@@ -101,7 +101,7 @@ class S3IOUtil:
             for obj in self.bucket.objects.filter(Prefix=prefix):
                 if not obj.key.endswith("/"):
                     files.append(obj.key)
-            logger.info(f"Files in bucket: {files}")
+            logger.info(f"Number of Files in bucket: {len(files)}")
             return files
         except ClientError as e:
             logger.info(f"Failed to list files: {e}")

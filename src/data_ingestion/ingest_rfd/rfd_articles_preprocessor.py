@@ -45,6 +45,7 @@ def generate_safe_filename(rfd_path: str):
 def convert_rfd_to_html(
     rfd_path: str,
     rfd_interim_path: str,
+    failed_ingestion_path: str,
     input_doc_type: str = "docx",
     output_doc_type: str = "html",
 ):
@@ -71,6 +72,7 @@ def convert_rfd_to_html(
                 output_path=output_doc_path,
                 input_format=input_doc_type,
                 output_format=output_doc_type,
+                failed_ingestion_path=failed_ingestion_path,
                 extract_media_dir=media_dir,
             )
 

@@ -49,6 +49,11 @@ class apolloDOCXIngestor:
             .replace("{workflow_id}", workflow_id)
             .replace("{source}", source)
         )
+        self.failed_ingestion_path = (
+            paths_config["failed_ingestion_path"]
+            .replace("{workflow_id}", workflow_id)
+            .replace("{source}", source)
+        )
         self.bioc_path = (
             paths_config["bioc_path"]
             .replace("{workflow_id}", workflow_id)
@@ -101,10 +106,19 @@ class apolloDOCXIngestor:
             self.s3_embeddings_path = self.s3_paths_config.get(
                 "embeddings_path", ""
             ).replace("{source}", source)
+            self.s3_failed_ingestion_path = self.s3_paths_config.get(
+                "failed_ingestion_path", ""
+            ).replace("{source}", source)
         else:
-            self.s3_pmc_path = (
+            self.s3_apollo_path = (
                 self.s3_bioc_path
-            ) = self.s3_article_metadata_path = self.s3_summary_path = None
+            ) = (
+                self.s3_interim_path
+            ) = (
+                self.s3_article_metadata_path
+            ) = (
+                self.s3_summary_path
+            ) = self.s3_embeddings_path = self.s3_failed_ingestion_path = None
 
     def fetch_metadata_from_s3(self):
         # Extract metadata from apollo Articles
@@ -134,6 +148,7 @@ class apolloDOCXIngestor:
         convert_apollo_to_html(
             apollo_path=self.apollo_path,
             apollo_interim_path=self.ingestion_interim_path,
+            failed_ingestion_path=self.failed_ingestion_path,
             input_doc_type="docx",
             output_doc_type="html",
         )
@@ -154,6 +169,7 @@ class apolloDOCXIngestor:
         converted_articles_count = convert_apollo_html_to_bioc(
             apollo_interim_path=self.ingestion_interim_path,
             bioc_path=self.bioc_path,
+            metadata_path=self.article_metadata_path,
         )
         logger.info(
             f"{converted_articles_count} apollo Articles Converted to BioC Successfully!"
@@ -183,6 +199,8 @@ class apolloDOCXIngestor:
             s3_summary_path=self.s3_summary_path,
             embeddings_path=self.embeddings_path,
             s3_embeddings_path=self.s3_embeddings_path,
+            failed_ingestion_path=self.failed_ingestion_path,
+            s3_failed_ingestion_path=self.s3_failed_ingestion_path,
             file_handler=self.file_handler,
             s3_file_handler=self.s3_file_handler,
         )

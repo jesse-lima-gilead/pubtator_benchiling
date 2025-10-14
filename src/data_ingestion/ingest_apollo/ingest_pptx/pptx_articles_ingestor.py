@@ -1,5 +1,7 @@
 import argparse
 
+from pptx import Presentation
+from lxml.etree import XMLSyntaxError
 from src.data_ingestion.ingest_apollo.ingest_pptx.apollo_pptx_to_bioc_converter import (
     pptx_to_bioc_converter,
 )
@@ -62,6 +64,11 @@ class apolloPPTXIngestor:
             .replace("{workflow_id}", workflow_id)
             .replace("{source}", source)
         )
+        self.failed_ingestion_path = (
+            paths_config["failed_ingestion_path"]
+            .replace("{workflow_id}", workflow_id)
+            .replace("{source}", source)
+        )
         self.file_handler = file_handler
         self.apollo_source_config = apollo_source_config
         self.source = source
@@ -94,6 +101,9 @@ class apolloPPTXIngestor:
             self.s3_embeddings_path = self.s3_paths_config.get(
                 "embeddings_path", ""
             ).replace("{source}", source)
+            self.s3_failed_ingestion_path = self.s3_paths_config.get(
+                "failed_ingestion_path", ""
+            ).replace("{source}", source)
         else:
             self.s3_apollo_path = (
                 self.s3_bioc_path
@@ -101,7 +111,42 @@ class apolloPPTXIngestor:
                 self.s3_article_metadata_path
             ) = (
                 self.s3_summary_path
-            ) = self.s3_interim_path = self.embeddings_path = None
+            ) = (
+                self.s3_interim_path
+            ) = self.embeddings_path = self.s3_failed_ingestion_path = None
+
+    def process_pptx_file(self, apollo_file_path: str):
+        """
+        Try to open PPTX. On failure, move to failed_ingestion_path and return False.
+        On success, return True.
+        """
+        try:
+            prs = Presentation(apollo_file_path)
+            logger.info(f"Successfully opened PPTX: {apollo_file_path}")
+            return True
+        except XMLSyntaxError as e:
+            logger.warning(f"XMLSyntaxError while reading {apollo_file_path}: {e}")
+        except Exception as e:
+            logger.warning(f"Error while reading {apollo_file_path}: {e}")
+
+        # Move failed file to failed_ingestion_path
+        file_name = apollo_file_path.split("/")[-1]
+        dest_path = self.file_handler.get_file_path(
+            self.failed_ingestion_path, file_name
+        )
+
+        self.file_handler.move_file(apollo_file_path, dest_path)
+        logger.info(f"Moved {apollo_file_path} to failed ingestion folder: {dest_path}")
+
+        if self.write_to_s3:
+            s3_dest_path = self.s3_file_handler.get_file_path(
+                self.s3_failed_ingestion_path, file_name
+            )
+            self.s3_file_handler.copy_file_local_to_s3(dest_path, s3_dest_path)
+            logger.info(
+                f"Uploaded {dest_path} to S3 failed ingestion folder: {s3_dest_path}"
+            )
+        return False
 
     def pptx_processor(self):
         logger.info("Processing Preprints Apollo PPTX Articles...")
@@ -111,6 +156,11 @@ class apolloPPTXIngestor:
                 apollo_file_path = self.file_handler.get_file_path(
                     self.apollo_path, file
                 )
+
+                # --- PRE-CHECK: open PPTX safely ---
+                if not self.process_pptx_file(apollo_file_path):
+                    # failed to open, already moved to failed_ingestion_path
+                    continue
 
                 logger.info(f"Started Metadata extraction for {file}")
                 # fetch_metadata
@@ -148,6 +198,17 @@ class apolloPPTXIngestor:
                     self.s3_interim_path,
                     self.s3_file_handler,
                 )
+
+                if self.write_to_s3:
+                    s3_dest_path = self.s3_file_handler.get_file_path(
+                        self.s3_apollo_path, file
+                    )
+                    self.s3_file_handler.copy_file_local_to_s3(
+                        apollo_file_path, s3_dest_path
+                    )
+                    logger.info(
+                        f"Uploaded {apollo_file_path} to S3 ingestion folder: {s3_dest_path}"
+                    )
 
     # Runs the combined process
     def run(

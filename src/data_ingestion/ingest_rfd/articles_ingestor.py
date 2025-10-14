@@ -51,6 +51,11 @@ class RFDIngestor:
             .replace("{workflow_id}", workflow_id)
             .replace("{source}", source)
         )
+        self.failed_ingestion_path = (
+            paths_config["failed_ingestion_path"]
+            .replace("{workflow_id}", workflow_id)
+            .replace("{source}", source)
+        )
         self.bioc_path = (
             paths_config["bioc_path"]
             .replace("{workflow_id}", workflow_id)
@@ -143,6 +148,7 @@ class RFDIngestor:
         convert_rfd_to_html(
             rfd_path=self.rfd_path,
             rfd_interim_path=self.ingestion_interim_path,
+            failed_ingestion_path=self.failed_ingestion_path,
             input_doc_type="docx",
             output_doc_type="html",
         )

@@ -31,6 +31,7 @@ paths_config = paths["storage"][storage_type]
 def convert_apollo_to_html(
     apollo_path: str,
     apollo_interim_path: str,
+    failed_ingestion_path: str,
     input_doc_type: str = "docx",  # ["docx","doc"],
     output_doc_type: str = "html",
 ):
@@ -57,8 +58,10 @@ def convert_apollo_to_html(
                 output_path=output_doc_path,
                 input_format=input_doc_type,
                 output_format=output_doc_type,
+                failed_ingestion_path=failed_ingestion_path,
                 extract_media_dir=media_dir,
             )
+            #file_handler.move_file(apollo_doc, output_doc_path)
 
 
 def extract_tables_from_apollo_html(
@@ -93,7 +96,8 @@ def extract_tables_from_apollo_html(
             # Save table details as JSON
             logger.info(f"Saving extracted table details to JSON...")
             file_path = f"{apollo_embeddings_path}/{apollo_html_dir}_tables.json"
-            file_handler.write_file_as_json(file_path=file_path, data=table_details)
+            #file_handler.write_file_as_json(file_path=file_path, data=table_details)
+            file_handler.write_file_as_json(file_path=file_path, content=table_details)
             logger.info(f"Table details saved to {file_path}")
 
             # Write back modified HTML with flat table text

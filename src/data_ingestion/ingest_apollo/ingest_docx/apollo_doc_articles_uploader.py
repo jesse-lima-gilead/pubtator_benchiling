@@ -23,10 +23,58 @@ def upload_apollo_articles(
     s3_summary_path: str,
     embeddings_path: str,
     s3_embeddings_path: str,
+    failed_ingestion_path: str,
+    s3_failed_ingestion_path: str,
     file_handler: FileHandler,
     s3_file_handler: FileHandler,
 ):
     file_upload_counter = 0
+
+    # Upload the Apollo DocX Files to S3
+    logger.info(f"Uploading Apollo DocX Ingestion Files to S3")
+    apollo_docx_upload_counter = 0
+    for apollo_docx in file_handler.list_files(apollo_path):
+        if apollo_docx.endswith(".docx"):
+            local_file_path = file_handler.get_file_path(apollo_path, apollo_docx)
+            s3_file_path = s3_file_handler.get_file_path(s3_apollo_path, apollo_docx)
+            logger.info(f"Uploading file {apollo_docx} to S3 path {s3_file_path}")
+            upload_to_s3(
+                local_path=local_file_path,
+                s3_path=s3_file_path,
+                s3_file_handler=s3_file_handler,
+            )
+            apollo_docx_upload_counter += 1
+        else:
+            logger.warning(f"Skipping file: {apollo_docx} for S3 upload")
+    logger.info(f"Total Apollo DocX Files uploaded to S3: {apollo_docx_upload_counter}")
+    file_upload_counter += apollo_docx_upload_counter
+
+    # Upload the Apollo DocX Files to S3
+    logger.info(f"Uploading Apollo DocX Failed Ingestion Files to S3")
+    apollo_failed_docx_upload_counter = 0
+    for apollo_docx_failed in file_handler.list_files(failed_ingestion_path):
+        if apollo_docx_failed.endswith(".docx"):
+            local_file_path = file_handler.get_file_path(
+                failed_ingestion_path, apollo_docx_failed
+            )
+            s3_file_path = s3_file_handler.get_file_path(
+                s3_failed_ingestion_path, apollo_docx_failed
+            )
+            logger.info(
+                f"Uploading file {apollo_docx_failed} to S3 path {s3_file_path}"
+            )
+            upload_to_s3(
+                local_path=local_file_path,
+                s3_path=s3_file_path,
+                s3_file_handler=s3_file_handler,
+            )
+            apollo_failed_docx_upload_counter += 1
+        else:
+            logger.warning(f"Skipping file: {apollo_docx_failed} for S3 upload")
+    logger.info(
+        f"Total Apollo DocX Ingestion Failed Files uploaded to S3: {apollo_failed_docx_upload_counter}"
+    )
+    file_upload_counter += apollo_failed_docx_upload_counter
 
     # Upload the BioC XML Files to S3
     logger.info(f"Uploading BioC XML Files to S3")
