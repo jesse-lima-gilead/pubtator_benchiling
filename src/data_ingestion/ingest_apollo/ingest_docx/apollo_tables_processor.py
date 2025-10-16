@@ -449,7 +449,7 @@ def process_tables(
                     "table_sequence": idx,
                     "table_id": str(uuid.uuid4()),
                     "chunk_processing_date": datetime.now().date().isoformat(),
-                    "article_id": source_filename,
+                    "article_id": article_metadata.get("full_path", source_filename),
                     "article_table_id": article_table_id,  # e.g. "Table 1"
                     "table_name": table_name,  # e.g. "Table 1. Aspirational Profile..."
                     "table_keywords": extract_keywords_from_table(

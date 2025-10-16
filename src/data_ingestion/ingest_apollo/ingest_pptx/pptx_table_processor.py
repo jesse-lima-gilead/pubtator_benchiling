@@ -134,7 +134,7 @@ class PptxTableExtractor:
             "slide_index": slide_idx,
             "table_id": str(uuid.uuid4()),
             "chunk_processing_date": datetime.now().date().isoformat(),
-            "article_id": self.source_filename,
+            "article_id": metadata_fields.get("full_path", self.source_filename),
             "article_table_id": table_id,
             "table_name": table_name,
             "slide_text": slide_text,

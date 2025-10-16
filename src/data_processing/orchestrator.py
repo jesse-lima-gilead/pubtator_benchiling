@@ -317,7 +317,6 @@ class ArticleProcessor:
                     if self.write_to_s3
                     else None
                 )
-                article_id = article_file.split(".")[0]
                 article_metadata_file_name = f"{article_id}_metadata.json"
                 article_metadata_file_path = self.file_handler.get_file_path(
                     self.articles_metadata_dir, article_metadata_file_name
@@ -325,6 +324,10 @@ class ArticleProcessor:
                 article_metadata_json = self.file_handler.read_json_file(
                     article_metadata_file_path
                 )
+                article_id = article_file.split(".")[0]
+                # For apollo source alone we have file names has uuid's, instead of that we need the actual file name
+                if self.source == "apollo":
+                    article_id = article_metadata_json.get("full_path", article_id)
                 # For Actual Processing
                 chunks = self.get_chunks_with_summary(
                     input_file_path=input_file_path, article_file=article_file
