@@ -317,6 +317,7 @@ class ArticleProcessor:
                     if self.write_to_s3
                     else None
                 )
+                article_id = article_file.split(".")[0]
                 article_metadata_file_name = f"{article_id}_metadata.json"
                 article_metadata_file_path = self.file_handler.get_file_path(
                     self.articles_metadata_dir, article_metadata_file_name
@@ -324,10 +325,6 @@ class ArticleProcessor:
                 article_metadata_json = self.file_handler.read_json_file(
                     article_metadata_file_path
                 )
-                article_id = article_file.split(".")[0]
-                # For apollo source alone we have file names has uuid's, instead of that we need the actual file name
-                if self.source == "apollo":
-                    article_id = article_metadata_json.get("full_path", article_id)
                 # For Actual Processing
                 chunks = self.get_chunks_with_summary(
                     input_file_path=input_file_path, article_file=article_file
@@ -407,7 +404,11 @@ class ArticleProcessor:
                             # "embeddings_model": embeddings_model,
                             # "aioner_model": aioner_model,
                             # "gnorm2_model": gnorm2_model,
-                            "article_id": article_id,
+                            "article_id": article_metadata_json.get(
+                                "full_path", article_id
+                            )
+                            if self.source == "apollo"
+                            else article_id,
                             "source": self.source,
                             "workflow_id": self.workflow_id,
                             "chunk_type": "article_chunk",
@@ -479,6 +480,11 @@ class ArticleProcessor:
         tag_name: str = "merged_text",
     ):
         try:
+            if chunks is None or len(chunks) == 0:
+                logger.info(
+                    "Input Chunks is None or Empty, so Skipping creating Embeddings"
+                )
+                return []
             logger.info("Generating embeddings for the chunks")
             chunk_texts = []
             skip_embedding = None
@@ -566,7 +572,7 @@ class ArticleProcessor:
                 chunks = self.file_handler.read_json_file(chunk_file_path)
 
                 if store_embeddings_as_file:
-                    if "smile" in chunks[0].keys():
+                    if len(chunks) > 0 and "smile" in chunks[0].keys():
                         self.embeddings_model = "chemberta"
                         embeddings_details = self.get_chunks_embeddings_details(
                             chunks=chunks,
