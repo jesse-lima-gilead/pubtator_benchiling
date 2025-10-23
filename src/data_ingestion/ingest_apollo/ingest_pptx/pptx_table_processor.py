@@ -182,35 +182,35 @@ class PptxTableExtractor:
                                 self.tables_data.append(tdata)
                                 tbl_counter += 1
 
-        if self.write_to_s3 and tbl_counter > 1:
-            pptx_interim_file_upload_counter = 0
-            ingestion_interim_path = self.file_handler.get_file_path(
-                self.interim_path, self.source_filename
-            )
-            s3_ingestion_interim_path = self.s3_file_handler.get_file_path(
-                self.s3_interim_path, self.source_filename
-            )
-            for pptx_interim_file in self.file_handler.list_files(
-                ingestion_interim_path
-            ):
-                local_file_path = self.file_handler.get_file_path(
-                    ingestion_interim_path, pptx_interim_file
-                )
-                s3_file_path = self.s3_file_handler.get_file_path(
-                    s3_ingestion_interim_path, pptx_interim_file
-                )
-                logger.info(
-                    f"Uploading file {pptx_interim_file} to S3 path {s3_file_path}"
-                )
-                upload_to_s3(
-                    local_path=local_file_path,
-                    s3_path=s3_file_path,
-                    s3_file_handler=self.s3_file_handler,
-                )
-                pptx_interim_file_upload_counter += 1
-            logger.info(
-                f"For {self.source_filename}.pptx, Total Interim Files uploaded to S3: {pptx_interim_file_upload_counter}"
-            )
+        # if self.write_to_s3 and tbl_counter > 1:
+        #     pptx_interim_file_upload_counter = 0
+        #     ingestion_interim_path = self.file_handler.get_file_path(
+        #         self.interim_path, self.source_filename
+        #     )
+        #     s3_ingestion_interim_path = self.s3_file_handler.get_file_path(
+        #         self.s3_interim_path, self.source_filename
+        #     )
+        #     for pptx_interim_file in self.file_handler.list_files(
+        #         ingestion_interim_path
+        #     ):
+        #         local_file_path = self.file_handler.get_file_path(
+        #             ingestion_interim_path, pptx_interim_file
+        #         )
+        #         s3_file_path = self.s3_file_handler.get_file_path(
+        #             s3_ingestion_interim_path, pptx_interim_file
+        #         )
+        #         logger.info(
+        #             f"Uploading file {pptx_interim_file} to S3 path {s3_file_path}"
+        #         )
+        #         upload_to_s3(
+        #             local_path=local_file_path,
+        #             s3_path=s3_file_path,
+        #             s3_file_handler=self.s3_file_handler,
+        #         )
+        #         pptx_interim_file_upload_counter += 1
+        #     logger.info(
+        #         f"For {self.source_filename}.pptx, Total Interim Files uploaded to S3: {pptx_interim_file_upload_counter}"
+        #     )
 
         return self.tables_data
 
@@ -225,12 +225,12 @@ class PptxTableExtractor:
         self.file_handler.write_file_as_json(json_file, json_list)
         logger.info(f"Written {self.source_filename} table embeddings to {json_file}")
 
-        if self.write_to_s3:
-            s3_file_path = self.s3_file_handler.get_file_path(
-                self.s3_embeddings_path, file_name
-            )
-            self.s3_file_handler.write_file_as_json(s3_file_path, json_list)
-            logger.info(f"Saving table embeddings to S3: {s3_file_path}")
+        # if self.write_to_s3:
+        #     s3_file_path = self.s3_file_handler.get_file_path(
+        #         self.s3_embeddings_path, file_name
+        #     )
+        #     self.s3_file_handler.write_file_as_json(s3_file_path, json_list)
+        #     logger.info(f"Saving table embeddings to S3: {s3_file_path}")
 
 
 def extract_pptx_tables(

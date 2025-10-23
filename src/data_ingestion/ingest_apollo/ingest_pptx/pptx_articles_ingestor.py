@@ -138,83 +138,83 @@ class apolloPPTXIngestor:
         self.file_handler.move_file(apollo_file_path, dest_path)
         logger.info(f"Moved {apollo_file_path} to failed ingestion folder: {dest_path}")
 
-        if self.write_to_s3:
-            s3_dest_path = self.s3_file_handler.get_file_path(
-                self.s3_failed_ingestion_path, file_name
-            )
-            self.s3_file_handler.copy_file_local_to_s3(dest_path, s3_dest_path)
-            logger.info(
-                f"Uploaded {dest_path} to S3 failed ingestion folder: {s3_dest_path}"
-            )
+        ##Upload to S3 made common across Apollo Docs
+        # if self.write_to_s3:
+        #     s3_dest_path = self.s3_file_handler.get_file_path(
+        #         self.s3_failed_ingestion_path, file_name
+        #     )
+        #     self.s3_file_handler.copy_file_local_to_s3(dest_path, s3_dest_path)
+        #     logger.info(
+        #         f"Uploaded {dest_path} to S3 failed ingestion folder: {s3_dest_path}"
+        #     )
         return False
 
-    def pptx_processor(self):
-        logger.info("Processing Preprints Apollo PPTX Articles...")
+    def pptx_processor(self, file: str):
+        logger.info(f"Started PPTX Processing for {file}")
 
-        for file in self.file_handler.list_files(self.apollo_path):
-            if file.endswith(".pptx"):
-                apollo_file_path = self.file_handler.get_file_path(
-                    self.apollo_path, file
-                )
+        if file.endswith(".pptx"):
+            apollo_file_path = self.file_handler.get_file_path(self.apollo_path, file)
 
-                # --- PRE-CHECK: open PPTX safely ---
-                if not self.process_pptx_file(apollo_file_path):
-                    # failed to open, already moved to failed_ingestion_path
-                    continue
+            # --- PRE-CHECK: open PPTX safely ---
+            if not self.process_pptx_file(apollo_file_path=apollo_file_path):
+                # failed to open, already moved to failed_ingestion_path
+                return
 
-                logger.info(f"Started Metadata extraction for {file}")
-                # fetch_metadata
-                metadata_fields = metadata_extractor(
-                    file,
-                    self.article_metadata_path,
-                    self.file_handler,
-                    self.s3_article_metadata_path,
-                    self.s3_file_handler,
-                )
+            logger.info(f"Started Metadata extraction for {file}")
+            # fetch_metadata
+            metadata_fields = metadata_extractor(
+                file=file,
+                article_metadata_path=self.article_metadata_path,
+                local_file_handler=self.file_handler,
+                s3_article_metadata_path=self.s3_article_metadata_path,
+                s3_file_handler=self.s3_file_handler,
+            )
 
-                logger.info(f"Started PPTX to BioC conversion for {file}")
-                # pptx to bioc conversion
-                pptx_to_bioc_converter(
-                    self.file_handler,
-                    file,
-                    self.apollo_path,
-                    self.bioc_path,
-                    metadata_fields,
-                    self.write_to_s3,
-                    self.s3_bioc_path,
-                    self.s3_file_handler,
-                )
+            logger.info(f"Started PPTX to BioC conversion for {file}")
+            # pptx to bioc conversion
+            pptx_to_bioc_converter(
+                file_handler=self.file_handler,
+                internal_doc_name=file,
+                internal_docs_path=self.apollo_path,
+                bioc_path=self.bioc_path,
+                metadata_fields=metadata_fields,
+                write_to_s3=self.write_to_s3,
+                s3_bioc_path=self.s3_bioc_path,
+                s3_file_handler=self.s3_file_handler,
+            )
 
-                logger.info(f"Started Table extraction for {file}")
-                # extract table
-                extract_pptx_tables(
-                    self.file_handler,
-                    apollo_file_path,
-                    self.ingestion_interim_path,
-                    self.embeddings_path,
-                    metadata_fields,
-                    self.write_to_s3,
-                    self.s3_embeddings_path,
-                    self.s3_interim_path,
-                    self.s3_file_handler,
-                )
+            logger.info(f"Started Table extraction for {file}")
+            # extract table
+            extract_pptx_tables(
+                file_handler=self.file_handler,
+                pptx_path=apollo_file_path,
+                interim_dir=self.ingestion_interim_path,
+                embeddings_dir=self.embeddings_path,
+                bioc_metadata_fields=metadata_fields,
+                write_to_s3=self.write_to_s3,
+                s3_embeddings_path=self.s3_embeddings_path,
+                s3_interim_path=self.s3_interim_path,
+                s3_file_handler=self.s3_file_handler,
+            )
+            logger.info(f"Completed PPTX Processing for {file}")
 
-                if self.write_to_s3:
-                    s3_dest_path = self.s3_file_handler.get_file_path(
-                        self.s3_apollo_path, file
-                    )
-                    self.s3_file_handler.copy_file_local_to_s3(
-                        apollo_file_path, s3_dest_path
-                    )
-                    logger.info(
-                        f"Uploaded {apollo_file_path} to S3 ingestion folder: {s3_dest_path}"
-                    )
+            ##Upload to S3 made common across Apollo Docs
+            # if self.write_to_s3:
+            #     s3_dest_path = self.s3_file_handler.get_file_path(
+            #         self.s3_apollo_path, file
+            #     )
+            #     self.s3_file_handler.copy_file_local_to_s3(
+            #         apollo_file_path, s3_dest_path
+            #     )
+            #     logger.info(
+            #         f"Uploaded {apollo_file_path} to S3 ingestion folder: {s3_dest_path}"
+            #     )
+        else:
+            logger.error(f"{file} is not a PPTX file.")
 
     # Runs the combined process
-    def run(
-        self,
-    ):
-        self.pptx_processor()
+    def run(self, file_name: str):
+        self.pptx_processor(file=file_name)
 
 
 def main():

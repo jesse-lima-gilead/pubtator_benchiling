@@ -146,12 +146,12 @@ class PptxProcessor:
         file_handler.write_file_as_bioc(xml_path, col_with_merged_passages)
         logger.info(f"Wrote BioC XML for {pptx_path} -> {xml_path}")
 
-        # optionally write to S3
-        if write_to_s3:
-            bioc_file_name = Path(xml_path).name
-            s3_file_path = s3_file_handler.get_file_path(s3_bioc_path, bioc_file_name)
-            s3_file_handler.write_file_as_bioc(s3_file_path, col_with_merged_passages)
-            logger.info(f"Saving BioC XML to S3: {s3_file_path}")
+        # # optionally write to S3
+        # if write_to_s3:
+        #     bioc_file_name = Path(xml_path).name
+        #     s3_file_path = s3_file_handler.get_file_path(s3_bioc_path, bioc_file_name)
+        #     s3_file_handler.write_file_as_bioc(s3_file_path, col_with_merged_passages)
+        #     logger.info(f"Saving BioC XML to S3: {s3_file_path}")
 
     def run(
         self,

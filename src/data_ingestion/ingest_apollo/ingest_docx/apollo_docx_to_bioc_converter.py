@@ -1035,32 +1035,33 @@ def html_to_bioc_file(
 
 
 def convert_apollo_html_to_bioc(
-    apollo_interim_path: str, bioc_path: str, metadata_path: str
+    apollo_file_name: str, apollo_interim_path: str, bioc_path: str, metadata_path: str
 ):
-    converted_articles_count = 0
-    for apollo_html_dir in os.listdir(apollo_interim_path):
-        apollo_html_dir_path = Path(apollo_interim_path) / apollo_html_dir
-        apollo_html_file_path = apollo_html_dir_path / (apollo_html_dir + ".html")
-        apollo_html_file_name = apollo_html_dir + ".html"
-        apollo_bioc_xml_file_path = Path(bioc_path) / (apollo_html_dir + ".xml")
-        if os.path.exists(apollo_html_file_path):
-            logger.info(f"HTML file found: {apollo_html_file_name}")
-            logger.info(f"Converting {apollo_html_file_name} -> BioC XML")
+    apollo_html_dir = apollo_file_name.replace(".docx", "")
+    apollo_html_dir_path = Path(apollo_interim_path) / apollo_html_dir
+    apollo_html_file_path = apollo_html_dir_path / (apollo_html_dir + ".html")
+    apollo_html_file_name = apollo_html_dir + ".html"
+    apollo_bioc_xml_file_path = Path(bioc_path) / (apollo_html_dir + ".xml")
+    if os.path.exists(apollo_html_file_path):
+        logger.info(f"HTML file found: {apollo_html_file_name}")
+        logger.info(f"Converting {apollo_html_file_name} -> BioC XML")
 
-            source_filename = apollo_html_file_name.replace(".html", "")
-            article_metadata = get_article_metadata(
-                article_name=source_filename, article_metadata_path=metadata_path
-            )
+        source_filename = apollo_html_file_name.replace(".html", "")
+        article_metadata = get_article_metadata(
+            article_name=source_filename, article_metadata_path=metadata_path
+        )
 
-            conversion_status = html_to_bioc_file(
-                html_path=str(apollo_html_file_path),
-                xml_path=str(apollo_bioc_xml_file_path),
-                file_handler=file_handler,
-                article_metadata=article_metadata,
-            )
-            converted_articles_count += conversion_status
+        conversion_status = html_to_bioc_file(
+            html_path=str(apollo_html_file_path),
+            xml_path=str(apollo_bioc_xml_file_path),
+            file_handler=file_handler,
+            article_metadata=article_metadata,
+        )
+        if conversion_status == 1:
+            logger.info(f"Successfully Converted {apollo_html_file_name} -> BioC XML")
         else:
-            logger.warning(
-                f"HTML file not found: {apollo_html_file_name}, skipping conversion."
-            )
-    return converted_articles_count
+            logger.error(f"BioC XML conversion failed for {apollo_html_file_name}")
+    else:
+        logger.warning(
+            f"HTML file not found: {apollo_html_file_name}, skipping conversion."
+        )

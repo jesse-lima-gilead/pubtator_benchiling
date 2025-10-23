@@ -120,59 +120,53 @@ class apolloDOCXIngestor:
                 self.s3_summary_path
             ) = self.s3_embeddings_path = self.s3_failed_ingestion_path = None
 
-    def fetch_metadata_from_s3(self):
+    def fetch_metadata_from_s3(self, apollo_doc: str):
         # Extract metadata from apollo Articles
-        logger.info("Fetching metadata for Apollo Docx Articles from S3...")
-        docx_article_metadata_extraction_cnt = 0
-        for apollo_doc in self.file_handler.list_files(self.apollo_path):
-            if apollo_doc.endswith(".docx") and not apollo_doc.startswith("~$"):
-                apollo_doc_metadata = metadata_extractor(
-                    file=apollo_doc,
-                    article_metadata_path=self.article_metadata_path,
-                    local_file_handler=self.file_handler,
-                    s3_article_metadata_path=self.s3_article_metadata_path,
-                    s3_file_handler=self.s3_file_handler,
-                )
-                if apollo_doc_metadata:
-                    docx_article_metadata_extraction_cnt += 1
-                    logger.info(f"Metadata extracted for {apollo_doc}")
-                else:
-                    logger.info(f"No metadata extracted for {apollo_doc}")
-        logger.info(
-            f"Metadata extracted for {docx_article_metadata_extraction_cnt} Apollo Docx Articles from S3 Successfully!"
-        )
+        logger.info(f"Fetching metadata for {apollo_doc} from S3...")
+        if apollo_doc.endswith(".docx") and not apollo_doc.startswith("~$"):
+            apollo_doc_metadata = metadata_extractor(
+                file=apollo_doc,
+                article_metadata_path=self.article_metadata_path,
+                local_file_handler=self.file_handler,
+                s3_article_metadata_path=self.s3_article_metadata_path,
+                s3_file_handler=self.s3_file_handler,
+            )
+            if apollo_doc_metadata:
+                logger.info(f"Metadata extracted for {apollo_doc}")
+            else:
+                logger.info(f"No metadata extracted for {apollo_doc}")
+        else:
+            logger.error(f"{apollo_doc} is not a DocX file.")
 
-    def apollo_articles_preprocessor(self):
+    def apollo_articles_preprocessor(self, file_name: str):
         # Convert apollo Articles from docx to html
-        logger.info("Converting apollo Articles from docx to html...")
+        logger.info(f"Converting apollo Articles from docx to html for {file_name}")
         convert_apollo_to_html(
+            apollo_doc=file_name,
             apollo_path=self.apollo_path,
             apollo_interim_path=self.ingestion_interim_path,
             failed_ingestion_path=self.failed_ingestion_path,
             input_doc_type="docx",
             output_doc_type="html",
         )
-        logger.info(f"apollo Articles Converted to HTML Successfully!")
 
         # Extract Tables from apollo HTML Articles
-        logger.info("Extracting Tables from apollo HTML Articles...")
+        logger.info(f"Extracting Tables from apollo HTML Articles for {file_name}")
         extract_tables_from_apollo_html(
+            apollo_file_name=file_name,
             apollo_interim_path=self.ingestion_interim_path,
             apollo_metadata_path=self.article_metadata_path,
             apollo_embeddings_path=self.embeddings_path,
         )
-        logger.info(f"Tables Extracted from apollo HTML Articles Successfully!")
 
-    def apollo_html_to_bioc_converter(self):
+    def apollo_html_to_bioc_converter(self, file_name: str):
         # Convert apollo HTML Articles to BioC XML
-        logger.info(f"Converting apollo HTML Articles to BioC XML...")
-        converted_articles_count = convert_apollo_html_to_bioc(
+        logger.info(f"Converting apollo HTML Articles to BioC XML for {file_name}")
+        convert_apollo_html_to_bioc(
+            apollo_file_name=file_name,
             apollo_interim_path=self.ingestion_interim_path,
             bioc_path=self.bioc_path,
             metadata_path=self.article_metadata_path,
-        )
-        logger.info(
-            f"{converted_articles_count} apollo Articles Converted to BioC Successfully!"
         )
 
     #
@@ -186,36 +180,39 @@ class apolloDOCXIngestor:
     #     )
     #     logger.info(f"Summary generated for {apollo_summaries_count} apollo Articles!")
     #
-    def upload_to_s3(self):
-        logger.info(f"Uploading {self.bioc_path} to S3...")
-        uploaded_articles_count = upload_apollo_articles(
-            apollo_path=self.apollo_path,
-            s3_apollo_path=self.s3_apollo_path,
-            bioc_path=self.bioc_path,
-            s3_bioc_path=self.s3_bioc_path,
-            interim_path=self.ingestion_interim_path,
-            s3_interim_path=self.s3_interim_path,
-            summary_path=self.summary_path,
-            s3_summary_path=self.s3_summary_path,
-            embeddings_path=self.embeddings_path,
-            s3_embeddings_path=self.s3_embeddings_path,
-            failed_ingestion_path=self.failed_ingestion_path,
-            s3_failed_ingestion_path=self.s3_failed_ingestion_path,
-            file_handler=self.file_handler,
-            s3_file_handler=self.s3_file_handler,
-        )
-        logger.info(
-            f"{uploaded_articles_count} Processed apollo Files uploaded to S3 Successfully!"
-        )
+
+    ##Upload to S3 made common across Apollo Docs
+    # def upload_to_s3(self):
+    #     logger.info(f"Uploading {self.bioc_path} to S3...")
+    #     uploaded_articles_count = upload_apollo_articles(
+    #         apollo_path=self.apollo_path,
+    #         s3_apollo_path=self.s3_apollo_path,
+    #         bioc_path=self.bioc_path,
+    #         s3_bioc_path=self.s3_bioc_path,
+    #         interim_path=self.ingestion_interim_path,
+    #         s3_interim_path=self.s3_interim_path,
+    #         summary_path=self.summary_path,
+    #         s3_summary_path=self.s3_summary_path,
+    #         embeddings_path=self.embeddings_path,
+    #         s3_embeddings_path=self.s3_embeddings_path,
+    #         failed_ingestion_path=self.failed_ingestion_path,
+    #         s3_failed_ingestion_path=self.s3_failed_ingestion_path,
+    #         file_handler=self.file_handler,
+    #         s3_file_handler=self.s3_file_handler,
+    #     )
+    #     logger.info(
+    #         f"{uploaded_articles_count} Processed apollo Files uploaded to S3 Successfully!"
+    #     )
 
     # Runs the combined process
     def run(
         self,
+        file_name: str,
     ):
-        self.fetch_metadata_from_s3()
-        self.apollo_articles_preprocessor()
-        self.apollo_html_to_bioc_converter()
-        self.upload_to_s3()
+        self.fetch_metadata_from_s3(file_name)
+        self.apollo_articles_preprocessor(file_name)
+        self.apollo_html_to_bioc_converter(file_name)
+        # self.upload_to_s3()
 
 
 def main():
