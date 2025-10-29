@@ -68,32 +68,32 @@ def upload_apollo_articles(
     )
     file_upload_counter += apollo_failed_docx_upload_counter
 
-    # Upload the Summary Files to S3
-    logger.info(f"Uploading Apollo Summary Files to S3")
-    apollo_summary_upload_counter = 0
-    for apollo_summary_file in file_handler.list_files(summary_path):
-        if apollo_summary_file.endswith(".txt"):
-            local_file_path = file_handler.get_file_path(
-                summary_path, apollo_summary_file
-            )
-            s3_file_path = s3_file_handler.get_file_path(
-                s3_summary_path, apollo_summary_file
-            )
-            logger.info(
-                f"Uploading file {apollo_summary_file} to S3 path {s3_file_path}"
-            )
-            upload_to_s3(
-                local_path=local_file_path,
-                s3_path=s3_file_path,
-                s3_file_handler=s3_file_handler,
-            )
-            apollo_summary_upload_counter += 1
-        else:
-            logger.warning(f"Skipping file: {apollo_summary_file} for S3 upload")
-    logger.info(
-        f"Total Apollo Summary Files uploaded to S3: {apollo_summary_upload_counter}"
-    )
-    file_upload_counter += apollo_summary_upload_counter
+    # # Upload the Summary Files to S3
+    # logger.info(f"Uploading Apollo Summary Files to S3")
+    # apollo_summary_upload_counter = 0
+    # for apollo_summary_file in file_handler.list_files(summary_path):
+    #     if apollo_summary_file.endswith(".txt"):
+    #         local_file_path = file_handler.get_file_path(
+    #             summary_path, apollo_summary_file
+    #         )
+    #         s3_file_path = s3_file_handler.get_file_path(
+    #             s3_summary_path, apollo_summary_file
+    #         )
+    #         logger.info(
+    #             f"Uploading file {apollo_summary_file} to S3 path {s3_file_path}"
+    #         )
+    #         upload_to_s3(
+    #             local_path=local_file_path,
+    #             s3_path=s3_file_path,
+    #             s3_file_handler=s3_file_handler,
+    #         )
+    #         apollo_summary_upload_counter += 1
+    #     else:
+    #         logger.warning(f"Skipping file: {apollo_summary_file} for S3 upload")
+    # logger.info(
+    #     f"Total Apollo Summary Files uploaded to S3: {apollo_summary_upload_counter}"
+    # )
+    # file_upload_counter += apollo_summary_upload_counter
 
     # Upload the BioC XML Files to S3
     logger.info(f"Uploading Apollo BioC XML Files to S3")

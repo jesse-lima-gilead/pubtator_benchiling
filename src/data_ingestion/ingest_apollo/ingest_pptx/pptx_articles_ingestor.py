@@ -113,7 +113,7 @@ class apolloPPTXIngestor:
                 self.s3_summary_path
             ) = (
                 self.s3_interim_path
-            ) = self.embeddings_path = self.s3_failed_ingestion_path = None
+            ) = self.s3_embeddings_path = self.s3_failed_ingestion_path = None
 
     def process_pptx_file(self, apollo_file_path: str):
         """
