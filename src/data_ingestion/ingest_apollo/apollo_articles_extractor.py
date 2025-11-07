@@ -18,6 +18,7 @@ def extract_apollo_articles(
     file_handler: FileHandler,
     apollo_source_config: dict,
     source: str,
+    file_type: str = "all",
 ):
     source_type = apollo_source_config["type"]
 
@@ -25,7 +26,7 @@ def extract_apollo_articles(
         s3_src_path = apollo_source_config["s3_src_path"]
         # call the S3 extractor
         extracted_files_to_uuid_map = extract_from_s3_apollo(
-            apollo_path, file_handler, source, source_type, s3_src_path
+            apollo_path, file_handler, source, source_type, s3_src_path, file_type
         )
         return extracted_files_to_uuid_map
     elif source_type == "API":
@@ -58,38 +59,3 @@ def make_safe_filename(filename: str, max_len: Optional[int] = None) -> str:
         safe_stem = "file"
 
     return f"{safe_stem}{ext}"
-
-
-def apollo_generate_safe_filename(
-    apollo_path: str,
-    file_handler: FileHandler,
-    source: str = "apollo",
-):
-    # Initialize the config loader
-    config_loader = YAMLConfigLoader()
-
-    # Retrieve paths config
-    paths_config = config_loader.get_config("paths")
-    storage_type = "s3"
-    # Get file handler instance from factory
-    s3_file_handler = FileHandlerFactory.get_handler(storage_type)
-    # Retrieve paths from config
-    s3_paths = paths_config["storage"][storage_type]
-    # Source S3 data path
-    src_data_path = s3_paths["ingestion_path"].replace("{source}", source)
-
-    logger.info(f"Generating Safe FileNames for Apollo ...")
-    for internal_doc_name in file_handler.list_files(apollo_path):
-        # Replace all the special chars in the file name with '_'
-        safe_doc_name = make_safe_filename(internal_doc_name)
-        org_raw_path = file_handler.get_file_path(apollo_path, internal_doc_name)
-        safe_path = file_handler.get_file_path(apollo_path, safe_doc_name)
-
-        file_handler.move_file(org_raw_path, safe_path)
-
-        # Upload to S3 Data Ingestion path all the safe files
-        # path of the source s3 key
-        cur_s3_full_path = s3_file_handler.get_file_path(src_data_path, safe_doc_name)
-        s3_file_handler.copy_file_local_to_s3(safe_path, cur_s3_full_path)
-
-        logger.info(f"Generated Safe FileNames for {org_raw_path} to {safe_path}")

@@ -30,24 +30,24 @@ def upload_rfd_articles(
 ):
     file_upload_counter = 0
 
-    # # Re-Write the Original RFD Files with Safe File Names to S3
-    # logger.info(f"Uploading RFD Files with Safe File Names to S3")
-    # rfd_doc_upload_counter = 0
-    # for rfd_doc in file_handler.list_files(rfd_path):
-    #     if rfd_doc.endswith(".json") and not rfd_doc.startswith("~$"):
-    #         local_file_path = file_handler.get_file_path(rfd_path, rfd_doc)
-    #         s3_file_path = file_handler.get_file_path(s3_rfd_path, rfd_doc)
-    #         logger.info(f"Uploading file {local_file_path} to S3 path {s3_file_path}")
-    #         upload_to_s3(
-    #             local_path=local_file_path,
-    #             s3_path=s3_file_path,
-    #             s3_file_handler=s3_file_handler,
-    #         )
-    #         rfd_doc_upload_counter += 1
-    #     else:
-    #         logger.warning(f"Skipping file: {rfd_doc} for S3 upload")
-    # logger.info(f"Total RFD Files uploaded to S3: {rfd_doc_upload_counter}")
-    # file_upload_counter += rfd_doc_upload_counter
+    # Write the Original RFD Files with Safe File Names to S3 data ingestion Path
+    logger.info(f"Uploading RFD Files with Safe File Names to S3")
+    rfd_doc_upload_counter = 0
+    for rfd_doc in file_handler.list_files(rfd_path):
+        if rfd_doc.endswith(".docx") and not rfd_doc.startswith("~$"):
+            local_file_path = file_handler.get_file_path(rfd_path, rfd_doc)
+            s3_file_path = s3_file_handler.get_file_path(s3_rfd_path, rfd_doc)
+            logger.info(f"Uploading file {local_file_path} to S3 path {s3_file_path}")
+            upload_to_s3(
+                local_path=local_file_path,
+                s3_path=s3_file_path,
+                s3_file_handler=s3_file_handler,
+            )
+            rfd_doc_upload_counter += 1
+        else:
+            logger.warning(f"Skipping file: {rfd_doc} for S3 upload")
+    logger.info(f"Total RFD Files uploaded to S3: {rfd_doc_upload_counter}")
+    file_upload_counter += rfd_doc_upload_counter
 
     # Upload the BioC XML Files to S3
     logger.info(f"Uploading BioC XML Files to S3")

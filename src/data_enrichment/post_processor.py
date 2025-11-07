@@ -1,6 +1,7 @@
 import argparse
 import os
 import xml.etree.ElementTree as ET
+import traceback
 
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
@@ -253,13 +254,14 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Ingest articles",
-        epilog="Example: python3 -m src.data_enrichment.post_processor --workflow_id workflow123 --source ct",
+        epilog="Example: python3 -m src.data_enrichment.post_processor --workflow_id workflow123 --source ct --write_to_s3 true",
     )
 
     parser.add_argument(
         "--workflow_id",
         "-wid",
         type=str,
+        required=True,
         help="Workflow ID of JIT pipeline run",
     )
 
@@ -267,7 +269,18 @@ def main():
         "--source",
         "-src",
         type=str,
-        help="Article source (e.g., pmc, ct, rfd etc.)",
+        required=True,
+        choices=["pmc", "ct", "preprint", "rfd", "eln", "apollo", "ss"],
+        help="Article source (allowed values: pmc, ct, preprint, rfd, eln, apollo, ss)",
+    )
+
+    parser.add_argument(
+        "--write_to_s3",
+        "-s3",
+        type=str,
+        choices=["true", "false"],
+        default="true",
+        help="Write output to S3 (default: true)",
     )
 
     args = parser.parse_args()
@@ -303,27 +316,38 @@ def main():
     # Retrieve paths from config
     paths = paths_config["storage"][storage_type]
 
-    write_to_s3 = True
+    if args.write_to_s3 == "true":
+        write_to_s3 = True
+    else:
+        write_to_s3 = False
+    logger.info(f"write_to_s3 set to {write_to_s3}")
     s3_paths = {}
     s3_file_handler = None
-    if write_to_s3:
-        # Get S3 Paths and file handler for writing to S3
-        storage_type = "s3"
-        s3_paths = paths_config["storage"][storage_type]
-        s3_file_handler = FileHandlerFactory.get_handler(storage_type)
 
-    merger = BioCFileMerger(
-        workflow_id=workflow_id,
-        source=source,
-        paths_config=paths,
-        file_handler=file_handler,
-        write_to_s3=write_to_s3,
-        s3_paths_config=s3_paths,
-        s3_file_handler=s3_file_handler,
-    )
-    merger.merge_files()
+    try:
+        if write_to_s3:
+            # Get S3 Paths and file handler for writing to S3
+            storage_type = "s3"
+            s3_paths = paths_config["storage"][storage_type]
+            s3_file_handler = FileHandlerFactory.get_handler(storage_type)
 
-    logger.info("BioC Merger pipeline completed successfully.")
+        merger = BioCFileMerger(
+            workflow_id=workflow_id,
+            source=source,
+            paths_config=paths,
+            file_handler=file_handler,
+            write_to_s3=write_to_s3,
+            s3_paths_config=s3_paths,
+            s3_file_handler=s3_file_handler,
+        )
+
+        merger.merge_files()
+        logger.info("BioC Merger pipeline completed successfully.")
+    except Exception as e:
+        full_trace = traceback.format_exc()  # full traceback string
+        logger.error(f"Merging for workflow id {workflow_id} failed due to {e}")
+        logger.error(full_trace)
+        raise
 
 
 # Example usage

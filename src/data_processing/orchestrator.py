@@ -1,13 +1,14 @@
 import math
 import argparse
-import multiprocessing
+from multiprocessing import Process, Queue
+import json
 import os
 import uuid
 from datetime import datetime
 from typing import Dict, List
 from collections import Counter
 from transformers import AutoTokenizer
-
+import traceback
 from src.data_processing.xml_to_html_conversion.xml_to_html_converter import (
     XmlToHtmlConverter,
 )
@@ -748,6 +749,7 @@ def _safe_run_chunking_and_embedding(
     run_type,
     collection_type,
     store_embeddings_as_file,
+    q=None,
 ):
     # Pre-load the embeddings model and tokenizer at startup
     try:
@@ -778,20 +780,37 @@ def _safe_run_chunking_and_embedding(
             store_embeddings_as_file=store_embeddings_as_file,
         )
         logger.info("Chunking & embedding finished successfully.")
-    except Exception:
-        logger.exception("Chunking & embedding failed")
+    except Exception as e:
+        full_trace = traceback.format_exc()
+        logger.error(
+            f"Chunking & Embedding failed for workflow id {workflow_id} failed due to {e}"
+        )
+        if q:
+            q.put(
+                {
+                    "component": "chunking_and_embedding",  # or "xml_to_html_conversion"
+                    "traceback": full_trace,
+                }
+            )  # <-- send error traceback to parent
 
 
 def _safe_run_xml_to_html_conversion(
-    workflow_id: str, source: str, write_to_s3: bool = True
+    workflow_id: str, source: str, write_to_s3: bool = True, q=None
 ):
     try:
         run_xml_to_html_conversion(
             workflow_id=workflow_id, source=source, write_to_s3=write_to_s3
         )
         logger.info("XML→HTML conversion finished successfully.")
-    except Exception:
-        logger.exception("XML→HTML conversion failed")
+    except Exception as e:
+        full_trace = traceback.format_exc()  # full traceback string
+        logger.error(
+            f"XML→HTML conversion failed for workflow id {workflow_id} failed due to {e}"
+        )
+        if q:
+            q.put(
+                {"component": "xml_to_html_conversion", "traceback": full_trace}
+            )  # <-- send error traceback to parent
 
 
 def main():
@@ -802,7 +821,7 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Ingest articles",
-        epilog="Example: python3 -m src.data_processing.orchestrator --workflow_id workflow123 --source ct",
+        epilog="Example: python3 -m src.data_processing.orchestrator --workflow_id workflow123 --source ct --write_to_s3 true",
     )
 
     parser.add_argument(
@@ -826,8 +845,9 @@ def main():
         "--write_to_s3",
         "-s3",
         type=str,
-        default=True,
-        help="Whether to write ingested data to S3 (default: True)",
+        choices=["true", "false"],
+        default="true",
+        help="Write output to S3 (default: true)",
     )
 
     parser.add_argument(
@@ -867,12 +887,11 @@ def main():
         source = args.source
         logger.info(f"{source} registered as SOURCE for processing")
 
-    if not args.write_to_s3:
-        logger.warning("No write_to_s3 flag provided. Defaulting to True.")
+    if args.write_to_s3 == "true":
         write_to_s3 = True
     else:
-        write_to_s3 = args.write_to_s3
-        logger.info(f"write_to_s3 set to {write_to_s3}")
+        write_to_s3 = False
+    logger.info(f"write_to_s3 set to {write_to_s3}")
 
     if not args.collection_type:
         logger.info(
@@ -903,9 +922,10 @@ def main():
     logger.info(
         f"Execution Started for Processing pipeline for workflow_id: {workflow_id}"
     )
+    q = Queue()
 
     # set up two separate processes
-    p1 = multiprocessing.Process(
+    p1 = Process(
         target=_safe_run_chunking_and_embedding,
         args=(
             workflow_id,
@@ -914,14 +934,16 @@ def main():
             run_type,
             collection_type,
             store_embeddings_as_file,
+            q,
         ),
     )
-    p2 = multiprocessing.Process(
+    p2 = Process(
         target=_safe_run_xml_to_html_conversion,
         args=(
             workflow_id,
             source,
             write_to_s3,
+            q,
         ),
     )
 
@@ -933,7 +955,19 @@ def main():
     p1.join()
     p2.join()
 
-    logger.info("Execution Completed for Processing pipeline!")
+    # Collect errors
+    errors = []
+    while not q.empty():
+        errors.append(q.get())
+
+    if errors or p1.exitcode != 0 or p2.exitcode != 0:
+        logger.error(f"Post Processing failed for workflow_id {workflow_id}")
+        error_logs_json = json.dumps(errors, ensure_ascii=False)
+        logger.error(error_logs_json)
+        raise
+        # error_logs_json - can use to write to db
+    else:
+        logger.info("Execution Completed for Post Processing pipeline!")
 
 
 if __name__ == "__main__":

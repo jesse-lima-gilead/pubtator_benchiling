@@ -110,8 +110,12 @@ class RFDIngestor:
                 "embeddings_path", ""
             ).replace("{source}", source)
         else:
-            self.s3_pmc_path = (
+            self.s3_rfd_path = (
                 self.s3_bioc_path
+            ) = (
+                self.s3_interim_path
+            ) = (
+                self.s3_embeddings_path
             ) = self.s3_article_metadata_path = self.s3_summary_path = None
 
     # def rfd_articles_extractor(self):
@@ -125,13 +129,13 @@ class RFDIngestor:
     #     )
     #     logger.info(f"{extracted_articles_count} RFD Articles Extracted Successfully!")
 
-    def rfd_safe_filenames_generator(self):
-        # Generate Safe file name for the extracted articles
-        logger.info("Generating Safe file names for the extracted articles...")
-        safe_file_name_cnt = generate_safe_filename(self.rfd_path)
-        logger.info(
-            f"Safe file names generated for {safe_file_name_cnt} articles successfully!"
-        )
+    # def rfd_safe_filenames_generator(self):
+    #     # Generate Safe file name for the extracted articles
+    #     logger.info("Generating Safe file names for the extracted articles...")
+    #     safe_file_name_cnt = generate_safe_filename(self.rfd_path)
+    #     logger.info(
+    #         f"Safe file names generated for {safe_file_name_cnt} articles successfully!"
+    #     )
 
     def metadata_extractor(self):
         logger.info(f"Extracting metadata...")
@@ -211,12 +215,13 @@ class RFDIngestor:
         self,
     ):
         # self.rfd_articles_extractor()
-        self.rfd_safe_filenames_generator()
+        # self.rfd_safe_filenames_generator()
         self.metadata_extractor()
         self.rfd_articles_preprocessor()
         self.rfd_html_to_bioc_converter()
         self.generate_summary()
-        self.upload_to_s3()
+        if self.write_to_s3:
+            self.upload_to_s3()
 
 
 def main():

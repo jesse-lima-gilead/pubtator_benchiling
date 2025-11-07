@@ -25,6 +25,7 @@ storage:
     static_html_path: "./data/{source}/{workflow_id}/processed/bioc_html"
   local:
     jit_ingestion_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/jit_ingestion/articles_ids.txt"
+    apollo_uuid_map_path: "/scratch/pubtator/data/{source}/extraction/apollo_uuid_map_{file_type}_{timestamp}.json"
     extraction_path: "/scratch/pubtator/data/{source}/extraction/{timestamp}"
     ingestion_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/ingestion"
     failed_ingestion_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/failed_ingestion"
@@ -111,6 +112,7 @@ ingestion_source:
   rfd:
     type: "s3"  # "S3" or "API"
     s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"
+    s3_src_path: "RFD"
   eln:
     type: "s3"  # "S3" or "API"
     s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"
@@ -118,3 +120,4 @@ ingestion_source:
     type: "s3"  # "S3" or "API"
     s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"
     s3_src_path: "Apollo"
+    allowed_file_type: ["pptx","docx","xlsx"]

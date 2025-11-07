@@ -191,6 +191,12 @@ def extract_filename_metadata(filename: str) -> dict:
         for k, v in groups.items():
             meta[k] = v
 
+    if "gs_code" not in meta:
+        pattern = re.compile(r"(?<!\w)(GS[-_]\d+)(?=$|[_\s]|[^A-Za-z0-9])")
+        match = pattern.search(filename)
+        if match:
+            meta["gs_code"] = match.group(1)
+
     # Always attempt to extract a date (even if main pattern failed)
     date_norm, date_raw = normalize_date(filename)
     if date_norm:

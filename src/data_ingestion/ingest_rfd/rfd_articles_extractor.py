@@ -1,6 +1,6 @@
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
-from src.data_ingestion.ingestion_utils.s3_extractor import extract_from_s3
+from src.data_ingestion.ingestion_utils.s3_extractor import extract_from_s3_rfd
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -16,9 +16,10 @@ def extract_rfd_articles(
     source_type = rfd_source_config["type"]
 
     if source_type == "s3":
+        s3_src_path = rfd_source_config["s3_src_path"]
         # call the S3 extractor
-        ingested_articles_cnt = extract_from_s3(
-            rfd_path, file_handler, source, source_type
+        ingested_articles_cnt = extract_from_s3_rfd(
+            rfd_path, file_handler, source, source_type, s3_src_path
         )
         return ingested_articles_cnt
     elif source_type == "API":

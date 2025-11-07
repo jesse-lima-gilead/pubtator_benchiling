@@ -1,7 +1,7 @@
 import argparse
+import traceback
 from src.data_ingestion.ingest_apollo.apollo_articles_extractor import (
     extract_apollo_articles,
-    apollo_generate_safe_filename,
 )
 from src.data_ingestion.ingest_apollo.extract_metadata import (
     apollo_articles_metadata_extractor,
@@ -26,7 +26,7 @@ logger = logger_instance.get_logger()
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Ingest articles",
-        epilog="Example: python3 -m src.data_ingestion.extractor --source pmc --timestamp 20250919153659",
+        epilog="Example: python3 -m src.data_ingestion.extractor --source apollo --timestamp 20250919153659 --file_type xlsx",
     )
     parser.add_argument(
         "--timestamp",
@@ -43,10 +43,18 @@ def parse_args():
         choices=["pmc", "ct", "preprint", "rfd", "apollo", "eln"],
         help="Article source (allowed values: pmc, ct, preprint, rfd, apollo)",
     )
+    parser.add_argument(
+        "--file_type",
+        "-ft",
+        type=str,
+        choices=["all", "docx", "pptx", "xlsx"],
+        default="all",
+        help="Which file type to process, specially applicable in apollo (default: all)",
+    )
     return parser.parse_args()
 
 
-def setup_environment(source: str, timestamp: str):
+def setup_environment(source: str, timestamp: str, file_type: str):
     config_loader = YAMLConfigLoader()
     paths_config = config_loader.get_config("paths")
 
@@ -60,9 +68,23 @@ def setup_environment(source: str, timestamp: str):
         .replace("{timestamp}", timestamp)
     )
 
+    apollo_uuid_map_path = (
+        paths["apollo_uuid_map_path"]
+        .replace("{source}", source)
+        .replace("{file_type}", file_type)
+        .replace("{timestamp}", timestamp)
+    )
+
     source_config = paths_config["ingestion_source"][source]
 
-    return paths_config, paths, file_handler, extraction_path, source_config
+    return (
+        paths_config,
+        paths,
+        file_handler,
+        extraction_path,
+        source_config,
+        apollo_uuid_map_path,
+    )
 
 
 def run_extraction(
@@ -70,6 +92,8 @@ def run_extraction(
     file_handler,
     source_config,
     extraction_path,
+    file_type=None,
+    apollo_uuid_map_path=None,
 ):
     if source == "ct":
         extracted_articles_count = extract_ct_articles(
@@ -103,17 +127,16 @@ def run_extraction(
             file_handler=file_handler,
             apollo_source_config=source_config,
             source=source,
+            file_type=file_type,
         )
         logger.info(
             f"{len(extracted_files_to_uuid_map)} Apollo Articles Extracted Successfully!"
         )
-
-        # apollo_generate_safe_filename(
-        #     apollo_path=extraction_path,
-        #     file_handler=file_handler,
-        #     source=source,
-        # )
-        # logger.info(f"Generated Safe file names for Apollo Articles Successfully!")
+        # for time being to capture the uuid map generated for apollo
+        logger.info(f"{extracted_files_to_uuid_map}")
+        file_handler.write_file_as_json(
+            apollo_uuid_map_path, extracted_files_to_uuid_map
+        )
 
         apollo_articles_metadata_extractor(
             apollo_source_config=source_config,
@@ -137,19 +160,34 @@ def main():
     logger.info("Execution Started")
 
     args = parse_args()
-    timestamp, source = args.timestamp, args.source
+    timestamp, source, file_type = args.timestamp, args.source, args.file_type
     logger.info(f"{source} registered as SOURCE for processing")
 
-    (
-        paths_config,
-        paths,
-        file_handler,
-        extraction_path,
-        source_config,
-    ) = setup_environment(source, timestamp)
+    try:
+        (
+            paths_config,
+            paths,
+            file_handler,
+            extraction_path,
+            source_config,
+            apollo_uuid_map_path,
+        ) = setup_environment(source, timestamp, file_type)
 
-    logger.info(f"Starting Extraction of {source}")
-    run_extraction(source, file_handler, source_config, extraction_path)
+        logger.info(f"Starting Extraction of {source}")
+        run_extraction(
+            source,
+            file_handler,
+            source_config,
+            extraction_path,
+            file_type,
+            apollo_uuid_map_path,
+        )
+        logger.info("Execution Completed! Articles Extracted Successfully!")
+    except Exception as e:
+        full_trace = traceback.format_exc()  # full traceback string
+        logger.error(f"Extraction for source: {source} failed due to {e}")
+        logger.error(full_trace)
+        raise
 
 
 if __name__ == "__main__":

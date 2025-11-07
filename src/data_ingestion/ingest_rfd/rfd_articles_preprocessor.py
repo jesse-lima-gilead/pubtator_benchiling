@@ -4,7 +4,6 @@ from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFact
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
-from src.data_ingestion.ingestion_utils.s3_extractor import extract_from_s3
 from src.data_ingestion.ingestion_utils.pandoc_processor import PandocProcessor
 from src.data_ingestion.ingest_rfd.rfd_tables_processor import process_tables
 
@@ -107,7 +106,7 @@ def extract_tables_from_rfd_html(
             # Save table details as JSON
             logger.info(f"Saving extracted table details to JSON...")
             file_path = f"{rfd_embeddings_path}/{rfd_html_dir}_tables.json"
-            file_handler.write_file_as_json(file_path=file_path, data=table_details)
+            file_handler.write_file_as_json(file_path=file_path, content=table_details)
             logger.info(f"Table details saved to {file_path}")
 
             # Write back modified HTML with flat table text

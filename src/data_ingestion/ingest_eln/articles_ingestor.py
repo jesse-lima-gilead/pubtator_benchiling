@@ -114,8 +114,14 @@ class ELNIngestor:
                 "failed_ingestion_path", ""
             ).replace("{source}", source)
         else:
-            self.s3_pmc_path = (
+            self.s3_eln_path = (
                 self.s3_bioc_path
+            ) = (
+                self.s3_interim_path
+            ) = (
+                self.s3_chunks_path
+            ) = (
+                self.s3_failed_ingestion_path
             ) = self.s3_article_metadata_path = self.s3_summary_path = None
 
     def eln_articles_extractor(self):
@@ -196,7 +202,8 @@ class ELNIngestor:
         self.eln_safe_filenames_generator()
         self.eln_formatter()
         self.eln_articles_preprocessor()
-        self.upload_to_s3()
+        if self.write_to_s3:
+            self.upload_to_s3()
 
 
 def main():

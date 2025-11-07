@@ -7,6 +7,9 @@ from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
+from src.data_ingestion.ingest_rfd.rfd_articles_preprocessor import (
+    generate_safe_filename,
+)
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -48,12 +51,42 @@ def extract_from_s3(
     return ingested_articles_cnt
 
 
+def extract_from_s3_rfd(
+    path: str,
+    file_handler: FileHandler,
+    source: str,
+    storage_type: str = "s3",
+    s3_src_path: str = "RFD",
+):
+    # Get file handler instance from factory
+    s3_file_handler = FileHandlerFactory.get_handler(storage_type)
+
+    src_files = s3_file_handler.s3_util.list_files(s3_src_path)  # to get full path
+
+    # download to local
+    for cur_s3_file in src_files:
+        # path where the files are going to be written to in the ingestion directory of HPC
+        cur_s3_full_path = s3_file_handler.get_file_path(s3_src_path, cur_s3_file)
+        cur_staging_path = file_handler.get_file_path(path, cur_s3_file)
+        # Download to local HPC path
+        s3_file_handler.s3_util.download_file(cur_s3_full_path, cur_staging_path)
+        logger.info(
+            f"File downloaded from S3: {cur_s3_full_path} to local: {cur_staging_path}"
+        )
+
+    safe_file_name_cnt = generate_safe_filename(path)
+    logger.info(
+        f"Safe file names generated for {safe_file_name_cnt} articles successfully!"
+    )
+
+
 def extract_from_s3_apollo(
     path: str,
     file_handler: FileHandler,
     source: str,
     storage_type: str = "s3",
     s3_src_path: str = "Apollo",
+    file_type: str = "all",
 ):
     # Get file handler instance from factory
     s3_file_handler = FileHandlerFactory.get_handler(storage_type)
@@ -67,6 +100,9 @@ def extract_from_s3_apollo(
         p = PurePosixPath(s_clean)
         filename = p.name
         extension = p.suffix.lower()
+        # to consider only the file_type we want to extract
+        if file_type != "all" and file_type != extension:
+            continue
         is_temp = (
             filename.startswith("~$")
             or any(pref in s_clean for pref in TEMP_PREFIXES)

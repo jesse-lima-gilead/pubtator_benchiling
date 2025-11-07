@@ -1,5 +1,5 @@
 import argparse
-
+import traceback
 from src.data_ingestion.ingest_clinical_trials.articles_ingestor import CTIngestor
 from src.data_ingestion.ingest_eln.articles_ingestor import ELNIngestor
 from src.data_ingestion.ingest_apollo.articles_ingestor import APOLLOIngestor
@@ -19,7 +19,7 @@ logger = SingletonLogger().get_logger()
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Ingest articles",
-        epilog="Example: python3 -m src.data_ingestion.ingestor --workflow_id workflow123 --source pmc --write_to_s3 True",
+        epilog="Example: python3 -m src.data_ingestion.ingestor --workflow_id workflow123 --source apollo --write_to_s3 true --file_type docx",
     )
     parser.add_argument(
         "--workflow_id",
@@ -39,9 +39,18 @@ def parse_args():
     parser.add_argument(
         "--write_to_s3",
         "-s3",
-        type=bool,
-        default=True,
-        help="Whether to write ingested data to S3 (default: True)",
+        type=str,
+        choices=["true", "false"],
+        default="true",
+        help="Write output to S3 (default: true)",
+    )
+    parser.add_argument(
+        "--file_type",
+        "-ft",
+        type=str,
+        choices=["all", "docx", "pptx", "xlsx"],
+        default="all",
+        help="Which file type to process, specially applicable in apollo (default: all)",
     )
 
     return parser.parse_args()
@@ -70,6 +79,7 @@ def run_ingestion(
     paths,
     file_handler,
     write_to_s3,
+    file_type,
     s3_paths,
     s3_file_handler,
     summarization_pipe,
@@ -173,6 +183,7 @@ def run_ingestion(
             paths_config=paths,
             apollo_source_config=apollo_source_config,
             write_to_s3=write_to_s3,
+            file_type=file_type,
             s3_paths_config=s3_paths,
             s3_file_handler=s3_file_handler,
         )
@@ -220,18 +231,27 @@ def main():
         source = args.source
         logger.info(f"{source} registered as SOURCE for processing")
 
-    if not args.write_to_s3:
-        logger.warning("No write_to_s3 flag provided. Defaulting to True.")
+    if args.write_to_s3 == "true":
         write_to_s3 = True
     else:
-        write_to_s3 = args.write_to_s3
-        logger.info(f"write_to_s3 set to {write_to_s3}")
+        write_to_s3 = False
+    logger.info(f"write_to_s3 set to {write_to_s3}")
 
-    paths_config, paths, file_handler, s3_paths, s3_file_handler = setup_environment(
-        write_to_s3
-    )
+    if not args.file_type:
+        logger.error("No file_type provided, so processing all file types.")
+        file_type = "all"
+    else:
+        file_type = args.file_type
+        logger.info(f"file_type set to {file_type}")
 
     try:
+        (
+            paths_config,
+            paths,
+            file_handler,
+            s3_paths,
+            s3_file_handler,
+        ) = setup_environment(write_to_s3)
         # For local run, set a summarization model to None if required
         # summarization_pipe = None
 
@@ -252,6 +272,7 @@ def main():
             paths,
             file_handler,
             write_to_s3,
+            file_type,
             s3_paths,
             s3_file_handler,
             summarization_pipe,
@@ -259,7 +280,10 @@ def main():
 
         logger.info("Execution Completed! Articles Ingested!")
     except Exception as e:
+        full_trace = traceback.format_exc()  # full traceback string
         logger.error(f"Ingestion for workflow id {workflow_id} failed due to {e}")
+        logger.error(full_trace)
+        raise
 
 
 if __name__ == "__main__":

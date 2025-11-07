@@ -7,6 +7,10 @@ from src.data_ingestion.ingest_apollo.ingest_pptx.pptx_articles_ingestor import 
 from src.data_ingestion.ingest_apollo.ingest_docx.docx_articles_ingestor import (
     apolloDOCXIngestor,
 )
+from src.data_ingestion.ingest_apollo.ingest_xlsx.xlsx_articles_ingestor import (
+    apolloXLSXIngestor,
+)
+
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
 from typing import Any, Dict, Optional
@@ -24,10 +28,12 @@ class APOLLOIngestor:
         paths_config: dict[str, str],
         apollo_source_config: dict[str, str],
         write_to_s3: bool,
+        file_type : str = "all",
         source: str = "apollo",
         **kwargs: Any,  # optional extras (e.g. s3 settings)
     ):
         self.source = source
+        self.file_type = file_type
         self.workflow_id = workflow_id
         self.paths_config = paths_config
         self.file_handler = file_handler
@@ -111,7 +117,11 @@ class APOLLOIngestor:
                 self.s3_summary_path
             ) = (
                 self.s3_interim_path
-            ) = self.embeddings_path = self.s3_failed_ingestion_path = None
+            ) = (
+                self.s3_embeddings_path
+            )= (
+                self.s3_failed_ingestion_path
+            )  = None
 
     # Runs the combined process
     def run(
@@ -139,18 +149,37 @@ class APOLLOIngestor:
             s3_paths_config=self.s3_paths_config,
             s3_file_handler=self.s3_file_handler,
         )
+        logger.info("Instantiating apolloXLSXIngestor...")
+        apollo_xlsx_ingestor = apolloXLSXIngestor(
+            workflow_id=self.workflow_id,
+            source=self.source,
+            file_handler=self.file_handler,
+            paths_config=self.paths_config,
+            apollo_source_config=self.apollo_source_config,
+            write_to_s3=self.write_to_s3,
+            s3_paths_config=self.s3_paths_config,
+            s3_file_handler=self.s3_file_handler,
+        )
 
         logger.info("Processing Apollo Articles...")
+        allowed_file_type=self.apollo_source_config["allowed_file_type"]
+        logger.info(f"Allowed file type: {allowed_file_type}")
+
         for file_name in self.file_handler.list_files(self.apollo_path):
             logger.info(f"Processing Apollo file {file_name}")
-            file_type = file_name.split(".")[-1]
-
-            if file_name.endswith(".pptx"):
-                apollo_pptx_ingestor.run(file_name=file_name)
-            elif file_name.endswith(".docx"):
-                apollo_docx_ingestor.run(file_name=file_name)
+            file_extn = file_name.split(".")[-1]
+            if self.file_type == "all":
+                if file_extn in allowed_file_type:
+                    logger.info(f"Calling apollo_{file_extn}_ingestor.")
+                    eval(f"apollo_{file_extn}_ingestor").run(file_name=file_name)
+                else:
+                    logger.info(f"Skipping file because it is of file type: {file_extn}")
             else:
-                logger.info(f"Skipping file because it is of file type: {file_type}")
+                if (self.file_type in allowed_file_type) and (file_name.endswith(f".{self.file_type}")):
+                    logger.info(f"Calling apollo_{self.file_type}_ingestor.")
+                    eval(f"apollo_{self.file_type}_ingestor").run(file_name=file_name)
+                else :
+                    logger.info(f"Skipping file because it is of file type: {file_extn}")
 
         logger.info("Uploading All the Processed files from Local to S3")
         upload_apollo_articles(
