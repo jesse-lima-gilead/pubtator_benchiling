@@ -9,6 +9,10 @@ class FileHandler(ABC):
         pass
 
     @abstractmethod
+    def exists(self, path):
+        pass
+
+    @abstractmethod
     def get_file_path(self, base_path, file_name):
         pass
 

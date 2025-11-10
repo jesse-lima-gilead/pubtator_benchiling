@@ -101,7 +101,7 @@ def extract_from_s3_apollo(
         filename = p.name
         extension = p.suffix.lower()
         # to consider only the file_type we want to extract
-        if file_type != "all" and file_type != extension:
+        if file_type != "all" and file_type != extension.removeprefix("."):
             continue
         is_temp = (
             filename.startswith("~$")
@@ -129,7 +129,7 @@ def extract_from_s3_apollo(
             f"File downloaded from S3: {cur_s3_full_path} to local: {cur_staging_path}"
         )
 
-    ingested_articles_cnt = len(src_files)
+    ingested_articles_cnt = len(filtered_files)
     logger.info(f"Files downloaded from S3: {ingested_articles_cnt}")
 
     return files_to_uuid_map

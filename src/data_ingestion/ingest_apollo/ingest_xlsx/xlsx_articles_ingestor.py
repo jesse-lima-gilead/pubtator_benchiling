@@ -1,7 +1,5 @@
 import argparse, re, os
 import pandas as pd
-from jedi.api import file_name
-#from xlsx import Presentation
 from lxml.etree import XMLSyntaxError
 
 from src.data_ingestion.ingest_apollo.fetch_metadata import (
@@ -116,7 +114,7 @@ class apolloXLSXIngestor:
                 self.s3_interim_path
             ) = self.s3_embeddings_path = self.s3_failed_ingestion_path = None
 
-    def make_safe_filename(self,filename: str, max_len: Optional[int] = None) -> str:
+    def make_safe_filename(self, filename: str, max_len: Optional[int] = None) -> str:
         """
         Produce a safe filename by replacing every non-alphanumeric character with '_'.
         Keeps extension intact. Collapses repeated underscores and strips leading/trailing '_'.
@@ -138,14 +136,13 @@ class apolloXLSXIngestor:
 
         return f"{safe_stem}"
 
-
     def process_xlsx_file(self, apollo_file_path: str):
         """
         Try to open XLSX. On failure, move to failed_ingestion_path and return False.
         On success, return True.
         """
         try:
-            #prs = Presentation(apollo_file_path)
+            # prs = Presentation(apollo_file_path)
             all_sheets_dict = pd.read_excel(apollo_file_path, sheet_name=None)
             logger.info(f"Successfully opened XLSX: {apollo_file_path}")
             return True
@@ -174,22 +171,24 @@ class apolloXLSXIngestor:
         #     )
         return False
 
-    def xlsx_to_html_conversion(self,
-                            apollo_file_path: Path,
-                            file: str,
-                            sheet_name: str = None
-         ):
+    def xlsx_to_html_conversion(
+        self, apollo_file_path: Path, file: str, sheet_name: str = None
+    ):
         """
-                Read xlsx file and first convert each sheet in csv then to html file.
+        Read xlsx file and first convert each sheet in csv then to html file.
         """
-        try :
+        try:
             all_sheets = pd.read_excel(apollo_file_path, sheet_name=sheet_name)
             for sheet_name, df in all_sheets.items():
                 # re_sheet_name= re.sub(r"[^A-Za-z0-9]", "_", sheet_name).replace("__","_")
                 safe_sheet_name = self.make_safe_filename(sheet_name)
-                interim_dir = Path(f"{self.ingestion_interim_path}/{file.replace(".xlsx", "")}/{safe_sheet_name}")
+                interim_dir = Path(
+                    f"{self.ingestion_interim_path}/{file.replace('.xlsx', '')}/{safe_sheet_name}"
+                )
                 interim_dir.mkdir(parents=True, exist_ok=True)
-                csv_filename = self.file_handler.get_file_path(interim_dir, f"{safe_sheet_name}.csv")
+                csv_filename = self.file_handler.get_file_path(
+                    interim_dir, f"{safe_sheet_name}.csv"
+                )
                 # os.path.join(csv_dir, f"{sheet_name}.csv")
                 df.to_csv(csv_filename, index=False)
                 logger.info(f"  - Converted sheet '{sheet_name}' to {csv_filename}")
@@ -202,17 +201,22 @@ class apolloXLSXIngestor:
                     output_doc_type="html",
                 )
 
-            logger.info(f"Completed All xlsx sheet conversion to html for {apollo_file_path}")
+            logger.info(
+                f"Completed All xlsx sheet conversion to html for {apollo_file_path}"
+            )
         except Exception as e:
-            logger.warning(f"Error occurred while converting xlsx to html for {apollo_file_path}: {e}")
+            logger.warning(
+                f"Error occurred while converting xlsx to html for {apollo_file_path}: {e}"
+            )
 
-    def convert_xlsx_to_html(self,
-            apollo_doc: str,
-            apollo_path: str,
-            apollo_interim_path: str,
-            failed_ingestion_path: str,
-            input_doc_type: str = "csv",  # ["docx","doc"],
-            output_doc_type: str = "html",
+    def convert_xlsx_to_html(
+        self,
+        apollo_doc: str,
+        apollo_path: str,
+        apollo_interim_path: str,
+        failed_ingestion_path: str,
+        input_doc_type: str = "csv",  # ["docx","doc"],
+        output_doc_type: str = "html",
     ):
         pandoc_processor = PandocProcessor(pandoc_executable="pandoc")
 
@@ -220,7 +224,7 @@ class apolloXLSXIngestor:
             logger.info(f"Started file format conversion for doc: {apollo_doc}")
 
             input_doc_path = Path(apollo_interim_path) / apollo_doc
-            #input_doc_path = Path(apollo_interim_path)
+            # input_doc_path = Path(apollo_interim_path)
 
             # Create an output directory for this docx
             apollo_dir_name = apollo_doc.replace(".csv", "")
@@ -244,22 +248,25 @@ class apolloXLSXIngestor:
         else:
             logger.error(f"{apollo_doc} is not a DocX file to convert.")
 
-    def extract_tables_from_xlsx_html(self,
-            xlsx_interim_path: str,
-            article_metadata : dict,
-            xlsx_embeddings_path: str,
-            xlsx_filename : str,
+    def extract_tables_from_xlsx_html(
+        self,
+        xlsx_interim_path: str,
+        article_metadata: dict,
+        xlsx_embeddings_path: str,
+        xlsx_filename: str,
     ):
-        table_details_block=[]
-        sheet_idx=0
+        table_details_block = []
+        sheet_idx = 0
         for xlsx_html_dir in os.listdir(xlsx_interim_path):
             logger.info(f"Processing XLSX HTML file: {xlsx_html_dir}")
             xlsx_html_dir_path = Path(xlsx_interim_path) / xlsx_html_dir
             xlsx_html_file_path = xlsx_html_dir_path / (xlsx_html_dir + ".html")
             xlsx_html_file_name = xlsx_html_dir + ".html"
             if os.path.exists(xlsx_html_file_path):
-                sheet_idx +=1
-                logger.info(f"HTML file found: {xlsx_html_file_name}. Extracting Tables...")
+                sheet_idx += 1
+                logger.info(
+                    f"HTML file found: {xlsx_html_file_name}. Extracting Tables..."
+                )
 
                 # Read the HTML content
                 html_content = self.file_handler.read_file(xlsx_html_file_path)
@@ -272,12 +279,12 @@ class apolloXLSXIngestor:
                     output_tables_path=xlsx_html_dir_path,
                     article_metadata=article_metadata,
                     xlsx_filename=xlsx_filename,
-                    #table_state="remove",
-                    )
-                table_details_block = [*table_details_block,*table_details]
+                    # table_state="remove",
+                )
+                table_details_block = [*table_details_block, *table_details]
 
                 # Write back modified HTML with flat table text
-                #self.file_handler.write_file(xlsx_html_file_path, html_with_flat_tables)
+                # self.file_handler.write_file(xlsx_html_file_path, html_with_flat_tables)
                 logger.info(
                     f"Extracted {len(table_details)} tables from {xlsx_html_file_name}"
                 )
@@ -287,7 +294,9 @@ class apolloXLSXIngestor:
         # Save table details as JSON
         logger.info(f"Saving extracted table details to JSON...")
         file_path = f"{xlsx_embeddings_path}/{xlsx_filename}_tables.json"
-        self.file_handler.write_file_as_json(file_path=file_path, content=table_details_block)
+        self.file_handler.write_file_as_json(
+            file_path=file_path, content=table_details_block
+        )
         logger.info(f"Table details saved to {file_path}")
 
     def xlsx_processor(self, file: str):
@@ -318,22 +327,25 @@ class apolloXLSXIngestor:
             # apollo_html_path = self.file_handler.get_file_path(self.ingestion_interim_path, file.replace(".xlsx", ".html"))
             # df.to_html(apollo_html_path, index=False)
 
-            self.xlsx_to_html_conversion(apollo_file_path=apollo_file_path, file=file, sheet_name=None)
+            self.xlsx_to_html_conversion(
+                apollo_file_path=apollo_file_path, file=file, sheet_name=None
+            )
 
             logger.info(f"Started Table extraction for {file}")
             # extract table
-            interim_dir = f"{self.ingestion_interim_path}/{file.replace(".xlsx", "")}/"
+            interim_dir = f'{self.ingestion_interim_path}/{file.replace(".xlsx", "")}/'
             self.extract_tables_from_xlsx_html(
                 xlsx_interim_path=interim_dir,
                 article_metadata=article_metadata,
                 xlsx_embeddings_path=self.embeddings_path,
                 xlsx_filename=file.replace(".xlsx", ""),
             )
-            logger.info(f"Tables Extracted from XLSX HTML Articles Successfully for {file}")
+            logger.info(
+                f"Tables Extracted from XLSX HTML Articles Successfully for {file}"
+            )
 
         else:
             logger.error(f"{file} is not a XLSX file.")
-
 
     # Runs the combined process
     def run(self, file_name: str):

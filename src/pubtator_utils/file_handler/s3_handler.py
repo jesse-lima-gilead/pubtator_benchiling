@@ -22,6 +22,24 @@ class S3FileHandler(FileHandler):
         except ClientError as e:
             raise Exception(f"Error listing files in {path}: {e}")
 
+    def exists(self, path: str) -> bool:
+        """
+        Check whether the given S3 key (file or prefix) exists.
+        """
+        client = self.s3_util.client
+        bucket = self.s3_util.bucket_name
+
+        # Try direct file existence check
+        try:
+            client.head_object(Bucket=bucket, Key=path)
+            return True
+        except ClientError:
+            pass
+
+        # Check prefix (directory-like)
+        resp = client.list_objects_v2(Bucket=bucket, Prefix=path, MaxKeys=1)
+        return "Contents" in resp
+
     def get_file_path(self, base_path, file_name):
         """Constructs the full file path for an S3 object."""
         return f"{base_path}/{file_name}"

@@ -38,6 +38,17 @@ class LocalFileHandler(FileHandler):
         """Constructs a full file path from a base directory and file name."""
         return os.path.join(base_path, file_name)
 
+    def exists(self, path: str) -> bool:
+        """Checks whether a file or directory exists.
+
+        Args:
+            path (str): File or directory path.
+
+        Returns:
+            bool: True if exists, False otherwise.
+        """
+        return os.path.exists(path)
+
     def copy_file_local_to_s3(self, local_path, s3_path):
         pass
 
