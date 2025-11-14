@@ -47,9 +47,9 @@ def parse_args():
         "--file_type",
         "-ft",
         type=str,
-        choices=["all", "docx", "pptx", "xlsx"],
+        choices=["all", "docx", "pptx", "xlsx", "json"],
         default="all",
-        help="Which file type to process, specially applicable in apollo (default: all)",
+        help="Which file type to process, specially applicable in apollo, eln (default: all)",
     )
     return parser.parse_args()
 
@@ -75,6 +75,13 @@ def setup_environment(source: str, timestamp: str, file_type: str):
         .replace("{timestamp}", timestamp)
     )
 
+    grsar_id_map_path = (
+        paths["grsar_id_map_path"]
+        .replace("{source}", source)
+        .replace("{file_type}", file_type)
+        .replace("{timestamp}", timestamp)
+    )
+
     source_config = paths_config["ingestion_source"][source]
 
     return (
@@ -84,6 +91,7 @@ def setup_environment(source: str, timestamp: str, file_type: str):
         extraction_path,
         source_config,
         apollo_uuid_map_path,
+        grsar_id_map_path,
     )
 
 
@@ -94,6 +102,7 @@ def run_extraction(
     extraction_path,
     file_type=None,
     apollo_uuid_map_path=None,
+    grsar_id_map_path=None,
 ):
     if source == "ct":
         extracted_articles_count = extract_ct_articles(
@@ -145,13 +154,22 @@ def run_extraction(
         )
         logger.info(f"Generated Metadata files for Apollo Articles Successfully!")
     elif source == "eln":
-        extracted_articles_count = extract_eln_articles(
+        extracted_files_to_grsar_id_map = extract_eln_articles(
             eln_path=extraction_path,
             file_handler=file_handler,
             eln_source_config=source_config,
             source=source,
+            file_type=file_type,
         )
-        logger.info(f"{extracted_articles_count} ELN Articles Extracted Successfully!")
+        # for time being to capture the grsar_id map generated for eln
+        # ToDO add rds implementation
+        logger.info(f"{extracted_files_to_grsar_id_map}")
+        file_handler.write_file_as_json(
+            grsar_id_map_path, extracted_files_to_grsar_id_map
+        )
+        logger.info(
+            f"{len(extracted_files_to_grsar_id_map)} ELN Articles Extracted Successfully!"
+        )
     else:
         raise ValueError(f"Unsupported source: {source}")
 
@@ -171,6 +189,7 @@ def main():
             extraction_path,
             source_config,
             apollo_uuid_map_path,
+            grsar_id_map_path,
         ) = setup_environment(source, timestamp, file_type)
 
         logger.info(f"Starting Extraction of {source}")
@@ -181,6 +200,7 @@ def main():
             extraction_path,
             file_type,
             apollo_uuid_map_path,
+            grsar_id_map_path,
         )
         logger.info("Execution Completed! Articles Extracted Successfully!")
     except Exception as e:

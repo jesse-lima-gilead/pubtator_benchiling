@@ -26,6 +26,7 @@ storage:
   local:
     jit_ingestion_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/jit_ingestion/articles_ids.txt"
     apollo_uuid_map_path: "/scratch/pubtator/data/{source}/extraction/apollo_uuid_map_{file_type}_{timestamp}.json"
+    grsar_id_map_path: "/scratch/pubtator/data/{source}/extraction/grsar_id_map_{file_type}_{timestamp}.json"
     extraction_path: "/scratch/pubtator/data/{source}/extraction/{timestamp}"
     ingestion_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/ingestion"
     failed_ingestion_path: "/scratch/pubtator/data/{source}/{workflow_id}/staging/failed_ingestion"
@@ -116,6 +117,8 @@ ingestion_source:
   eln:
     type: "s3"  # "S3" or "API"
     s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"
+    s3_src_path: "notebook"
+    allowed_file_type: ["json"]
   apollo:
     type: "s3"  # "S3" or "API"
     s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"

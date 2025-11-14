@@ -135,13 +135,13 @@ class ELNIngestor:
         )
         logger.info(f"{extracted_articles_count} eln Articles Extracted Successfully!")
 
-    def eln_safe_filenames_generator(self):
-        # Generate Safe file name for the extracted articles
-        logger.info("Generating Safe file names for the extracted articles...")
-        safe_file_name_cnt = generate_safe_filename(self.eln_path)
-        logger.info(
-            f"Safe file names generated for {safe_file_name_cnt} articles successfully!"
-        )
+    # def eln_safe_filenames_generator(self):
+    #     # Generate Safe file name for the extracted articles
+    #     logger.info("Generating Safe file names for the extracted articles...")
+    #     safe_file_name_cnt = generate_safe_filename(self.eln_path)
+    #     logger.info(
+    #         f"Safe file names generated for {safe_file_name_cnt} articles successfully!"
+    #     )
 
     def eln_formatter(self):
         # Format the ELN JSON to UTF8 JSON
@@ -199,7 +199,7 @@ class ELNIngestor:
     def run(
         self,
     ):
-        self.eln_safe_filenames_generator()
+        # self.eln_safe_filenames_generator()
         self.eln_formatter()
         self.eln_articles_preprocessor()
         if self.write_to_s3:

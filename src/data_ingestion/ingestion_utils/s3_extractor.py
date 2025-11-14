@@ -2,7 +2,7 @@ import re
 import unicodedata
 import uuid
 from pathlib import PurePosixPath
-
+import hashlib
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
@@ -51,6 +51,49 @@ def extract_from_s3(
     return ingested_articles_cnt
 
 
+def stable_hash(path: str) -> str:
+    return hashlib.sha256(path.encode("utf-8")).hexdigest()
+
+
+def extract_from_s3_eln(
+    path: str,
+    file_handler: FileHandler,
+    source: str,
+    storage_type: str = "s3",
+    s3_src_path: str = "notebook",
+    file_type: str = "json",
+):
+    # Get file handler instance from factory
+    s3_file_handler = FileHandlerFactory.get_handler(storage_type)
+
+    src_files = s3_file_handler.s3_util.list_files(s3_src_path)  # to get full path
+
+    files_to_grsar_id_map = {}
+
+    # download to local
+    for cur_s3_full_path in src_files:
+        file_extension = cur_s3_full_path.split(".")[-1]
+        # to consider only the file_type we want to extract
+        if file_type != "all" and file_type != file_extension:
+            continue
+        document_grsar_id = stable_hash(cur_s3_full_path)
+        cur_s3_file = f"{document_grsar_id}.{file_extension}"
+        cur_staging_path = file_handler.get_file_path(path, cur_s3_file)
+        # Download to local HPC path
+        s3_file_handler.s3_util.download_file(cur_s3_full_path, cur_staging_path)
+
+        # map which has filename to uuid which will be utilised in extract_metadata
+        files_to_grsar_id_map[cur_s3_full_path] = document_grsar_id
+        logger.info(
+            f"File downloaded from S3: {cur_s3_full_path} to local: {cur_staging_path}"
+        )
+
+    ingested_articles_cnt = len(files_to_grsar_id_map)
+    logger.info(f"Files downloaded from S3: {ingested_articles_cnt}")
+
+    return files_to_grsar_id_map
+
+
 def extract_from_s3_rfd(
     path: str,
     file_handler: FileHandler,
@@ -64,9 +107,9 @@ def extract_from_s3_rfd(
     src_files = s3_file_handler.s3_util.list_files(s3_src_path)  # to get full path
 
     # download to local
-    for cur_s3_file in src_files:
+    for cur_s3_full_path in src_files:
         # path where the files are going to be written to in the ingestion directory of HPC
-        cur_s3_full_path = s3_file_handler.get_file_path(s3_src_path, cur_s3_file)
+        cur_s3_file = cur_s3_full_path.split("/")[-1]
         cur_staging_path = file_handler.get_file_path(path, cur_s3_file)
         # Download to local HPC path
         s3_file_handler.s3_util.download_file(cur_s3_full_path, cur_staging_path)

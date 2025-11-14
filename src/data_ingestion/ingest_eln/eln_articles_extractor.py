@@ -2,7 +2,7 @@ from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFact
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
-from src.data_ingestion.ingestion_utils.s3_extractor import extract_from_s3
+from src.data_ingestion.ingestion_utils.s3_extractor import extract_from_s3_eln
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -26,15 +26,17 @@ def extract_eln_articles(
     file_handler: FileHandler,
     eln_source_config: dict,
     source: str,
+    file_type: str = "json",
 ):
     source_type = eln_source_config["type"]
 
     if source_type == "s3":
+        s3_src_path = eln_source_config["s3_src_path"]
         # call the S3 extractor
-        ingested_articles_cnt = extract_from_s3(
-            eln_path, file_handler, source, source_type
+        extracted_files_to_grsar_id_map = extract_from_s3_eln(
+            eln_path, file_handler, source, source_type, s3_src_path, file_type
         )
-        return ingested_articles_cnt
+        return extracted_files_to_grsar_id_map
     elif source_type == "API":
         pass
     else:
