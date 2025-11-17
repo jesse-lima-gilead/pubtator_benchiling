@@ -60,35 +60,40 @@ class XmlToHtmlConverter:
         html_template_content = self.local_file_handler.read_file(
             self.html_template_path
         )
-        file_names = self.file_handler.list_files(self.input_dir)
+        if self.file_handler.exists(self.input_dir):
+            file_names = self.file_handler.list_files(self.input_dir)
 
-        for file_name in file_names:
-            if not file_name.endswith(".xml"):
-                continue
+            for file_name in file_names:
+                if not file_name.endswith(".xml"):
+                    continue
 
-            logger.info(f"Processing file: {file_name}")
-            try:
-                xml_file_path = self.file_handler.get_file_path(
-                    self.input_dir, file_name
-                )
+                logger.info(f"Processing file: {file_name}")
+                try:
+                    xml_file_path = self.file_handler.get_file_path(
+                        self.input_dir, file_name
+                    )
 
-                # Read the Article XML Content
-                xml_content = self.file_handler.read_file(xml_file_path)
+                    # Read the Article XML Content
+                    xml_content = self.file_handler.read_file(xml_file_path)
 
-                # Read the HTML Template
-                html_content = html_template_content.replace(
-                    "{{XML_CONTENT}}", xml_content
-                )
+                    # Read the HTML Template
+                    html_content = html_template_content.replace(
+                        "{{XML_CONTENT}}", xml_content
+                    )
 
-                # Replace the template with actual XML
-                html_file_name = file_name.replace(".xml", ".html")
+                    # Replace the template with actual XML
+                    html_file_name = file_name.replace(".xml", ".html")
 
-                # Write the converted HTML to output
-                self._write_html_file(html_file_name, html_content)
-            except Exception as e:
-                logger.error(f"Failed to convert '{file_name}': {e}", exc_info=True)
+                    # Write the converted HTML to output
+                    self._write_html_file(html_file_name, html_content)
+                except Exception as e:
+                    logger.error(f"Failed to convert '{file_name}': {e}", exc_info=True)
 
-        logger.info("XML to HTML conversion complete.")
+            logger.info("XML to HTML conversion complete.")
+        else:
+            logger.info(
+                f"Input directory '{self.input_dir}' is empty, no XML files found to convert."
+            )
 
     def _write_html_file(self, file_name, html_content):
         """
