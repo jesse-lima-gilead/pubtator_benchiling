@@ -964,7 +964,7 @@ def main():
         logger.error(f"Post Processing failed for workflow_id {workflow_id}")
         error_logs_json = json.dumps(errors, ensure_ascii=False)
         logger.error(error_logs_json)
-        raise
+        raise Exception(error_logs_json)
         # error_logs_json - can use to write to db
     else:
         logger.info("Execution Completed for Post Processing pipeline!")

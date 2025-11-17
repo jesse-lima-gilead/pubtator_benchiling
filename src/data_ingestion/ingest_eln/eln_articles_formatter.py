@@ -230,6 +230,7 @@ def eln_article_json_formatter(
 
     failed_dir = Path(failed_path)
     failed_dir.mkdir(parents=True, exist_ok=True)
+    Path(eln_interim_path).mkdir(parents=True, exist_ok=True)
 
     for eln in file_handler.list_files(eln_path):
         if eln.endswith(".json") and not eln.startswith("~$"):
