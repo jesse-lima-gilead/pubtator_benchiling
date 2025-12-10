@@ -40,8 +40,8 @@ def parse_args():
         "-src",
         type=str,
         required=True,
-        choices=["pmc", "ct", "preprint", "rfd", "apollo", "eln"],
-        help="Article source (allowed values: pmc, ct, preprint, rfd, apollo)",
+        choices=["pmc", "ct", "preprint", "rfd", "apollo", "eln", "safe_eln"],
+        help="Article source (allowed values: pmc, ct, preprint, rfd, apollo, safe_eln)",
     )
     parser.add_argument(
         "--file_type",
@@ -49,7 +49,7 @@ def parse_args():
         type=str,
         choices=["all", "docx", "pptx", "xlsx", "json"],
         default="all",
-        help="Which file type to process, specially applicable in apollo, eln (default: all)",
+        help="Which file type to process, specially applicable in apollo, eln, safe_eln (default: all)",
     )
     return parser.parse_args()
 
@@ -154,6 +154,23 @@ def run_extraction(
         )
         logger.info(f"Generated Metadata files for Apollo Articles Successfully!")
     elif source == "eln":
+        extracted_files_to_grsar_id_map = extract_eln_articles(
+            eln_path=extraction_path,
+            file_handler=file_handler,
+            eln_source_config=source_config,
+            source=source,
+            file_type=file_type,
+        )
+        # for time being to capture the grsar_id map generated for eln
+        # ToDO add rds implementation
+        logger.info(f"{extracted_files_to_grsar_id_map}")
+        file_handler.write_file_as_json(
+            grsar_id_map_path, extracted_files_to_grsar_id_map
+        )
+        logger.info(
+            f"{len(extracted_files_to_grsar_id_map)} ELN Articles Extracted Successfully!"
+        )
+    elif source == "safe_eln":
         extracted_files_to_grsar_id_map = extract_eln_articles(
             eln_path=extraction_path,
             file_handler=file_handler,

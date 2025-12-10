@@ -33,8 +33,8 @@ def parse_args():
         "-src",
         type=str,
         required=True,
-        choices=["pmc", "ct", "preprint", "rfd", "eln", "apollo", "ss"],
-        help="Article source (allowed values: pmc, ct, preprint, rfd, eln, apollo, ss)",
+        choices=["pmc", "ct", "preprint", "rfd", "eln", "apollo", "ss", "safe_eln"],
+        help="Article source (allowed values: pmc, ct, preprint, rfd, eln, apollo, ss, safe_eln)",
     )
     parser.add_argument(
         "--write_to_s3",
@@ -188,6 +188,20 @@ def run_ingestion(
             s3_file_handler=s3_file_handler,
         )
         apollo_ingestor.run()
+
+    elif source == "safe_eln":
+        eln_source_config = paths_config["ingestion_source"][source]
+        eln_ingestor = ELNIngestor(
+            workflow_id=workflow_id,
+            source=source,
+            file_handler=file_handler,
+            paths_config=paths,
+            eln_source_config=eln_source_config,
+            write_to_s3=write_to_s3,
+            s3_paths_config=s3_paths,
+            s3_file_handler=s3_file_handler,
+        )
+        eln_ingestor.run()
 
     else:
         raise ValueError(f"Unsupported source: {source}")

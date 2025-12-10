@@ -837,7 +837,7 @@ def main():
         "-src",
         type=str,
         required=True,
-        choices=["pmc", "ct", "preprint", "rfd", "eln", "apollo", "ss"],
+        choices=["pmc", "ct", "preprint", "rfd", "eln", "apollo", "ss", "safe_eln"],
         help="Article source (allowed values: pmc, ct, preprint, rfd, eln, apollo, ss)",
     )
 
