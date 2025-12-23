@@ -10,10 +10,14 @@ from src.data_ingestion.ingest_apollo.ingest_docx.docx_articles_ingestor import 
 from src.data_ingestion.ingest_apollo.ingest_xlsx.xlsx_articles_ingestor import (
     apolloXLSXIngestor,
 )
+from src.data_ingestion.ingest_apollo.ingest_pdf.pdf_articles_ingestor import (
+    apolloPDFIngestor,
+)
 
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
 from typing import Any, Dict, Optional
+from pathlib import Path
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -123,6 +127,34 @@ class APOLLOIngestor:
                 self.s3_failed_ingestion_path
             )  = None
 
+    def pdf_md_conversion_file_validation(self,):
+        """
+        In nextFlow pipeline we are converting pdf file to md format.
+        This functions uses it for its validation, incase if we miss to convert any file from pdf to markdown.
+        It compares the PDF files and MD files, finds the delta and move the respective .pdf file to failed path
+        """
+
+        pdf_file_list = [file.replace(".pdf","") for file in self.file_handler.list_files(self.apollo_path) if file.endswith(".pdf")]
+        md_file_list = [file.replace(".md","") for file in self.file_handler.list_files(self.apollo_path) if file.endswith(".md")]
+        failed_files = set(pdf_file_list) - set(md_file_list)
+
+        Path(self.failed_ingestion_path).mkdir(parents=True, exist_ok=True)
+
+        logger.info(f" Number PDF file : {len(pdf_file_list)}")
+        logger.info(f" Number of MD file : {len(md_file_list)}")
+
+        for file in failed_files:
+            try :
+                file=f"{file}.pdf"
+                if self.file_handler.exists(f"{self.apollo_path}/{file}"):
+                    self.file_handler.move_file(str(f"{self.apollo_path}/{file}"), f"{self.failed_ingestion_path}/{file}")
+                    logger.info(f"Moved Failed File {self.apollo_path}/{file} to {self.failed_ingestion_path}/{file}")
+            except Exception as e:
+                logger.info(f"Skipped File {self.apollo_path}/{file} : \n Error occured : {e}")
+
+        logger.info(f" PDF -> MD Failed File Conversion Count : {len(failed_files)}")
+
+
     # Runs the combined process
     def run(
         self,
@@ -160,10 +192,28 @@ class APOLLOIngestor:
             s3_paths_config=self.s3_paths_config,
             s3_file_handler=self.s3_file_handler,
         )
+        logger.info("Instantiating apolloPDFIngestor...")
+        apollo_md_ingestor = apolloPDFIngestor(
+            workflow_id=self.workflow_id,
+            source=self.source,
+            file_handler=self.file_handler,
+            paths_config=self.paths_config,
+            apollo_source_config=self.apollo_source_config,
+            write_to_s3=self.write_to_s3,
+            s3_paths_config=self.s3_paths_config,
+            s3_file_handler=self.s3_file_handler,
+        )
+        # For PDF processing : Upstream conversion pipeline(nextFlow pipeline) generates Markdown (.md) as the intermediate format.
+        # Processing is now standardized on the .md format, replacing the original .pdf source.
+        self.file_type= "md" if self.file_type == "pdf" else self.file_type
 
         logger.info("Processing Apollo Articles...")
         allowed_file_type=self.apollo_source_config["allowed_file_type"]
         logger.info(f"Allowed file type: {allowed_file_type}")
+
+        if self.file_type == "all" or self.file_type == "md":
+            logger.info(f" File Type is : {self.file_type} so, calling the pdf_md_conversion_file_validation")
+            self.pdf_md_conversion_file_validation()
 
         for file_name in self.file_handler.list_files(self.apollo_path):
             logger.info(f"Processing Apollo file {file_name}")

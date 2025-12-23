@@ -123,7 +123,7 @@ ingestion_source:
     type: "s3"  # "S3" or "API"
     s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"
     s3_src_path: "Apollo"
-    allowed_file_type: ["pptx","docx","xlsx"]
+    allowed_file_type: ["pptx","docx","xlsx", "md"] # MD file type is for PDF file
   safe_eln:
     type: "s3"  # "S3" or "API"
     s3_source_bucket: "gilead-ri-hpc-pubmed-dev-us-west-2"

@@ -48,7 +48,7 @@ def parse_args():
         "--file_type",
         "-ft",
         type=str,
-        choices=["all", "docx", "pptx", "xlsx"],
+        choices=["all", "docx", "pptx", "xlsx", "pdf", "json"],
         default="all",
         help="Which file type to process, specially applicable in apollo (default: all)",
     )
@@ -267,9 +267,9 @@ def main():
             s3_file_handler,
         ) = setup_environment(write_to_s3)
         # For local run, set a summarization model to None if required
-        # summarization_pipe = None
+        #summarization_pipe = None
 
-        # Set up the summarization model for HPC run
+        #Set up the summarization model for HPC run
         summarization_pipe = _load_summarization_model()
         if summarization_pipe:
             logger.info("Summarization model loaded successfully at startup.")

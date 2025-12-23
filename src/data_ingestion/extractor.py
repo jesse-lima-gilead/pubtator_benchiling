@@ -47,7 +47,7 @@ def parse_args():
         "--file_type",
         "-ft",
         type=str,
-        choices=["all", "docx", "pptx", "xlsx", "json"],
+        choices=["all", "docx", "pptx", "xlsx", "json", "pdf" ],
         default="all",
         help="Which file type to process, specially applicable in apollo, eln, safe_eln (default: all)",
     )
@@ -131,7 +131,7 @@ def run_extraction(
         )
         logger.info(f"{extracted_articles_count} RFD Articles Extracted Successfully!")
     elif source == "apollo":
-        extracted_files_to_uuid_map = extract_apollo_articles(
+        extracted_files_to_grsar_id_map = extract_apollo_articles(
             apollo_path=extraction_path,
             file_handler=file_handler,
             apollo_source_config=source_config,
@@ -139,17 +139,17 @@ def run_extraction(
             file_type=file_type,
         )
         logger.info(
-            f"{len(extracted_files_to_uuid_map)} Apollo Articles Extracted Successfully!"
+            f"{len(extracted_files_to_grsar_id_map)} Apollo Articles Extracted Successfully!"
         )
         # for time being to capture the uuid map generated for apollo
-        logger.info(f"{extracted_files_to_uuid_map}")
+        logger.info(f"{extracted_files_to_grsar_id_map}")
         file_handler.write_file_as_json(
-            apollo_uuid_map_path, extracted_files_to_uuid_map
+            grsar_id_map_path, extracted_files_to_grsar_id_map
         )
 
         apollo_articles_metadata_extractor(
             apollo_source_config=source_config,
-            extracted_files_to_uuid_map=extracted_files_to_uuid_map,
+            extracted_files_to_uuid_map=extracted_files_to_grsar_id_map,
             source=source,
         )
         logger.info(f"Generated Metadata files for Apollo Articles Successfully!")
