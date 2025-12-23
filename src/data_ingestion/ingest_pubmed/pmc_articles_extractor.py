@@ -46,33 +46,108 @@ def search_pubmed(query, start_date, end_date, retmax=50):
     return pmc_ids
 
 
-def fetch_data(article_id, only_body=False):
-    url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id={article_id}"
-    response = requests.get(url)
-    xml_content = response.content
+## OLD fetch_data
+# def fetch_data(article_id, only_body=False):
+#     url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id={article_id}"
+#     response = requests.get(url)
+#     xml_content = response.content
+#
+#     if (
+#         b"<!--The publisher of this article does not allow downloading of the full text in XML form.-->"
+#         in xml_content
+#     ):
+#         logger.info(
+#             f"Article {article_id} does not allow downloading of the full text in XML form."
+#         )
+#         return None
+#
+#     root = ET.fromstring(xml_content)
+#     body = extract_text_content(root, ".//body")
+#     if only_body:
+#         return body
+#     title = extract_text_content(
+#         root, ".//front/article-meta/title-group/article-title"
+#     )
+#     abstract = extract_text_content(root, ".//abstract")
+#     if title is None or abstract is None or body is None:
+#         logger.info(f"Article {article_id} does not have title, abstract or body.")
+#         return None
+#
+#     return xml_content
 
-    if (
-        b"<!--The publisher of this article does not allow downloading of the full text in XML form.-->"
-        in xml_content
-    ):
-        logger.info(
-            f"Article {article_id} does not allow downloading of the full text in XML form."
-        )
-        return None
+import requests
 
-    root = ET.fromstring(xml_content)
-    body = extract_text_content(root, ".//body")
-    if only_body:
-        return body
-    title = extract_text_content(
-        root, ".//front/article-meta/title-group/article-title"
-    )
-    abstract = extract_text_content(root, ".//abstract")
-    if title is None or abstract is None or body is None:
-        logger.info(f"Article {article_id} does not have title, abstract or body.")
-        return None
+SESSION = requests.Session()
+SESSION.headers.update(
+    {
+        "User-Agent": "grsar-ingestion/1.0",
+        "Connection": "close",  # critical for PMC stability
+    }
+)
 
-    return xml_content
+from requests.exceptions import (
+    SSLError,
+    ConnectionError,
+    ChunkedEncodingError,
+)
+import time
+import xml.etree.ElementTree as ET
+
+
+def fetch_data(article_id, only_body=False, max_retries=6):
+    url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+    params = {
+        "db": "pmc",
+        "id": article_id,
+        "retmode": "xml",
+    }
+
+    for attempt in range(max_retries):
+        try:
+            response = SESSION.get(url, params=params, timeout=(5, 180), stream=False)
+            response.raise_for_status()
+
+            xml_content = response.content  # safe now
+
+            if (
+                b"does not allow downloading of the full text in XML form"
+                in xml_content
+            ):
+                logger.info(f"PMC {article_id} restricted")
+                return None
+
+            root = ET.fromstring(xml_content)
+
+            body = extract_text_content(root, ".//body")
+            if only_body:
+                return body
+
+            title = extract_text_content(
+                root, ".//front/article-meta/title-group/article-title"
+            )
+            abstract = extract_text_content(root, ".//abstract")
+
+            if not title or not abstract or not body:
+                logger.info(
+                    f"Article {article_id} does not have title, abstract or body."
+                )
+                return None
+
+            return xml_content
+
+        except (SSLError, ChunkedEncodingError, ConnectionError) as e:
+            wait = min(60, 2**attempt)
+            logger.warning(
+                f"Network error for {article_id}: {type(e).__name__}, retrying in {wait}s"
+            )
+            time.sleep(wait)
+
+        except ET.ParseError:
+            logger.warning(f"XML parse error for {article_id}, retrying")
+            time.sleep(2**attempt)
+
+    logger.error(f"Failed to fetch PMC {article_id} after retries")
+    return None
 
 
 # def save_locally(file_name, content, pmc_local_path):
@@ -112,6 +187,7 @@ def extract_pmc_articles(
                 s3_file_handler.write_file(s3_file_path, content)
         else:
             missing_count += 1
+        time.sleep(0.34)  # rate limit belongs HERE
 
     logger.info(f"Total number of article ids fetched: {len(article_ids)}")
     logger.info(f"Number of articles that couldn't be extracted: {missing_count}")

@@ -4,6 +4,10 @@ from src.data_ingestion.ingest_pubmed.pmc_to_bioc_converter import convert_pmc_t
 from src.data_ingestion.ingest_pubmed.fetch_metadata import MetadataExtractor
 from src.data_ingestion.ingest_pubmed.articles_summarizer import SummarizeArticle
 from src.data_ingestion.ingest_pubmed.prettify_xml import XMLFormatter
+from src.data_ingestion.ingest_pubmed.pmc_tables_processor import (
+    extract_pmc_tables,
+    upload_pmc_table_files,
+)
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
@@ -46,6 +50,16 @@ class PMCIngestor:
             .replace("{workflow_id}", workflow_id)
             .replace("{source}", source)
         )
+        self.ingestion_interim_path = (
+            paths_config["ingestion_interim_path"]
+            .replace("{workflow_id}", workflow_id)
+            .replace("{source}", source)
+        )
+        self.embeddings_path = (
+            paths_config["embeddings_path"]
+            .replace("{workflow_id}", workflow_id)
+            .replace("{source}", source)
+        )
         self.file_handler = file_handler
         self.summarization_pipe = summarization_pipe
 
@@ -70,10 +84,20 @@ class PMCIngestor:
             self.s3_summary_path = self.s3_paths_config.get("summary_path", "").replace(
                 "{source}", source
             )
+            self.s3_interim_path = self.s3_paths_config.get(
+                "ingestion_interim_path", ""
+            ).replace("{source}", source)
+            self.s3_embeddings_path = self.s3_paths_config.get(
+                "embeddings_path", ""
+            ).replace("{source}", source)
         else:
             self.s3_pmc_path = (
                 self.s3_bioc_path
-            ) = self.s3_article_metadata_path = self.s3_summary_path = None
+            ) = (
+                self.s3_article_metadata_path
+            ) = (
+                self.s3_summary_path
+            ) = self.s3_interim_path = self.s3_embeddings_path = None
 
     def pmc_articles_extractor(
         self,
@@ -183,6 +207,36 @@ class PMCIngestor:
                     self.s3_file_handler.write_file(s3_summary_file_path, summary)
                     logger.info(f"Summary saved to S3: {s3_summary_file_path}")
 
+    def process_pmc_tables(self):
+        # Process PMC tables
+        logger.info("Extracting Tables from PMC Articles ...")
+        for file in self.file_handler.list_files(self.pmc_path):
+            if file.endswith(".xml"):
+                pmc_file_path = self.file_handler.get_file_path(self.pmc_path, file)
+                metadata_json_file_name = file.replace(".xml", "_metadata.json")
+                metadata_path = self.file_handler.get_file_path(
+                    self.article_metadata_path, metadata_json_file_name
+                )
+                extract_pmc_tables(
+                    file_handler=self.file_handler,
+                    pmc_file_path=pmc_file_path,
+                    interim_dir=self.ingestion_interim_path,
+                    embeddings_dir=self.embeddings_path,
+                    article_metadata_path=metadata_path,
+                )
+        if self.write_to_s3:
+            logger.info("Uploading All the Table Processed files from Local to S3")
+            upload_pmc_table_files(
+                interim_path=self.ingestion_interim_path,
+                s3_interim_path=self.s3_interim_path,
+                embeddings_path=self.embeddings_path,
+                s3_embeddings_path=self.s3_embeddings_path,
+                file_handler=self.file_handler,
+                s3_file_handler=self.s3_file_handler,
+            )
+            logger.info("Completed Uploading All the files from Local to S3")
+        logger.info("PMC Tables extracted successfully!")
+
     # Runs the combined process
     def run(
         self,
@@ -193,6 +247,7 @@ class PMCIngestor:
         self.articles_metadata_extractor(metadata_storage_type=metadata_storage_type)
         self.pmc_to_bioc_converter()
         self.articles_summarizer()
+        self.process_pmc_tables()
 
 
 def main():
