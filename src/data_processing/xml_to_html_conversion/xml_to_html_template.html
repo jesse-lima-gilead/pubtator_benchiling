@@ -88,31 +88,71 @@
         return;
       }
 
+      function extractDocumentMetadata(docEl) {
+    const metadata = {};
+
+    // Document ID
+    const idNode = docEl.querySelector('id');
+    if (idNode) {
+      metadata['document_id'] = idNode.textContent.trim();
+    }
+
+    // All document-level infons
+    docEl.querySelectorAll(':scope > infon').forEach(infon => {
+      metadata[infon.getAttribute('key')] = infon.textContent.trim();
+    });
+
+    return metadata;
+  }
+
+  function renderMetadata(metadata) {
+    const container = document.getElementById('metadata');
+
+    let html = `<h1>${metadata.title || metadata.document_id || 'Untitled Document'}</h1>`;
+    html += `<table>`;
+
+    Object.entries(metadata).forEach(([key, value]) => {
+      if (key === 'title') return;
+      html += `
+        <tr>
+          <td>${key.replace(/_/g, ' ').toUpperCase()} :</td>
+          <td>${value}</td>
+        </tr>
+      `;
+    });
+
+    html += `</table>`;
+    container.innerHTML = html;
+  }
+
+  const metadata = extractDocumentMetadata(d);
+  renderMetadata(metadata);
+
       // Helper to safely get infon text
       function getInfon(key) {
         const node = d.querySelector(`infon[key='${key}']`);
         return node?.textContent || '';
       }
 
-      // Metadata with safe defaults
-      const md = {
-        title:   getInfon('title'),
-        pmcid:   getInfon('article_id_pmc'),
-        pmid:    getInfon('article_id_pmid'),
-        doi:     getInfon('article_id_doi'),
-        subject: getInfon('subject_heading'),
-        date:    getInfon('publication_date')
-      };
-      document.getElementById('metadata').innerHTML = `
-        <h1>${md.title || 'No Title'}</h1>
-        <div>
-          PMCID: ${md.pmcid || 'N/A'} |
-          PMID: ${md.pmid || 'N/A'} |
-          DOI: ${md.doi ? `<a href="https://doi.org/${md.doi}" target="_blank">${md.doi}</a>` : 'N/A'} |
-          SUBJECT: ${md.subject.toUpperCase() || 'N/A'} |
-          DATE: ${md.date || 'N/A'}
-        </div>
-      `;
+      // // Metadata with safe defaults
+      // const md = {
+      //   title:   getInfon('title'),
+      //   pmcid:   getInfon('article_id_pmc'),
+      //   pmid:    getInfon('article_id_pmid'),
+      //   doi:     getInfon('article_id_doi'),
+      //   subject: getInfon('subject_heading'),
+      //   date:    getInfon('publication_date')
+      // };
+      // document.getElementById('metadata').innerHTML = `
+      //   <h1>${md.title || 'No Title'}</h1>
+      //   <div>
+      //     PMCID: ${md.pmcid || 'N/A'} |
+      //     PMID: ${md.pmid || 'N/A'} |
+      //     DOI: ${md.doi ? `<a href="https://doi.org/${md.doi}" target="_blank">${md.doi}</a>` : 'N/A'} |
+      //     SUBJECT: ${md.subject.toUpperCase() || 'N/A'} |
+      //     DATE: ${md.date || 'N/A'}
+      //   </div>
+      // `;
 
       // Render passages
       const sections = [], seen = new Set();
