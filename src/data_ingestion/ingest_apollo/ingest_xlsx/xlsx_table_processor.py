@@ -450,9 +450,10 @@ def process_tables(
                     "article_table_id": article_table_id,  # e.g. "Table 1"
                     "table_name": table_name,  # e.g. "Table 1. Aspirational Profile..."
                     **article_metadata,
-                    "table_keywords": extract_keywords_from_table(
-                        table_df=df, flattened_table=clean_flat
-                    ),
+                    #"table_keywords": extract_keywords_from_table(
+                    #    table_df=df, flattened_table=clean_flat
+                    #),
+                    "table_keywords": [],
                     "caption": caption,
                     "header_text": header,
                     "footer_text": footer,

@@ -159,7 +159,7 @@ def extract_from_s3_apollo(
 
     for cur_s3_full_path in filtered_files:
         # path where the files are going to be written to in the ingestion directory of HPC
-        file_extension = cur_s3_full_path.split("/")[-1].split(".")[-1]
+        file_extension = cur_s3_full_path.split("/")[-1].split(".")[-1].lower()
         document_grsar_id=stable_hash(cur_s3_full_path)
         cur_src_file = f"{document_grsar_id}.{file_extension}"
         cur_staging_path = file_handler.get_file_path(path, cur_src_file)
