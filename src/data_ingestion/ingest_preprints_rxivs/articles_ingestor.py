@@ -17,6 +17,9 @@ from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFact
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
 from typing import Any, Dict, Optional
+from src.pubtator_utils.db_handler.alembic_models.document import Document
+from src.pubtator_utils.db_handler.db import Session
+import os
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -82,6 +85,7 @@ class PrePrintsIngestor:
             self.s3_pmc_path = (
                 self.s3_bioc_path
             ) = self.s3_article_metadata_path = self.s3_summary_path = None
+        self.workflow_id = workflow_id
 
     # def preprints_articles_extractor(self):
     #     # Extract the preprints_bioarxiv pdfs:
@@ -105,6 +109,12 @@ class PrePrintsIngestor:
                 preprint_file_path = self.file_handler.get_file_path(
                     self.preprints_path, file
                 )
+                document_grsar_id, ext = os.path.splitext(file)
+                with Session() as session:
+                    session.query(Document).filter_by(document_grsar_id=document_grsar_id).update(
+                            {"workflow_id": self.workflow_id}
+                        )
+                    session.commit()
 
                 logger.info(f"Started Metadata extraction for {file}")
                 # fetch_metadata

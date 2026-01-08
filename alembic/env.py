@@ -17,9 +17,12 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
-from src.pubtator_utils.db_handler.alembic_models.chunks_with_annotations import (
-    Base,
-)  # Import your SQLAlchemy models here
+from src.pubtator_utils.db_handler.alembic_models.base import Base
+from src.pubtator_utils.db_handler.alembic_models.workflow import Workflow
+from src.pubtator_utils.db_handler.alembic_models.document import Document
+from src.pubtator_utils.db_handler.alembic_models.chunk import Chunk
+from src.pubtator_utils.db_handler.db import get_db_url
+import os
 
 target_metadata = Base.metadata
 
@@ -28,6 +31,9 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+hpc_env = os.getenv("HPC_ENV", "dev") 
+db_url = get_db_url()
+config.set_main_option("sqlalchemy.url", db_url)
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.

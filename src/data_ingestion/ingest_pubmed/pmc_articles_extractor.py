@@ -4,6 +4,8 @@ import requests
 
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
+from src.data_ingestion.ingestion_utils.document_data_insertion import insert_document_data
+from src.data_ingestion.ingestion_utils.s3_extractor import stable_hash
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -168,6 +170,8 @@ def extract_pmc_articles(
     s3_pmc_path: str,
     s3_file_handler: FileHandler,
     write_to_s3: bool,
+    source: str,
+    workflow_id: str,
     retmax=50,
 ):
     if len(article_ids) == 0 and query != "":
@@ -179,12 +183,17 @@ def extract_pmc_articles(
         if content:
             file_name = f"PMC_{article_id}.xml"
             logger.info(f"Fetching {file_name}")
-            file_path = file_handler.get_file_path(pmc_path, file_name)
+            document_grsar_id = stable_hash(file_name)
+            cur_s3_file = f"{document_grsar_id}.xml"
+            file_path = file_handler.get_file_path(pmc_path, cur_s3_file)
             file_handler.write_file(file_path, content)
 
             if write_to_s3:
-                s3_file_path = s3_file_handler.get_file_path(s3_pmc_path, file_name)
+                s3_file_path = s3_file_handler.get_file_path(s3_pmc_path, cur_s3_file)
+                print(s3_file_path)
                 s3_file_handler.write_file(s3_file_path, content)
+            xml_size_bytes = len(content.encode("utf-8"))
+            insert_document_data(document_grsar_id=document_grsar_id, source=source, file_name=file_name, file_path=file_path, safe_file_name=cur_s3_file, size_bytes=xml_size_bytes, workflow_id=workflow_id)
         else:
             missing_count += 1
         time.sleep(0.34)  # rate limit belongs HERE

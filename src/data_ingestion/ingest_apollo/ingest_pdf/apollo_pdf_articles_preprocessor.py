@@ -85,7 +85,7 @@ def convert_apollo_md_to_html(
         apollo_output_dir = Path(apollo_interim_path) / apollo_dir_name
         apollo_output_dir.mkdir(parents=True, exist_ok=True)
         output_doc_path = Path(apollo_output_dir) / apollo_doc.replace(
-            f".{input_doc_type}", f".{output_doc_type}"
+            f".md", f".{output_doc_type}"
         )
         media_dir = Path(apollo_output_dir)
         logger.info(f"Converting {input_doc_path} to {output_doc_path}")

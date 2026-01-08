@@ -14,6 +14,7 @@ from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
 from typing import Any, Dict, Optional, List
 
+
 # Initialize the logger
 logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()
@@ -98,6 +99,8 @@ class PMCIngestor:
             ) = (
                 self.s3_summary_path
             ) = self.s3_interim_path = self.s3_embeddings_path = None
+        self.source = source
+        self.workflow_id = workflow_id
 
     def pmc_articles_extractor(
         self,
@@ -106,6 +109,7 @@ class PMCIngestor:
         start_date: str = "1900",
         end_date: str = "2025",
         retmax: int = 25,
+        
     ):
         # Extract the free full text articles from PMC:
         logger.info("Extracting PMC Articles...")
@@ -120,6 +124,8 @@ class PMCIngestor:
             s3_file_handler=self.s3_file_handler,
             write_to_s3=self.write_to_s3,
             retmax=retmax,
+            source=self.source,
+            workflow_id=self.workflow_id,
         )
         logger.info(f"{extracted_articles_count} PMC Articles Extracted Successfully!")
         return extracted_articles_count

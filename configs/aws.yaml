@@ -8,3 +8,10 @@ aws:
     s3:
       bucket_name: "gilead-ri-hpc-pubmed-dev-us-west-2"
       bucket_region: "us-west-2"
+  RDS:
+    DEV:
+      db_host: "grsar-prd-db.cvrtc8ennsfd.us-west-2.rds.amazonaws.com"
+      db_username: "dev_grsar_app_user"
+      db_name: "dev_grsar_app"
+      db_secret_arn: "arn:aws:secretsmanager:us-west-2:950499364848:secret:gilead-hpc-grsar-prd-db-creds-T9oGkb"
+

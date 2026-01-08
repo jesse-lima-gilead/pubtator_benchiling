@@ -1,6 +1,9 @@
 import pandas as pd
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
+from src.data_ingestion.ingestion_utils.document_data_insertion import insert_document_data
+from src.data_ingestion.ingestion_utils.s3_extractor import stable_hash
+
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -23,6 +26,8 @@ def articles_metadata_extractor(
     write_to_s3: bool,
     s3_metadata_path: str,
     s3_file_handler: FileHandler,
+    workflow_id: str,
+    source: str
 ):
     # Fields to include in JSON
     required_fields = [
@@ -77,6 +82,7 @@ def articles_metadata_extractor(
     ]
 
     # Process each row
+    size_bytes = ct_df.memory_usage(deep=True).sum()
     for _, row in ct_df.iterrows():
         nct_id = row.get("nct_id")
         if pd.isna(nct_id):
@@ -101,6 +107,9 @@ def articles_metadata_extractor(
         file_path = file_handler.get_file_path(metadata_path, filename)
         file_handler.write_file_as_json(file_path, output_data)
         logger.info(f"For nct_id {nct_id}, Saving metadata to {file_path}")
+        
+        document_grsar_id = stable_hash(nct_id)
+        insert_document_data(document_grsar_id=document_grsar_id, source = source, file_name = nct_id, file_path = file_path, safe_file_name=document_grsar_id, size_bytes = size_bytes, workflow_id = workflow_id)
 
         if write_to_s3:
             # Write to S3

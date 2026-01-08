@@ -7,14 +7,17 @@ from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
-from src.data_ingestion.ingest_rfd.rfd_articles_preprocessor import (
-    generate_safe_filename,
-)
+from src.data_ingestion.ingestion_utils.document_data_insertion import insert_document_data
+import os
+
 
 # Initialize the logger
 logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()
 
+
+def stable_hash(path: str) -> str:
+    return hashlib.sha256(path.encode("utf-8")).hexdigest()
 
 def extract_from_s3(
     path: str, file_handler: FileHandler, source: str, storage_type: str = "s3"
@@ -50,9 +53,48 @@ def extract_from_s3(
 
     return ingested_articles_cnt
 
+def extract_from_s3_preprints(
+    path: str, file_handler: FileHandler, source: str, storage_type: str = "s3"
+):
+    # Initialize the config loader
+    config_loader = YAMLConfigLoader()
 
-def stable_hash(path: str) -> str:
-    return hashlib.sha256(path.encode("utf-8")).hexdigest()
+    # Retrieve paths config
+    paths_config = config_loader.get_config("paths")
+
+    # Get file handler instance from factory
+    s3_file_handler = FileHandlerFactory.get_handler(storage_type)
+    # Retrieve paths from config
+    s3_paths = paths_config["storage"][storage_type]
+    # Source S3 data path
+    src_data_path = s3_paths["ingestion_path"].replace("{source}", source)
+
+    src_files = s3_file_handler.list_files(src_data_path)
+    
+    files_to_grsar_id_map = {}
+
+    for cur_src_file in src_files:
+        # path of the source s3 key
+        cur_s3_full_path = s3_file_handler.get_file_path(src_data_path, cur_src_file)
+        org_filename_with_extension = cur_s3_full_path.split("/")[-1]
+        file_extension = org_filename_with_extension.split(".")[-1]
+        # path where the files are going to be written to in the ingestion directory of HPC
+        document_grsar_id = stable_hash(cur_s3_full_path)
+        cur_s3_file = f"{document_grsar_id}.{file_extension}"
+        cur_staging_path = file_handler.get_file_path(path, cur_s3_file)
+        # Download to local HPC path
+        s3_file_handler.s3_util.download_file(cur_s3_full_path, cur_staging_path)
+
+        logger.info(
+            f"File downloaded from S3: {cur_s3_full_path} to local: {cur_staging_path}"
+        )
+        files_to_grsar_id_map[cur_s3_full_path] = document_grsar_id
+        file_content = file_handler.read_file_bytes(cur_staging_path)
+        size_bytes = len(file_content)
+        
+        insert_document_data(document_grsar_id = document_grsar_id, source = source, file_name = org_filename_with_extension, file_path = cur_s3_full_path, safe_file_name= cur_s3_file, size_bytes = size_bytes)
+
+    return files_to_grsar_id_map
 
 
 def extract_from_s3_eln(
@@ -72,7 +114,8 @@ def extract_from_s3_eln(
 
     # download to local
     for cur_s3_full_path in src_files:
-        file_extension = cur_s3_full_path.split(".")[-1]
+        org_filename_with_extension = cur_s3_full_path.split("/")[-1]
+        file_extension = org_filename_with_extension.split(".")[-1]
         # to consider only the file_type we want to extract
         if file_type != "all" and file_type != file_extension:
             continue
@@ -81,6 +124,10 @@ def extract_from_s3_eln(
         cur_staging_path = file_handler.get_file_path(path, cur_s3_file)
         # Download to local HPC path
         s3_file_handler.s3_util.download_file(cur_s3_full_path, cur_staging_path)
+        #insert document data
+        data = file_handler.read_file_bytes(cur_staging_path)
+        size_in_bytes = len(data)
+        insert_document_data(document_grsar_id= document_grsar_id, source=source, file_path=cur_s3_full_path, file_name = org_filename_with_extension, safe_file_name=cur_s3_file, size_bytes=size_in_bytes)
 
         # map which has filename to uuid which will be utilised in extract_metadata
         files_to_grsar_id_map[cur_s3_full_path] = document_grsar_id
@@ -105,22 +152,26 @@ def extract_from_s3_rfd(
     s3_file_handler = FileHandlerFactory.get_handler(storage_type)
 
     src_files = s3_file_handler.s3_util.list_files(s3_src_path)  # to get full path
-
+    files_to_grsar_id_map = {}
     # download to local
     for cur_s3_full_path in src_files:
         # path where the files are going to be written to in the ingestion directory of HPC
-        cur_s3_file = cur_s3_full_path.split("/")[-1]
+        org_filename_with_extension = cur_s3_full_path.split("/")[-1]
+        file_extension = org_filename_with_extension.split(".")[-1]
+        document_grsar_id = stable_hash(cur_s3_full_path)
+        cur_s3_file = f"{document_grsar_id}.{file_extension}"
         cur_staging_path = file_handler.get_file_path(path, cur_s3_file)
         # Download to local HPC path
         s3_file_handler.s3_util.download_file(cur_s3_full_path, cur_staging_path)
         logger.info(
             f"File downloaded from S3: {cur_s3_full_path} to local: {cur_staging_path}"
         )
-
-    safe_file_name_cnt = generate_safe_filename(path)
-    logger.info(
-        f"Safe file names generated for {safe_file_name_cnt} articles successfully!"
-    )
+        files_to_grsar_id_map[cur_s3_full_path] = document_grsar_id
+        data = file_handler.read_file_bytes(cur_staging_path)
+        size_in_bytes = len(data)
+        insert_document_data(document_grsar_id= document_grsar_id, source=source, file_path=cur_s3_full_path, file_name = org_filename_with_extension, safe_file_name=cur_s3_file, size_bytes=size_in_bytes)
+        
+    return files_to_grsar_id_map
 
 
 def extract_from_s3_apollo(
@@ -166,8 +217,10 @@ def extract_from_s3_apollo(
         # Download to local HPC path
         s3_file_handler.s3_util.download_file(cur_s3_full_path, cur_staging_path)
 
-        # map which has filename to grasr_id which will be utilised in extract_metadata
+        # map which has filename to uuid which will be utilised in extract_metadata
         files_to_grsar_id_map[cur_s3_full_path] = document_grsar_id
+        insert_document_data(document_grsar_id=document_grsar_id, source=source, file_path=cur_s3_full_path, file_name=filename, safe_file_name=cur_src_file)
+
         logger.info(
             f"File downloaded from S3: {cur_s3_full_path} to local: {cur_staging_path}"
         )

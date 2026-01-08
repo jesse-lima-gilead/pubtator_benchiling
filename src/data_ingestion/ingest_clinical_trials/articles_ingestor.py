@@ -19,6 +19,8 @@ from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
 from typing import Any, Dict, Optional, List
 
+
+
 # Initialize the logger
 logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()
@@ -81,7 +83,7 @@ class CTIngestor:
             self.s3_pmc_path = (
                 self.s3_bioc_path
             ) = self.s3_article_metadata_path = self.s3_summary_path = None
-
+        self.workflow_id = workflow_id
     # def ct_articles_extractor(self):
     #     # Extract the CSV full clinical trials:
     #     logger.info("Extracting CT Articles...")
@@ -119,6 +121,8 @@ class CTIngestor:
                     self.write_to_s3,
                     self.s3_article_metadata_path,
                     self.s3_file_handler,
+                    self.workflow_id,
+                    self.source
                 )
                 logger.info(f"All Metadata extracted from {file_path}")
 

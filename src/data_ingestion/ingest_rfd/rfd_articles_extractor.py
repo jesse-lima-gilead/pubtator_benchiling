@@ -18,10 +18,10 @@ def extract_rfd_articles(
     if source_type == "s3":
         s3_src_path = rfd_source_config["s3_src_path"]
         # call the S3 extractor
-        ingested_articles_cnt = extract_from_s3_rfd(
+        files_to_grsar_id_map = extract_from_s3_rfd(
             rfd_path, file_handler, source, source_type, s3_src_path
         )
-        return ingested_articles_cnt
+        return files_to_grsar_id_map
     elif source_type == "API":
         pass
     else:

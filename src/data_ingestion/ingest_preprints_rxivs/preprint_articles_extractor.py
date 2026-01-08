@@ -1,6 +1,6 @@
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
-from src.data_ingestion.ingestion_utils.s3_extractor import extract_from_s3
+from src.data_ingestion.ingestion_utils.s3_extractor import extract_from_s3_preprints
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -17,10 +17,10 @@ def extract_preprints_articles(
 
     if source_type == "s3":
         # call the S3 extractor
-        ingested_preprints_articles_cnt = extract_from_s3(
+        files_to_grsar_id_map = extract_from_s3_preprints(
             preprints_path, file_handler, source, source_type
         )
-        return ingested_preprints_articles_cnt
+        return files_to_grsar_id_map
     elif source_type == "API":
         pass
     else:

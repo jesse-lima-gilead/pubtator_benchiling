@@ -30,22 +30,37 @@ file_handler = FileHandlerFactory.get_handler(storage_type)
 paths_config = paths["storage"][storage_type]
 
 
-def generate_safe_filename(eln_path: str):
-    safe_file_name_cnt = 0
-    logger.info(f"Generating Safe FileNames...")
-    for internal_doc in file_handler.list_files(eln_path):
-        # Replace all the special chars in the file name with '_'
-        safe_doc_name = "".join(
-            c if c.isalnum() or c in (".", "_") else "_" for c in internal_doc
-        )
-        safe_doc_name = safe_doc_name.replace("ascii", "")
-        if internal_doc != safe_doc_name:
-            logger.info(f"Renaming file {internal_doc} to {safe_doc_name}")
-            file_handler.move_file(
-                Path(eln_path) / internal_doc, Path(eln_path) / safe_doc_name
-            )
-            safe_file_name_cnt += 1
-    return safe_file_name_cnt
+# def generate_safe_filename(eln_path: str):
+#     safe_file_name_cnt = 0
+#     logger.info(f"Generating Safe FileNames...")
+#     for internal_doc in file_handler.list_files(eln_path):
+#         # Replace all the special chars in the file name with '_'
+#         safe_doc_name = "".join(
+#             c if c.isalnum() or c in (".", "_") else "_" for c in internal_doc
+#         )
+#         safe_doc_name = safe_doc_name.replace("ascii", "")
+#         if internal_doc != safe_doc_name:
+#             logger.info(f"Renaming file {internal_doc} to {safe_doc_name}")
+#             file_handler.move_file(
+#                 Path(eln_path) / internal_doc, Path(eln_path) / safe_doc_name
+#             )
+#             safe_file_name_cnt += 1
+#     return safe_file_name_cnt
+
+# def generate_safe_filename_eln(eln_path, org_filename):
+#     logger.info(f"Generating Safe FileNames...")
+
+#     safe_doc_name = "".join(
+#         c if c.isalnum() or c in (".", "_") else "_" for c in org_filename
+#     )
+#     safe_doc_name = safe_doc_name.replace("ascii", "")
+#     if org_filename != safe_doc_name:
+#         logger.info(f"Renaming file {org_filename} to {safe_doc_name}")
+#         file_handler.move_file(
+#             Path(eln_path) / org_filename, Path(eln_path) / safe_doc_name
+#         )
+        
+#     return safe_doc_name
 
 
 def json_cleaner(input_eln_file: str, output_eln_file: str):

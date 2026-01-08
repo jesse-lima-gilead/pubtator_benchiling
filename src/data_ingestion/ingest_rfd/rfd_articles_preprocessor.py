@@ -6,6 +6,7 @@ from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
 from src.data_ingestion.ingestion_utils.pandoc_processor import PandocProcessor
 from src.data_ingestion.ingest_rfd.rfd_tables_processor import process_tables
+from src.data_ingestion.ingestion_utils.document_data_insertion import insert_document_data
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -24,21 +25,33 @@ file_handler = FileHandlerFactory.get_handler(storage_type)
 paths_config = paths["storage"][storage_type]
 
 
-def generate_safe_filename(rfd_path: str):
-    safe_file_name_cnt = 0
-    logger.info(f"Generating Safe FileNames...")
-    for internal_doc in file_handler.list_files(rfd_path):
-        # Replace all the special chars in the file name with '_'
-        safe_doc_name = "".join(
-            c if c.isalnum() or c in (".", "_") else "_" for c in internal_doc
-        )
-        if internal_doc != safe_doc_name:
-            logger.info(f"Renaming file {internal_doc} to {safe_doc_name}")
-            file_handler.move_file(
-                Path(rfd_path) / internal_doc, Path(rfd_path) / safe_doc_name
-            )
-            safe_file_name_cnt += 1
-    return safe_file_name_cnt
+# def generate_safe_filename(rfd_path: str):
+#     safe_file_name_cnt = 0
+#     logger.info(f"Generating Safe FileNames...")
+#     for internal_doc in file_handler.list_files(rfd_path):
+#         # Replace all the special chars in the file name with '_'
+#         safe_doc_name = "".join(
+#             c if c.isalnum() or c in (".", "_") else "_" for c in internal_doc
+#         )
+#         if internal_doc != safe_doc_name:
+#             logger.info(f"Renaming file {internal_doc} to {safe_doc_name}")
+#             file_handler.move_file(
+#                 Path(rfd_path) / internal_doc, Path(rfd_path) / safe_doc_name
+#             )
+#             safe_file_name_cnt += 1
+#     return safe_file_name_cnt
+
+# def generate_safe_filename_rfd(rfd_path: str, internal_doc):
+#     safe_doc_name = "".join(
+#         c if c.isalnum() or c in (".", "_") else "_" for c in internal_doc
+#     )
+#     # if internal_doc != safe_doc_name:
+#     #     logger.info(f"Renaming file {internal_doc} to {safe_doc_name}")
+#     #     file_handler.move_file(
+#     #         Path(rfd_path) / internal_doc, Path(rfd_path) / safe_doc_name
+#     #     )
+    
+#     return safe_doc_name
 
 
 def convert_rfd_to_html(

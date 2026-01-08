@@ -4,7 +4,6 @@ from pathlib import Path
 from src.data_ingestion.ingest_eln.eln_articles_extractor import extract_eln_articles
 
 from src.data_ingestion.ingest_eln.eln_articles_preprocessor import (
-    generate_safe_filename,
     preprocess_eln_files,
 )
 from src.data_ingestion.ingest_eln.eln_to_bioc_converter import (
@@ -20,6 +19,9 @@ from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFact
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
 from typing import Any, Dict, Optional, List
+from src.pubtator_utils.db_handler.db import Session
+from src.pubtator_utils.db_handler.alembic_models.document import Document
+import os
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -194,12 +196,23 @@ class ELNIngestor:
         logger.info(
             f"{uploaded_articles_count} Processed ELN Files uploaded to S3 Successfully!"
         )
+    
+    def update_workflow_id(self):
+        session = Session()
+        for eln in self.file_handler.list_files(self.eln_path):
+            document_grsar_id, ext = os.path.splitext(eln)
+            with Session() as session:
+                session.query(Document).filter_by(document_grsar_id=document_grsar_id).update(
+                            {"workflow_id": self.workflow_id}
+                        )
+                session.commit()
 
     # Runs the combined process
     def run(
         self,
     ):
         # self.eln_safe_filenames_generator()
+        self.update_workflow_id()
         self.eln_formatter()
         self.eln_articles_preprocessor()
         if self.write_to_s3:

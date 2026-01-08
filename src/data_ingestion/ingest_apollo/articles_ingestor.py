@@ -17,6 +17,9 @@ from src.data_ingestion.ingest_apollo.ingest_pdf.pdf_articles_ingestor import (
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
 from typing import Any, Dict, Optional
+from src.pubtator_utils.db_handler.alembic_models.document import Document
+from src.pubtator_utils.db_handler.db import Session
+import os
 from pathlib import Path
 
 # Initialize the logger
@@ -126,6 +129,17 @@ class APOLLOIngestor:
             )= (
                 self.s3_failed_ingestion_path
             )  = None
+            
+    def update_workflow_id(self):
+        for file_name in self.file_handler.list_files(self.apollo_path):
+            file_path_temp = os.path.join(self.apollo_path, file_name)
+            content = self.file_handler.read_file_bytes(file_path_temp)
+            document_grsar_id, ext = os.path.splitext(file_name)
+            with Session() as session:
+                session.query(Document).filter_by(document_grsar_id=document_grsar_id).update(
+                        {"workflow_id": self.workflow_id, "document_file_size_in_bytes" : len(content)}
+                    )
+                session.commit()
 
     def pdf_md_conversion_file_validation(self,):
         """
@@ -210,6 +224,8 @@ class APOLLOIngestor:
         logger.info("Processing Apollo Articles...")
         allowed_file_type=self.apollo_source_config["allowed_file_type"]
         logger.info(f"Allowed file type: {allowed_file_type}")
+        
+        self.update_workflow_id()
 
         if self.file_type == "all" or self.file_type == "md":
             logger.info(f" File Type is : {self.file_type} so, calling the pdf_md_conversion_file_validation")

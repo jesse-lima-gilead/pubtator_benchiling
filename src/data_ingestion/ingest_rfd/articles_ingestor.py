@@ -5,7 +5,6 @@ from src.data_ingestion.ingest_rfd.rfd_summarizer import (
 )
 from src.data_ingestion.ingest_rfd.rfd_articles_extractor import extract_rfd_articles
 from src.data_ingestion.ingest_rfd.rfd_articles_preprocessor import (
-    generate_safe_filename,
     convert_rfd_to_html,
     extract_tables_from_rfd_html,
 )
@@ -23,6 +22,9 @@ from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFact
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
 from typing import Any, Dict, Optional, List
+from src.pubtator_utils.db_handler.alembic_models.document import Document
+from src.pubtator_utils.db_handler.db import Session
+import os
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -117,6 +119,7 @@ class RFDIngestor:
             ) = (
                 self.s3_embeddings_path
             ) = self.s3_article_metadata_path = self.s3_summary_path = None
+        self.workflow_id = workflow_id
 
     # def rfd_articles_extractor(self):
     #     # Extract the RFD Articles:
@@ -142,7 +145,7 @@ class RFDIngestor:
         extracted_metadata_count = articles_metadata_extractor(
             rfd_path=self.rfd_path,
             metadata_path=self.article_metadata_path,
-            file_handler=self.file_handler,
+            file_handler=self.file_handler
         )
         logger.info(f"Metadata extracted for {extracted_metadata_count} RFD Articles!")
 
@@ -209,6 +212,17 @@ class RFDIngestor:
         logger.info(
             f"{uploaded_articles_count} Processed RFD Files uploaded to S3 Successfully!"
         )
+        
+    def update_workflow_id(self):
+        for rfd_article in os.listdir(self.rfd_path):
+            document_grsar_id, ext = os.path.splitext(rfd_article)
+            with Session() as session:
+                session.query(Document).filter_by(document_grsar_id=document_grsar_id).update(
+                {
+                    "workflow_id": self.workflow_id,
+                }
+                )
+                session.commit()
 
     # Runs the combined process
     def run(
@@ -216,6 +230,7 @@ class RFDIngestor:
     ):
         # self.rfd_articles_extractor()
         # self.rfd_safe_filenames_generator()
+        self.update_workflow_id()
         self.metadata_extractor()
         self.rfd_articles_preprocessor()
         self.rfd_html_to_bioc_converter()

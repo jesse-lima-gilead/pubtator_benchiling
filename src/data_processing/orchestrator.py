@@ -4,7 +4,7 @@ from multiprocessing import Process, Queue
 import json
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List
 from collections import Counter
 from transformers import AutoTokenizer
@@ -26,11 +26,12 @@ from src.pubtator_utils.embeddings_handler.embeddings_generator import (
 )
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
+from src.pubtator_utils.db_handler.alembic_models.chunk import Chunk
+from src.pubtator_utils.db_handler.db import Session
 
 # Initialize the logger
 logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()
-
 
 class ArticleProcessor:
     def __init__(
@@ -432,6 +433,24 @@ class ArticleProcessor:
 
                     all_chunk_details.append(chunk_details)
 
+                    document_grsar_id, ext = os.path.splitext(article_file)
+                    chunk_creation_dt = datetime.now(timezone.utc)
+                    chunk_record = Chunk(
+                        chunk_id=chunk_id,
+                        document_grsar_id = document_grsar_id,
+                        chunk_sequence=chunk_sequence,
+                        workflow_id = self.workflow_id,
+                        chunk_type = chunk_details["payload"]["chunk_type"],
+                        vector_field_name = 'smiles_vector' if self.source == 'eln' else 'vector',
+                        chunk_annotations_count = chunk_annotations_count,
+                        source = self.source,
+                        chunk_creation_dt=chunk_creation_dt,
+                        chunk_creation_ds=chunk_creation_dt.date(),
+                    )
+                    with Session() as session:
+                        session.add(chunk_record)
+                        session.commit()
+                    
                     # # Insert into PostgreSQL
                     # chunk_record = ChunkWithAnnotations(
                     #     article_id=article_id,

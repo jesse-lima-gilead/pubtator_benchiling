@@ -7,6 +7,7 @@ from typing import List, Optional, Dict
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
+from src.data_ingestion.ingestion_utils.document_data_insertion import insert_document_data
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -733,7 +734,7 @@ def extract_metadata_from_path(full_path, file_uuid):
 
     # safe filename
     safe_filename = make_safe_filename(filename)
-
+    
     # file category
     category = file_category_from_ext(extension, is_temp)
 

@@ -17,6 +17,7 @@ from src.data_ingestion.ingest_rfd.rfd_articles_extractor import extract_rfd_art
 from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
 from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
+import subprocess
 
 # Initialize the logger
 logger_instance = SingletonLogger()
@@ -113,23 +114,23 @@ def run_extraction(
         )
         logger.info(f"{extracted_articles_count} CT Articles Extracted Successfully!")
     elif source == "preprint":
-        extracted_articles_count = extract_preprints_articles(
+        extracted_files_to_uuid_map = extract_preprints_articles(
             preprints_path=extraction_path,
             file_handler=file_handler,
             preprints_source_config=source_config,
             source=source,
         )
         logger.info(
-            f"{extracted_articles_count} Preprint Articles Extracted Successfully!"
+            f"{len(extracted_files_to_uuid_map)} Preprint Articles Extracted Successfully!"
         )
     elif source == "rfd":
-        extracted_articles_count = extract_rfd_articles(
+        extracted_files_to_uuid_map = extract_rfd_articles(
             rfd_path=extraction_path,
             file_handler=file_handler,
             rfd_source_config=source_config,
             source=source,
         )
-        logger.info(f"{extracted_articles_count} RFD Articles Extracted Successfully!")
+        logger.info(f"{len(extracted_files_to_uuid_map)} RFD Articles Extracted Successfully!")
     elif source == "apollo":
         extracted_files_to_grsar_id_map = extract_apollo_articles(
             apollo_path=extraction_path,
@@ -191,8 +192,26 @@ def run_extraction(
         raise ValueError(f"Unsupported source: {source}")
 
 
+def run_alembic_upgrade():
+    try:
+        result = subprocess.run(
+            ["alembic", "upgrade", "head"],
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        logger.info("Alembic migration successful!")
+        logger.info(result.stdout)
+    except subprocess.CalledProcessError as e:
+        logger.error("Alembic migration failed!")
+        logger.error("STDOUT: %s", e.stdout)
+        logger.error("STDERR: %s", e.stderr)
+        raise
+
 def main():
     logger.info("Execution Started")
+    
+    run_alembic_upgrade()
 
     args = parse_args()
     timestamp, source, file_type = args.timestamp, args.source, args.file_type
