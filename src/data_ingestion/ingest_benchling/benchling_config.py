@@ -45,21 +45,36 @@ class BenchlingPathsConfig:
         }
 
 
-@dataclass
+# Default file types constant (accessible at module level)
+DEFAULT_ALLOWED_FILE_TYPES = ["pdf", "docx", "xlsx", "pptx", "txt", "csv"]
+
+
 class BenchlingConfig:
-    """Main configuration class for Benchling ingestion."""
-    s3: BenchlingS3Config = field(default_factory=BenchlingS3Config)
-    delta: BenchlingDeltaConfig = field(default_factory=BenchlingDeltaConfig)
-    paths: BenchlingPathsConfig = field(default_factory=BenchlingPathsConfig)
+    """Main configuration class for Benchling ingestion.
     
-    # File types to process
-    allowed_file_types: List[str] = field(
-        default_factory=lambda: ["pdf", "docx", "xlsx", "pptx", "txt", "csv"]
-    )
+    Note: This is a regular class (not a dataclass) to allow both class-level 
+    and instance-level access to allowed_file_types.
+    """
     
-    # Embedding model configuration
-    embeddings_model: str = "pubmedbert"
-    embeddings_model_path: str = "s3://gilead-edp-kite-rd-dev-us-west-2-kite-benchling-text-sql/models/pubmedbert-base-embeddings/"
+    # Class-level attribute - accessible via BenchlingConfig.allowed_file_types
+    allowed_file_types: List[str] = DEFAULT_ALLOWED_FILE_TYPES
+    
+    def __init__(
+        self,
+        s3: Optional[BenchlingS3Config] = None,
+        delta: Optional[BenchlingDeltaConfig] = None,
+        paths: Optional[BenchlingPathsConfig] = None,
+        allowed_file_types: Optional[List[str]] = None,
+        embeddings_model: str = "pubmedbert",
+        embeddings_model_path: str = "s3://gilead-edp-kite-rd-dev-us-west-2-kite-benchling-text-sql/models/pubmedbert-base-embeddings/",
+    ):
+        self.s3 = s3 if s3 is not None else BenchlingS3Config()
+        self.delta = delta if delta is not None else BenchlingDeltaConfig()
+        self.paths = paths if paths is not None else BenchlingPathsConfig()
+        # Create a copy to avoid mutating the class-level default
+        self.allowed_file_types = list(allowed_file_types) if allowed_file_types is not None else list(DEFAULT_ALLOWED_FILE_TYPES)
+        self.embeddings_model = embeddings_model
+        self.embeddings_model_path = embeddings_model_path
     
     @classmethod
     def from_dict(cls, config_dict: Dict) -> "BenchlingConfig":
