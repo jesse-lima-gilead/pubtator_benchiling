@@ -18,9 +18,6 @@ from src.pubtator_utils.file_handler.local_handler import LocalFileHandler
 from src.data_ingestion.ingest_apollo.ingest_pptx.apollo_pptx_to_bioc_converter import (
     pptx_to_bioc_converter,
 )
-from src.data_ingestion.ingest_apollo.ingest_pptx.pptx_table_processor import (
-    process_tables,
-)
 
 from pptx import Presentation
 from pptx.exc import PackageNotFoundError

@@ -4,7 +4,7 @@ import shutil
 import bioc
 import pandas as pd
 import csv
-from typing import Union, Any
+from typing import Union, Any, List
 from xml.etree import ElementTree as ET
 from src.pubtator_utils.file_handler.base_handler import FileHandler
 
@@ -12,17 +12,20 @@ from src.pubtator_utils.file_handler.base_handler import FileHandler
 class LocalFileHandler(FileHandler):
     """Handles file operations on the local filesystem."""
 
-    def list_files(self, path: str) -> list[str]:
+    def list_files(self, path: str, raise_on_missing: bool = False) -> List[str]:
         """Lists all files in the given directory.
 
         Args:
             path (str): The directory path.
+            raise_on_missing (bool): If True, raises FileNotFoundError when directory
+                doesn't exist. If False (default), returns empty list.
 
         Returns:
-            list[str]: A list of file names.
+            list[str]: A list of file names. Returns empty list if directory doesn't exist
+                and raise_on_missing is False.
 
         Raises:
-            FileNotFoundError: If the directory does not exist.
+            FileNotFoundError: If the directory does not exist and raise_on_missing is True.
             PermissionError: If access is denied.
         """
         try:
@@ -30,7 +33,9 @@ class LocalFileHandler(FileHandler):
                 f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))
             ]
         except FileNotFoundError:
-            raise FileNotFoundError(f"Directory not found: {path}")
+            if raise_on_missing:
+                raise FileNotFoundError(f"Directory not found: {path}")
+            return []
         except PermissionError:
             raise PermissionError(f"Permission denied: {path}")
 

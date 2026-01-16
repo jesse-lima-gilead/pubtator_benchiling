@@ -64,30 +64,50 @@ class BenchlingConfig:
     @classmethod
     def from_dict(cls, config_dict: Dict) -> "BenchlingConfig":
         """Create config from dictionary (useful for Databricks widgets)."""
+        # Define all defaults inline since dataclass fields are instance attributes, not class attributes
+        # S3 defaults
+        default_bucket_name = "gilead-edp-kite-rd-dev-us-west-2-kite-benchling-text-sql"
+        default_bucket_region = "us-west-2"
+        default_source_prefix = "benchling_unstructured/"
+        
+        # Delta defaults
+        default_catalog = "kite_rd_dev"
+        default_schema = "pubtator"
+        default_documents_table = "benchling_documents"
+        default_chunks_table = "benchling_chunks"
+        
+        # Paths defaults
+        default_base_path = "/tmp/benchling_processing"
+        
+        # Config defaults
+        default_allowed_file_types = ["pdf", "docx", "xlsx", "pptx", "txt", "csv"]
+        default_embeddings_model = "pubmedbert"
+        default_embeddings_model_path = "s3://gilead-edp-kite-rd-dev-us-west-2-kite-benchling-text-sql/models/pubmedbert-base-embeddings/"
+        
         s3_config = BenchlingS3Config(
-            bucket_name=config_dict.get("s3_bucket", BenchlingS3Config.bucket_name),
-            bucket_region=config_dict.get("s3_region", BenchlingS3Config.bucket_region),
-            source_prefix=config_dict.get("s3_prefix", BenchlingS3Config.source_prefix),
+            bucket_name=config_dict.get("s3_bucket", default_bucket_name),
+            bucket_region=config_dict.get("s3_region", default_bucket_region),
+            source_prefix=config_dict.get("s3_prefix", default_source_prefix),
         )
         
         delta_config = BenchlingDeltaConfig(
-            catalog=config_dict.get("delta_catalog", BenchlingDeltaConfig.catalog),
-            schema=config_dict.get("delta_schema", BenchlingDeltaConfig.schema),
-            documents_table=config_dict.get("documents_table", BenchlingDeltaConfig.documents_table),
-            chunks_table=config_dict.get("chunks_table", BenchlingDeltaConfig.chunks_table),
+            catalog=config_dict.get("delta_catalog", default_catalog),
+            schema=config_dict.get("delta_schema", default_schema),
+            documents_table=config_dict.get("documents_table", default_documents_table),
+            chunks_table=config_dict.get("chunks_table", default_chunks_table),
         )
         
         paths_config = BenchlingPathsConfig(
-            base_path=config_dict.get("base_path", BenchlingPathsConfig.base_path),
+            base_path=config_dict.get("base_path", default_base_path),
         )
         
         return cls(
             s3=s3_config,
             delta=delta_config,
             paths=paths_config,
-            allowed_file_types=config_dict.get("allowed_file_types", cls.allowed_file_types),
-            embeddings_model=config_dict.get("embeddings_model", cls.embeddings_model),
-            embeddings_model_path=config_dict.get("embeddings_model_path", cls.embeddings_model_path),
+            allowed_file_types=config_dict.get("allowed_file_types", default_allowed_file_types),
+            embeddings_model=config_dict.get("embeddings_model", default_embeddings_model),
+            embeddings_model_path=config_dict.get("embeddings_model_path", default_embeddings_model_path),
         )
 
 

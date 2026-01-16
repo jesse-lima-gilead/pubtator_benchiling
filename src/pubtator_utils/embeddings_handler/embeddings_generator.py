@@ -35,9 +35,38 @@ def get_model_info(model_name: str):
         raise ValueError(f"Error loading model {model_name}: {e}")
 
 
-def load_embeddings_model(model_name: str = "pubmedbert"):
-    """Load model and tokenizer once at startup"""
-    model_path, token_limit = get_model_info(model_name)
+def load_embeddings_model(model_name: str = "pubmedbert", model_path: str = None):
+    """Load model and tokenizer once at startup.
+    
+    Args:
+        model_name: Name of the model to load (used for config lookup if model_path not provided)
+        model_path: Optional direct path to the model directory (bypasses config lookup)
+    
+    Returns:
+        Tuple of (model, tokenizer)
+    """
+    if model_path is None:
+        # Use YAML config for backward compatibility
+        model_path, token_limit = get_model_info(model_name)
+    
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    model = AutoModel.from_pretrained(model_path)
+    logger.info(f"Model and tokenizer loaded from {model_path}")
+    return model, tokenizer
+
+
+def load_embeddings_model_from_path(model_path: str):
+    """Load model and tokenizer from a specific path (no config lookup).
+    
+    This is useful for Databricks or other environments where YAML config
+    may not be available.
+    
+    Args:
+        model_path: Path to the model directory
+        
+    Returns:
+        Tuple of (model, tokenizer)
+    """
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     model = AutoModel.from_pretrained(model_path)
     logger.info(f"Model and tokenizer loaded from {model_path}")
@@ -55,7 +84,7 @@ def masked_mean_pooling(token_embeddings, attention_mask):
 
 
 def get_embeddings(
-    model_name, texts: List[str], model=None, tokenizer=None, stride=None
+    model_name, texts: List[str], model=None, tokenizer=None, stride=None, token_limit: int = None
 ):
     if model is None or tokenizer is None:
         # Fallback: load at runtime (not recommended for production)
@@ -65,7 +94,14 @@ def get_embeddings(
         logger.warning("Model loaded at runtime - consider using startup loading")
     else:
         logger.info(f"Model and tokenizer already loaded at startup")
-        _, token_limit = get_model_info(model_name)
+        # Try to get token_limit from config, but use default if config is unavailable
+        if token_limit is None:
+            try:
+                _, token_limit = get_model_info(model_name)
+            except Exception:
+                # Default token limit for BERT-based models
+                token_limit = 512
+                logger.warning(f"Could not get token_limit from config, using default: {token_limit}")
 
     max_length = token_limit
     stride = stride or max_length // 2

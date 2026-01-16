@@ -94,8 +94,10 @@ class BenchlingS3Client:
             True if successful, False otherwise
         """
         try:
-            # Ensure directory exists
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            # Ensure directory exists (handle case where dirname returns empty string)
+            dir_name = os.path.dirname(local_path)
+            if dir_name:
+                os.makedirs(dir_name, exist_ok=True)
             
             self.bucket.download_file(s3_key, local_path)
             logger.info(f"Downloaded {s3_key} to {local_path}")

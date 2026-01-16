@@ -15,7 +15,6 @@ import pandas as pd
 
 from src.data_ingestion.ingest_benchling.benchling_config import BenchlingConfig
 from src.pubtator_utils.file_handler.local_handler import LocalFileHandler
-from src.data_ingestion.ingestion_utils.pandoc_processor import PandocProcessor
 
 # Reuse existing XLSX processing functions
 from src.data_ingestion.ingest_apollo.ingest_xlsx.xlsx_table_processor import (
@@ -66,9 +65,6 @@ class BenchlingXLSXIngestor:
         self.chunks_path = paths["chunks_path"]
         self.embeddings_path = paths["embeddings_path"]
         self.failed_path = paths["failed_ingestion_path"]
-        
-        # Initialize Pandoc processor
-        self.pandoc_processor = PandocProcessor(pandoc_executable="pandoc")
     
     def make_safe_filename(self, filename: str, max_len: Optional[int] = None) -> str:
         """Produce a safe filename."""
@@ -98,29 +94,48 @@ class BenchlingXLSXIngestor:
         sheet_name: str,
         document_id: str,
     ) -> Optional[str]:
-        """Convert a single sheet to HTML via CSV."""
+        """Convert a single sheet to HTML directly using pandas.
+        
+        Note: Using pandas to_html instead of Pandoc because Pandoc doesn't
+        support CSV as an input format directly.
+        """
         safe_sheet_name = self.make_safe_filename(sheet_name)
         
         # Create sheet directory
         sheet_dir = os.path.join(self.interim_path, document_id, safe_sheet_name)
         Path(sheet_dir).mkdir(parents=True, exist_ok=True)
         
-        # Save as CSV
+        # Save as CSV for reference
         csv_path = os.path.join(sheet_dir, f"{safe_sheet_name}.csv")
         df.to_csv(csv_path, index=False)
         
-        # Convert CSV to HTML
+        # Convert DataFrame to HTML directly using pandas
         html_path = os.path.join(sheet_dir, f"{safe_sheet_name}.html")
         
         try:
-            self.pandoc_processor.convert(
-                input_path=csv_path,
-                output_path=html_path,
-                input_format="csv",
-                output_format="html",
-                failed_ingestion_path=self.failed_path,
-                extract_media_dir=sheet_dir,
+            # Generate HTML table from DataFrame
+            html_content = df.to_html(
+                index=False,
+                na_rep="",
+                classes=["dataframe", "table"],
+                border=1,
             )
+            
+            # Wrap in basic HTML structure
+            full_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{sheet_name}</title>
+</head>
+<body>
+{html_content}
+</body>
+</html>"""
+            
+            # Write HTML file
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(full_html)
             
             if os.path.exists(html_path):
                 logger.info(f"Converted sheet '{sheet_name}' to HTML")

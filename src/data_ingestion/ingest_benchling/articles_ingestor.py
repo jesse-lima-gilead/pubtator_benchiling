@@ -174,8 +174,9 @@ class BenchlingIngestor:
         # Get file extension
         ext = file_name.split(".")[-1].lower() if "." in file_name else ""
         
-        # Skip if not in allowed types
-        if ext not in self.config.allowed_file_types:
+        # Skip if not in allowed types (case-insensitive comparison)
+        allowed_types_lower = [t.lower() for t in self.config.allowed_file_types]
+        if ext not in allowed_types_lower:
             logger.info(f"Skipping {file_name}: extension {ext} not in allowed types")
             return False
         
@@ -263,8 +264,9 @@ class BenchlingIngestor:
                 results["skipped"] += 1
                 continue
             
-            # Skip if not in allowed types
-            if ext not in self.config.allowed_file_types:
+            # Skip if not in allowed types (case-insensitive comparison)
+            allowed_types_lower = [t.lower() for t in self.config.allowed_file_types]
+            if ext not in allowed_types_lower:
                 logger.info(f"Skipping {file_name}: extension {ext} not allowed")
                 results["skipped"] += 1
                 continue

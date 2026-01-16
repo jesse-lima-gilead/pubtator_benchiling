@@ -114,13 +114,22 @@ class BenchlingDOCXIngestor:
             
             doc_interim_dir = os.path.join(self.interim_path, document_id)
             
+            # The Apollo process_tables function has different signature:
+            # process_tables(html_str, source_filename, output_tables_path, article_metadata_path, table_state)
+            # We need to adapt it for Benchling use
             html_with_tables, table_details = process_tables(
                 html_str=html_content,
                 source_filename=f"{document_id}.html",
-                sheet_idx=1,
                 output_tables_path=doc_interim_dir,
-                article_metadata=metadata,
+                article_metadata_path=self.metadata_path,
+                table_state="remove",
             )
+            
+            # Add additional metadata to each table detail
+            for table in table_details:
+                if 'payload' in table:
+                    table['payload']['document_grsar_id'] = document_id
+                    table['payload'].update(metadata)
             
             # Save modified HTML
             self.file_handler.write_file(html_path, html_with_tables)

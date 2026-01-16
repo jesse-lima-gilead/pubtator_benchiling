@@ -1,17 +1,14 @@
-import subprocess, os
+import subprocess
+import os
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union, Optional, List
 
 from src.pubtator_utils.logs_handler.logger import SingletonLogger
-from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
-from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
+from src.pubtator_utils.file_handler.local_handler import LocalFileHandler
 
 # Initialize the logger
 logger_instance = SingletonLogger()
 logger = logger_instance.get_logger()
-
-# Initialize the config loader
-config_loader = YAMLConfigLoader()
 
 
 class PandocProcessor:
@@ -19,14 +16,29 @@ class PandocProcessor:
     Generic Pandoc processor for converting documents to desired formats.
     """
 
-    def __init__(self, pandoc_executable: str = "pandoc"):
+    def __init__(self, pandoc_executable: str = "pandoc", file_handler=None):
         self.pandoc_executable = pandoc_executable
-        # Retrieve paths config
-        paths = config_loader.get_config("paths")
-        storage_type = paths["storage"]["type"]
+        
+        # Use provided file handler or try to get from config
+        if file_handler is not None:
+            self.file_handler = file_handler
+        else:
+            try:
+                from src.pubtator_utils.config_handler.config_reader import YAMLConfigLoader
+                from src.pubtator_utils.file_handler.file_handler_factory import FileHandlerFactory
+                
+                # Initialize the config loader
+                config_loader = YAMLConfigLoader()
+                
+                # Retrieve paths config
+                paths = config_loader.get_config("paths")
+                storage_type = paths["storage"]["type"] if paths else "local"
 
-        # Get file handler instance from factory
-        self.file_handler = FileHandlerFactory.get_handler(storage_type)
+                # Get file handler instance from factory
+                self.file_handler = FileHandlerFactory.get_handler(storage_type)
+            except Exception as e:
+                logger.warning(f"Could not load config, using LocalFileHandler: {e}")
+                self.file_handler = LocalFileHandler()
 
     def convert(
         self,
@@ -36,8 +48,8 @@ class PandocProcessor:
         output_format: str,
         failed_ingestion_path: str,
         template_path=None,
-        extract_media_dir: Optional[str | Path] = None,
-        extra_args: Optional[list[str]] = None,
+        extract_media_dir: Optional[Union[str, Path]] = None,
+        extra_args: Optional[List[str]] = None,
     ) -> None:
         """
         Convert a document using pandoc.

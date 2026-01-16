@@ -87,11 +87,38 @@ class BenchlingArticleProcessor:
             try:
                 from src.pubtator_utils.embeddings_handler.embeddings_generator import (
                     load_embeddings_model,
+                    load_embeddings_model_from_path,
                 )
-                self._model, self._tokenizer = load_embeddings_model(
-                    model_name=self.embeddings_model
-                )
-                logger.info(f"Loaded embeddings model: {self.embeddings_model}")
+                
+                # Try to use model path from config first (inline config approach)
+                model_path = getattr(self.config, 'embeddings_model_path', None)
+                
+                # Check if model_path is an S3 path - if so, try local fallback paths
+                if model_path and model_path.startswith('s3://'):
+                    # For local execution, try common local paths
+                    import os
+                    local_paths = [
+                        f"./src/models/{self.embeddings_model}-base-embeddings",
+                        f"./models/{self.embeddings_model}-base-embeddings",
+                        f"/tmp/models/{self.embeddings_model}-base-embeddings",
+                    ]
+                    model_path = None
+                    for local_path in local_paths:
+                        if os.path.exists(local_path):
+                            model_path = local_path
+                            break
+                
+                if model_path and os.path.exists(model_path):
+                    # Use direct path loading (no YAML config needed)
+                    self._model, self._tokenizer = load_embeddings_model_from_path(model_path)
+                    logger.info(f"Loaded embeddings model from path: {model_path}")
+                else:
+                    # Fallback to YAML config-based loading
+                    self._model, self._tokenizer = load_embeddings_model(
+                        model_name=self.embeddings_model
+                    )
+                    logger.info(f"Loaded embeddings model: {self.embeddings_model}")
+                    
             except Exception as e:
                 logger.warning(f"Failed to load embeddings model: {e}")
                 self._model = None
