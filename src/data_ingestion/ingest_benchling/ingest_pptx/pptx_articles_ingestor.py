@@ -16,7 +16,7 @@ from src.pubtator_utils.file_handler.local_handler import LocalFileHandler
 
 # Reuse existing PPTX processing functions
 from src.data_ingestion.ingest_apollo.ingest_pptx.apollo_pptx_to_bioc_converter import (
-    convert_pptx_to_bioc,
+    pptx_to_bioc_converter,
 )
 from src.data_ingestion.ingest_apollo.ingest_pptx.pptx_table_processor import (
     process_tables,
@@ -81,13 +81,15 @@ class BenchlingPPTXIngestor:
     def convert_to_bioc(self, file_name: str, metadata: Dict[str, Any]):
         """Convert PPTX to BioC XML."""
         try:
-            convert_pptx_to_bioc(
-                pptx_file_name=file_name,
-                pptx_path=self.ingestion_path,
+            pptx_to_bioc_converter(
+                file_handler=self.file_handler,
+                internal_doc_name=file_name,
+                internal_docs_path=self.ingestion_path,
                 bioc_path=self.bioc_path,
-                metadata_path=self.metadata_path,
-                pptx_interim_path=self.interim_path,
-                article_metadata=metadata,
+                metadata_fields=metadata,
+                write_to_s3=False,
+                s3_bioc_path="",
+                s3_file_handler=self.file_handler,
             )
             logger.info(f"Converted {file_name} to BioC XML")
             
