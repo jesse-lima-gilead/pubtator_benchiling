@@ -301,6 +301,7 @@ class BenchlingArticleProcessor:
                     'article_id': document_id,
                     'file_name': doc_metadata.get('file_name', ''),
                     'file_path': doc_metadata.get('file_path', ''),
+                    'vector_field_name': 'vector',  # Default vector field name
                 }
                 
                 all_processed_chunks.append(processed_chunk)
@@ -365,6 +366,7 @@ class BenchlingArticleProcessor:
                 'article_id': document_id,
                 'file_name': payload.get('file_name', ''),
                 'file_path': payload.get('file_path', ''),
+                'vector_field_name': 'vector',  # Default vector field name
                 # Table-specific metadata
                 'row_count': payload.get('row_count', 0),
                 'column_count': payload.get('column_count', 0),
@@ -455,6 +457,31 @@ class BenchlingArticleProcessor:
         # Save to Delta
         if save_to_delta and self.write_to_delta and all_chunks:
             results["chunks_saved_to_delta"] = self.save_chunks_to_delta(all_chunks)
+            
+            # Update documents with chunk statistics
+            if self.delta_handler:
+                # Group chunks by document
+                from collections import defaultdict
+                chunks_by_doc = defaultdict(list)
+                for chunk in all_chunks:
+                    doc_id = chunk.get("document_grsar_id")
+                    if doc_id:
+                        chunks_by_doc[doc_id].append(chunk)
+                
+                # Update each document with aggregated stats
+                for doc_id, doc_chunks in chunks_by_doc.items():
+                    total_chunks = len(doc_chunks)
+                    total_annotations = sum(
+                        c.get("chunk_annotations_count", 0) for c in doc_chunks
+                    )
+                    vector_field_name = doc_chunks[0].get("vector_field_name") if doc_chunks else None
+                    
+                    self.delta_handler.update_document_with_chunk_stats(
+                        document_grsar_id=doc_id,
+                        total_chunks=total_chunks,
+                        total_chunk_annotations_count=total_annotations,
+                        vector_field_name=vector_field_name,
+                    )
         
         logger.info(f"Processing complete: {results}")
         return results
